@@ -1,0 +1,17 @@
+# Reference folder - contains local references and resources not tracked in git
+reference/
+
+# Local project and folder documentation (not pushed to GitHub)
+.PROJECT.md
+**/.FOLDER.md
+
+# Common OS files
+.DS_Store
+Thumbs.db
+
+# Editor/IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
