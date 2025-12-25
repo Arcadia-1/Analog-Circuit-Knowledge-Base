@@ -152,4 +152,5 @@ This LHP zero slightly improves phase at high frequencies but may affect settlin
 ### Transfer Function
 
 The complete transfer function:
+
 $$\boxed{A(s) = A_{\mathrm{dm}} \cdot \frac{1 - \frac{s}{\omega_Z}}{(1 + \frac{s}{\omega_{P1}})(1 + \frac{s}{\omega_{P2}})}}$$
