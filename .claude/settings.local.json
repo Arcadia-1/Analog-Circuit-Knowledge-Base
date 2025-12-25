@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch(domain:www.benjamin.hershberg.com)",
+      "WebFetch(domain:jsstec.org)"
+    ]
+  }
+}

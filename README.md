@@ -4,6 +4,9 @@ A knowledge repository for analog circuit design fundamentals, focusing on ampli
 
 ## Contents
 
+### `Single-Transistor-Amplifier-Configurations.md`
+Reference guide for the three fundamental MOSFET amplifier topologies (Common Source, Common Gate, Common Drain). Includes voltage gain, input/output impedance analysis, and typical applications for each configuration.
+
 ### `5T-Differential-Amplifier-Analysis.md`
 Complete mathematical analysis of 5-transistor differential amplifiers including differential/common-mode gains, CMRR, PSRR, noise analysis (thermal and flicker), and frequency response (poles, zeros, transfer function).
 
