@@ -145,6 +145,7 @@ The zero arises from asymmetric signal paths to the output:
 - **Path 2 (mirror):** $V_{\mathrm{in}+} \rightarrow$ M1 $\rightarrow$ M3 $\rightarrow$ M4 $\rightarrow V_{\mathrm{out}}$ (slow path)
 
 The zero angular frequency:
+
 $$\boxed{\omega_Z \approx 2 \omega_{P2} = \frac{2g_{\mathrm{m3}}}{C_X}}$$
 
 This LHP zero slightly improves phase at high frequencies but may affect settling time.
