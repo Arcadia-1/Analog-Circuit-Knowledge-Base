@@ -8,44 +8,44 @@ Input: figures/bandwidth_comparison.png, code/plot_bandwidth_comparison.py | Out
 
 For a single-pole amplifier:
 
-$$\boxed{GBW = A_v \cdot BW = A_0 \cdot \omega_{P1}}$$
+$$\boxed{\mathrm{GBW} = A_{\mathrm{v}} \cdot \mathrm{BW} = A_{\mathrm{0}} \cdot \omega_{p1}}$$
 
-where $A_v$ is closed-loop gain, $BW$ is -3dB bandwidth, $A_0$ is DC open-loop gain, and $\omega_{P1}$ is the dominant pole.
+where $A_{\mathrm{v}}$ is closed-loop gain, $\mathrm{BW}$ is -3dB bandwidth, $A_{\mathrm{0}}$ is DC open-loop gain, and $\omega_{p1}$ is the dominant pole.
 
 The unity-gain bandwidth:
 
-$$\boxed{\omega_u = GBW}$$
+$$\boxed{\omega_{\mathrm{u}} = \mathrm{GBW}}$$
 
 ## Closed-Loop Bandwidth
 
 For negative feedback with feedback factor $\beta$:
 
-$$A_{CL} = \frac{A_0}{1 + A_0 \beta} \approx \frac{1}{\beta} \quad \text{(when } A_0 \beta \gg 1\text{)}$$
+$$A_{\mathrm{CL}} = \frac{A_{\mathrm{0}}}{1 + A_{\mathrm{0}} \beta} \approx \frac{1}{\beta} \quad \text{(when } A_{\mathrm{0}} \beta \gg 1\text{)}$$
 
-$$\boxed{BW_{CL} = BW_{OL} \cdot (1 + A_0 \beta) \approx \frac{GBW}{A_{CL}}}$$
+$$\boxed{\mathrm{BW}_{\mathrm{CL}} = \mathrm{BW}_{\mathrm{OL}} \cdot (1 + A_{\mathrm{0}} \beta) \approx \frac{\mathrm{GBW}}{A_{\mathrm{CL}}}}$$
 
-**Key Tradeoff:** Reducing gain increases bandwidth, while GBW remains constant.
+**Key Tradeoff:** Reducing gain increases bandwidth, while $\mathrm{GBW}$ remains constant.
 
 ## Bandwidth Comparison
 
-![Bandwidth Comparison](figures/bandwidth_comparison.png)
+<img src="figures/bandwidth_comparison.png" alt="Bandwidth Comparison" width="75%">
 
-The figure shows two cases with the same GBW but different open-loop gains:
+The figure shows two cases with the same $\mathrm{GBW}$ but different open-loop gains:
 - **Case 1 (60 dB)**: Lower open-loop gain, higher bandwidth at same closed-loop gain
 - **Case 2 (80 dB)**: Higher open-loop gain, higher loop gain → better PSRR and distortion
 
-All curves intersect at unity-gain frequency (GBW), demonstrating gain-bandwidth conservation.
+All curves intersect at unity-gain frequency ($\mathrm{GBW}$), demonstrating gain-bandwidth conservation.
 
 ## For 5T Differential Amplifier
 
-$$\boxed{\omega_u = \frac{g_{m1}}{C_L}}$$
+$$\boxed{\omega_{\mathrm{u}} = \frac{g_{\mathrm{m1}}}{C_{\mathrm{L}}}}$$
 
 ## Multi-Stage Bandwidth
 
 For cascaded stages:
 
-$$\frac{1}{BW_{total}^2} = \frac{1}{BW_1^2} + \frac{1}{BW_2^2} + \frac{1}{BW_3^2} + \ldots$$
+$$\frac{1}{\mathrm{BW}_{\mathrm{total}}^2} = \frac{1}{\mathrm{BW}_{\mathrm{1}}^2} + \frac{1}{\mathrm{BW}_{\mathrm{2}}^2} + \frac{1}{\mathrm{BW}_{\mathrm{3}}^2} + \ldots$$
 
 For $n$ identical stages:
 
-$$BW_{total} = BW_{stage} \cdot \sqrt{2^{1/n} - 1}$$
+$$\mathrm{BW}_{\mathrm{total}} = \mathrm{BW}_{\mathrm{stage}} \cdot \sqrt{2^{1/n} - 1}$$

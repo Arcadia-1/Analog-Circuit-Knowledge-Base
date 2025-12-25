@@ -1,22 +1,17 @@
 # Analog Circuit Knowledge Base
 
-**⚠️ UPDATE THIS FILE whenever any changes are made to the root directory.**
-
 A knowledge repository for analog circuit design fundamentals, focusing on amplifier theory, calculations, and analysis.
 
-## Root Files
+## Contents
 
 ### `5T-Differential-Amplifier-Analysis.md`
-- **Usage**: Core knowledge document in the project root
-- **Functionality**: Complete mathematical analysis of 5-transistor differential amplifiers including differential/common-mode gains, CMRR, PSRR, noise analysis (thermal and flicker), and frequency response (poles, zeros, transfer function).
+Complete mathematical analysis of 5-transistor differential amplifiers including differential/common-mode gains, CMRR, PSRR, noise analysis (thermal and flicker), and frequency response (poles, zeros, transfer function).
 
 ### `Amplifier-Bandwidth-Calculations.md`
-- **Usage**: Core knowledge document in the project root
-- **Functionality**: Comprehensive guide to amplifier bandwidth theory including GBW fundamentals, closed-loop bandwidth calculations, gain-bandwidth tradeoffs, multi-stage bandwidth, and phase margin considerations. Includes analysis of bandwidth comparison figure.
+Comprehensive guide to amplifier bandwidth theory including gain-bandwidth product (GBW) fundamentals, closed-loop bandwidth calculations, gain-bandwidth tradeoffs, and multi-stage bandwidth analysis with visual comparisons.
 
 ### `Phase-Noise-Calculations.md`
-- **Usage**: Core knowledge document in the project root
-- **Functionality**: Bidirectional conversion formulas between phase noise and amplitude noise, including definitions, step-by-step derivations, direct formulas, and worked examples for high-speed applications.
+Bidirectional conversion formulas between phase noise and amplitude noise, including definitions, step-by-step derivations, direct formulas, and worked examples for high-speed applications.
 
 ## Directories
 
@@ -24,7 +19,7 @@ A knowledge repository for analog circuit design fundamentals, focusing on ampli
 Python scripts for generating figures and visualizations.
 
 ### `figures/`
-Generated plots and images referenced in markdown documentation.
+Generated plots and images referenced in the documentation.
 
-### `reference/` (git-ignored)
+### `reference/`
 Local reference materials including LaTeX source documents and papers.

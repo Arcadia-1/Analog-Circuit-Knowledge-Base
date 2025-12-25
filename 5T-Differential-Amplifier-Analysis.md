@@ -11,10 +11,10 @@ This is an **active-loaded (current mirror loaded) differential amplifier**, not
 **Transistor Configuration:**
 - **M1, M2**: Differential input pair (NMOS)
 - **M3, M4**: Active load current mirror (PMOS)
-- **Mtail**: Tail current source (NMOS)
+- **M$_{\mathrm{tail}}$**: Tail current source (NMOS)
 
 **Node Naming:**
-- **Node X**: Drain of Mtail (common source of M1 and M2)
+- **Node X**: Drain of M$_{\mathrm{tail}}$ (common source of M1 and M2)
 - **Node Y**: Drain of M1 (diode side of current mirror, connects to M3)
 - **Output**: Drain of M2/M4 node
 
@@ -28,6 +28,7 @@ $$\boxed{A_{\mathrm{dm}} = -g_{\mathrm{m1}} (r_{\mathrm{o1}} \| r_{\mathrm{o3}})
 $$A_{\mathrm{cm}} = -\frac{g_{\mathrm{m1}}}{1 + 2 g_{\mathrm{m1}} r_{\mathrm{o,tail}}} (r_{\mathrm{o1}} \| r_{\mathrm{o3}})$$
 
 **Engineering approximation** (when $2 g_{\mathrm{m1}} r_{\mathrm{o,tail}} \gg 1$):
+
 $$\boxed{A_{\mathrm{cm}} \approx -\frac{r_{\mathrm{o1}} \| r_{\mathrm{o3}}}{2 r_{\mathrm{o,tail}}}}$$
 
 ## Common Mode Rejection Ratio (CMRR)
@@ -75,6 +76,7 @@ Voltage divider: Since $R_{\mathrm{down}} \gg R_{\mathrm{up}}$:
 $$\boxed{\frac{v_{\mathrm{out}}}{v_{\mathrm{VDD}}} \approx \frac{R_{\mathrm{down}}}{R_{\mathrm{up}} + R_{\mathrm{down}}} \approx 1}$$
 
 **Poor positive PSRR:**
+
 $$\boxed{PSRR^+ = \left|\frac{A_{\mathrm{dm}}}{v_{\mathrm{out}}/v_{\mathrm{VDD}}}\right| \approx |A_{\mathrm{dm}}| \approx g_{\mathrm{m1}} (r_{\mathrm{o1}} \| r_{\mathrm{o3}})}$$
 
 This is typically 0-20 dB, very poor. VDD noise couples directly to output.
@@ -84,6 +86,7 @@ This is typically 0-20 dB, very poor. VDD noise couples directly to output.
 $$\frac{v_{\mathrm{out}}}{v_{\mathrm{VSS}}} = A_{\mathrm{cm}} \approx -\frac{r_{\mathrm{o1}} \| r_{\mathrm{o3}}}{2 r_{\mathrm{o,tail}}}$$
 
 The negative PSRR is:
+
 $$\boxed{PSRR^- = \left|\frac{A_{\mathrm{dm}}}{v_{\mathrm{out}}/v_{\mathrm{VSS}}}\right| = 2 g_{\mathrm{m1}} r_{\mathrm{o,tail}}}$$
 
 ## Noise Analysis
@@ -91,62 +94,88 @@ $$\boxed{PSRR^- = \left|\frac{A_{\mathrm{dm}}}{v_{\mathrm{out}}/v_{\mathrm{VSS}}
 ### Thermal Noise
 
 Drain current noise of each input transistor:
+
 $$\overline{i_{\mathrm{n,M1}}^2} = 4kT\gamma g_{\mathrm{m1}} \Delta f$$
 
 Input-referred voltage noise (both M1 and M2):
+
 $$\overline{v_{\mathrm{n,in,M1M2}}^2} = 8kT\gamma \frac{1}{g_{\mathrm{m1}}} \Delta f$$
 
 Drain current noise of each load transistor:
+
 $$\overline{i_{\mathrm{n,M3}}^2} = \overline{i_{\mathrm{n,M4}}^2} = 4kT\gamma g_{\mathrm{m3}} \Delta f$$
 
 Input-referred voltage noise (both M3 and M4 contribute equally):
+
 $$\overline{v_{\mathrm{n,in,M3M4}}^2} = 8kT\gamma \frac{g_{\mathrm{m3}}}{g_{\mathrm{m1}}^2} \Delta f$$
 
 **Total input-referred thermal noise:**
+
 $$\boxed{\overline{v_{\mathrm{n,in}}^2} =  \frac{8kT\gamma}{g_{\mathrm{m1}}} \left(1 + \frac{g_{\mathrm{m3}}}{g_{\mathrm{m1}}}\right) \Delta f}$$
 
 ### Flicker Noise (1/f Noise)
 
 Input-referred flicker noise from M1 and M2:
+
 $$\overline{v_{\mathrm{n,flicker,M1M2}}^2} = 2 \cdot \frac{K_1}{W_1 L_1 C_{\mathrm{ox}} f} \Delta f$$
 
 Input-referred flicker noise from M3 and M4:
+
 $$\overline{v_{\mathrm{n,flicker,M3M4}}^2} = 2 \cdot \frac{K_3 g_{\mathrm{m3}}^2}{W_3 L_3 C_{\mathrm{ox}} f \cdot g_{\mathrm{m1}}^2} \Delta f$$
 
 **Total noise spectral density:**
+
 $$\boxed{S_{\mathrm{v,n,total}} = 8kT\gamma \frac{1}{g_{\mathrm{m1}}} \left(1 + \frac{g_{\mathrm{m3}}}{g_{\mathrm{m1}}}\right) + \frac{2K_1}{W_1 L_1 C_{\mathrm{ox}} f} + \frac{2K_3 g_{\mathrm{m3}}^2}{W_3 L_3 C_{\mathrm{ox}} f \cdot g_{\mathrm{m1}}^2}}$$
 
 ## Poles and Zeros
 
-### Dominant Pole ($\omega_{P1}$)
+### Dominant Pole ($\omega_{p1}$)
 
 **Location:** Output node
 
 The dominant pole determines the -3dB bandwidth:
-$$\boxed{\omega_{P1} = \frac{1}{R_{\mathrm{out}} C_L}}$$
 
-where $R_{\mathrm{out}} = r_{\mathrm{o1}} \| r_{\mathrm{o3}}$ and $C_L$ is the load capacitance.
+$$\boxed{\omega_{p1} = \frac{1}{R_{\mathrm{out}} C_{\mathrm{L}}}}$$
 
-### Non-Dominant Pole ($\omega_{P2}$) - Mirror Pole
+where $R_{\mathrm{out}} = r_{\mathrm{o1}} \| r_{\mathrm{o3}}$ and $C_{\mathrm{L}}$ is the load capacitance.
+
+### Non-Dominant Pole ($\omega_{p2}$) - Mirror Pole
 
 **Location:** Current mirror node (gate of M3 and M4)
 
 The mirror pole affects phase margin and stability:
-$$\boxed{\omega_{P2} = \frac{g_{\mathrm{m3}}}{C_X}}$$
 
-where $C_X$ is the parasitic capacitance at the mirror node:
-$$C_X \approx C_{\mathrm{gs3}} + C_{\mathrm{gs4}} + C_{\mathrm{db3}}$$
+$$\boxed{\omega_{p2} = \frac{g_{\mathrm{m3}}}{C_{\mathrm{X}}}}$$
 
-### Left-Half-Plane Zero ($\omega_Z$)
+where $C_{\mathrm{X}}$ is the parasitic capacitance at the mirror node:
+
+$$C_{\mathrm{X}} \approx C_{\mathrm{gs3}} + C_{\mathrm{gs4}} + C_{\mathrm{db3}}$$
+
+### Left-Half-Plane Zero ($\omega_z$)
 
 The zero arises from asymmetric signal paths to the output:
 
 - **Path 1 (direct):** $V_{\mathrm{in}-} \rightarrow$ M2 $\rightarrow V_{\mathrm{out}}$ (fast path)
+  - Transfer function: $H_1(s) = -g_{\mathrm{m2}} (r_{\mathrm{o2}} \| r_{\mathrm{o4}})$
+
 - **Path 2 (mirror):** $V_{\mathrm{in}+} \rightarrow$ M1 $\rightarrow$ M3 $\rightarrow$ M4 $\rightarrow V_{\mathrm{out}}$ (slow path)
+  - Transfer function: $H_2(s) = +g_{\mathrm{m1}} (r_{\mathrm{o1}} \| r_{\mathrm{o3}}) \cdot \frac{1}{1 + s/\omega_{p2}}$
+
+For differential input $v_{\mathrm{in}} = v_{\mathrm{in}+} - v_{\mathrm{in}-}$, the differential gain is:
+
+$$A_{\mathrm{dm}}(s) = \frac{H_2(s) - H_1(s)}{2}$$
+
+At the zero frequency, the differential gain numerator vanishes ($H_2 = H_1$):
+
+$$g_{\mathrm{m1}} (r_{\mathrm{o1}} \| r_{\mathrm{o3}}) \cdot \frac{1}{1 + s_z/\omega_{p2}} = -g_{\mathrm{m2}} (r_{\mathrm{o2}} \| r_{\mathrm{o4}})$$
+
+For matched devices ($g_{\mathrm{m1}} \approx g_{\mathrm{m2}}$, $r_{\mathrm{o1}} \| r_{\mathrm{o3}} \approx r_{\mathrm{o2}} \| r_{\mathrm{o4}}$):
+
+$$\frac{1}{1 + s_z/\omega_{p2}} = -1 \quad \Rightarrow \quad s_z = -2\omega_{p2}$$
 
 The zero angular frequency:
 
-$$\boxed{\omega_Z \approx 2 \omega_{P2} = \frac{2g_{\mathrm{m3}}}{C_X}}$$
+$$\boxed{\omega_z \approx 2 \omega_{p2} = \frac{2g_{\mathrm{m3}}}{C_{\mathrm{X}}}}$$
 
 This LHP zero slightly improves phase at high frequencies but may affect settling time.
 
@@ -154,4 +183,4 @@ This LHP zero slightly improves phase at high frequencies but may affect settlin
 
 The complete transfer function:
 
-$$\boxed{A(s) = A_{\mathrm{dm}} \cdot \frac{1 - \frac{s}{\omega_Z}}{(1 + \frac{s}{\omega_{P1}})(1 + \frac{s}{\omega_{P2}})}}$$
+$$\boxed{A(s) = A_{\mathrm{dm}} \cdot \frac{1 - \frac{s}{\omega_z}}{(1 + \frac{s}{\omega_{p1}})(1 + \frac{s}{\omega_{p2}})}}$$
