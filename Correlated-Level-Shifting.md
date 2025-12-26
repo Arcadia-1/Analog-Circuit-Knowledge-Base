@@ -11,15 +11,6 @@ Position: Advanced gain enhancement technique for low-gain amplifiers
 
 **Correlated Level Shifting (CLS)** is a switched-capacitor technique that achieves high-accuracy signal processing with low-gain amplifiers. By correlating the finite-gain errors across multiple signal processing stages, CLS can provide true **rail-to-rail performance** and **>60 dB effective gain** using amplifiers with only 30-40 dB open-loop gain.
 
-### Key Advantages
-
-- ✅ **High effective gain**: >60 dB performance from 30 dB opamps
-- ✅ **Simple amplifiers**: Single-stage opamps sufficient
-- ✅ **Lower power**: Simple amplifiers consume less power
-- ✅ **Better scalability**: Works well in nanoscale CMOS
-- ✅ **Rail-to-rail capability**: True rail-to-rail swing even with finite gain
-- ✅ **Minimal noise penalty**: Negligible additive noise
-
 ---
 
 ## Fundamental Principle
@@ -781,27 +772,3 @@ $$V_{n,\mathrm{total}}^2 = \frac{kT}{C_S} + \frac{kT}{C_{\mathrm{LS}}} + V_{n,\m
 
 $$G_{\mathrm{noise}} = 1 + \frac{C_{\mathrm{LS}}}{C_S}$$
 
----
-
-## References and Sources
-
-- [Sequential Correlated Level Shifting: A Switched-Capacitor Approach for High-Accuracy Systems](https://ieeexplore.ieee.org/document/6613543/) - SCLS technique
-- [An Over-60 dB True Rail-to-Rail Performance Using CLS](https://ieeexplore.ieee.org/abstract/document/4684624/) - Rail-to-rail CLS
-- [Correlated level shifting technique](https://ece.osu.edu/media/document/2022-08-30/cc_cls.pdf) - Tutorial slides
-- [The effect of correlated level shifting on noise performance](https://ieeexplore.ieee.org/document/6272200) - Noise analysis
-- [Look Ahead CLS in Pipelined SAR ADCs](https://ieeexplore.ieee.org/document/9937476/) - High-speed CLS
-- [Sequential Correlated Level Shifting - Texas A&M](https://people.engr.tamu.edu/spalermo/docs/2013_sequential_correlated_level_shifting_zhiantabasy_tcas2.pdf) - Detailed paper
-- [The CLS as a Gain Enhancement Technique for Comparator Based Integrators](https://www.researchgate.net/publication/272495524_The_Correlated_Level_Shifting_as_a_Gain_Enhancement_Technique_for_Comparator_Based_Integrators) - CBSC application
-- [Ping-Pong Operated Inverter-based OTA using CLS](https://ieeexplore.ieee.org/document/9278332/) - Inverter OTA
-- [Charge-compensated correlated level shifting for single-stage opamps](https://ietresearch.onlinelibrary.wiley.com/doi/full/10.1049/el.2015.0614) - Charge compensation
-
----
-
-## Related Topics
-
-See also:
-- [Correlated-Double-Sampling.md](Correlated-Double-Sampling.md) - CDS for noise cancellation
-- [kTC-Noise-Cancellation.md](kTC-Noise-Cancellation.md) - Reset noise cancellation
-- [Floating-Inverter-Amplifier.md](Floating-Inverter-Amplifier.md) - Simple dynamic amplifiers
-- [5T-Differential-Amplifier-Analysis.md](5T-Differential-Amplifier-Analysis.md) - Traditional amplifier design
-- [Amplifier-Bandwidth-Calculations.md](Amplifier-Bandwidth-Calculations.md) - Settling time analysis

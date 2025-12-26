@@ -11,10 +11,10 @@ This is an **active-loaded (current mirror loaded) differential amplifier**, not
 **Transistor Configuration:**
 - **M1, M2**: Differential input pair (NMOS)
 - **M3, M4**: Active load current mirror (PMOS)
-- **M$_{\mathrm{tail}}$**: Tail current source (NMOS)
+- **M_tail**: Tail current source (NMOS)
 
 **Node Naming:**
-- **Node X**: Drain of M$_{\mathrm{tail}}$ (common source of M1 and M2)
+- **Node X**: Drain of M_tail (common source of M1 and M2)
 - **Node Y**: Drain of M1 (diode side of current mirror, connects to M3)
 - **Output**: Drain of M2/M4 node
 
@@ -177,7 +177,18 @@ The zero angular frequency:
 
 $$\boxed{\omega_z \approx 2 \omega_{p2} = \frac{2g_{\mathrm{m3}}}{C_{\mathrm{X}}}}$$
 
-This LHP zero slightly improves phase at high frequencies but may affect settling time.
+**Impact on settling time:**
+
+Since $\omega_z \approx 2\omega_{p2}$, the zero and non-dominant pole form a **pole-zero doublet** (靠近的极-零点对). In the time-domain step response, this doublet produces a **slow-settling tail** (长拖尾) with:
+- Small amplitude but long duration
+- Settling accuracy limited by doublet residue
+- Critical issue for high-precision switched-capacitor circuits requiring fast settling
+
+**Doublet settling time:**
+
+$$t_{\mathrm{doublet}} \approx \frac{1}{\omega_{p2} - \omega_z/2} = \frac{2}{\omega_{p2}}$$
+
+This tail can dominate settling time for tight accuracy requirements (e.g., 0.1% or better).
 
 ### Transfer Function
 

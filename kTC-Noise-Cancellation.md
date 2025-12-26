@@ -268,20 +268,3 @@ $$C_{\mathrm{min}} = \frac{kT \cdot 10^{\mathrm{SNR}/10}}{V_{\mathrm{signal}}^2}
 
 $$V_{n,\mathrm{residual}}^2 = \frac{kT}{C} \cdot \left(\frac{\Delta C}{C}\right)^2$$
 
----
-
-## References and Sources
-
-- [An improved kT/C noise cancellation technique with presampling for high-speed SAR ADCs](https://ietresearch.onlinelibrary.wiley.com/doi/full/10.1049/ell2.13298) - 2024 presampling technique
-- [Sampling Circuits That Break the kT/C Thermal Noise Limit](https://www.ttcenter.ir/ArticleFiles/ENARTICLE/3740.pdf) - Breaking kT/C limit
-- [Design of a 13-Bit SAR ADC with kT/C noise cancellation technique](https://lup.lub.lu.se/student-papers/record/9142088/file/9142093.pdf) - SAR ADC implementation
-- [Noise Optimization Techniques for Switched-Capacitor Based Neural Interfaces](https://par.nsf.gov/servlets/purl/10210710) - Neural interface applications
-
----
-
-## Related Topics
-
-See also:
-- [Correlated-Double-Sampling.md](Correlated-Double-Sampling.md) - CDS for reset noise
-- [Correlated-Level-Shifting.md](Correlated-Level-Shifting.md) - CLS for gain enhancement
-- [Floating-Inverter-Amplifier.md](Floating-Inverter-Amplifier.md) - Energy-efficient amplifiers

@@ -1,404 +1,358 @@
 # Ring Amplifier
 
 <!--
-Input: Internet research, ISSCC/JSSC publications
-Output: Basic formulas and design insights for ring amplifier topology
-Position: Advanced amplifier for switched-capacitor circuits
-⚠️ After any change, update this comment AND .PROJECT.md
+Input: reference/笔记_RingAmp_20230611.pdf, reference/詹明韬Design Report.pdf, reference/ringamp/
+Output: Ring amplifier working principle and design equations
+Position: Dynamic amplifier for switched-capacitor circuits
+⚠️ Updated: Complete rewrite based on dead-zone stabilization mechanism
 -->
 
 ## Overview
 
-**Ring Amplifier** (Ringamp) is a novel amplification technique introduced at ISSCC 2012 by B. Hershberg, S. Weaver, and U.-K. Moon from Oregon State University. It achieves efficient amplification in nanoscale CMOS by using a cascade of **dynamically stabilized inverter stages**.
-
-### Key Advantages
-
-- ✅ **Process scalable**: Leverages benefits of technology scaling
-- ✅ **High bandwidth**: Excellent speed performance
-- ✅ **Good power efficiency**: Suitable for low-power applications
-- ✅ **Flat open-loop gain**: Better linearity than traditional amplifiers
-- ✅ **Low-voltage compatible**: Works well in nanoscale processes
+**Split ring oscillator with dead-zone stabilization** for switched-capacitor circuits. Achieves 70+ dB effective gain with excellent power efficiency by locking output stage OFF in steady state.
 
 ---
 
-## Working Principle
+## Working Principle - Three Phases
 
-### Basic Structure
+### Phase 1: Slewing
 
-A ring amplifier is fundamentally a **ring oscillator that has been split into two signal paths**, with different offsets embedded in each path. This creates an input-referred **"dead-zone"** for which neither output transistor will conduct.
+First two stages act as **comparators** controlling output stage gates. Large input → output NMOS/PMOS fully on/off → maximum current charges $C_L$.
 
-```
-Ring Oscillator → Split into 2 paths → Add offset (dead-zone) → Ring Amplifier
-```
+$$\boxed{SR = \frac{I_{\mathrm{out,p}} + I_{\mathrm{out,n}}}{C_L}}$$
 
-**Key concept**: Any value for V_IN within the dead-zone region is a viable steady-state solution. The input-referred value of the dead-zone determines the **overall accuracy** of the amplifier.
+### Phase 2: Stabilization
 
-### Dead-Zone Embedding
+Input voltage **oscillates around dead-zone** until settling within bounds. Larger dead-zone → fewer oscillations.
 
-The dead-zone is embedded **prior to the second stage inverters** by storing a voltage offset across capacitors. This offset determines:
-1. **Stability** of the amplification
-2. **Accuracy** of the output
-3. **Linearity** characteristics
+### Phase 3: Steady State (Dead-Zone Lock)
+
+Input voltage locks into dead-zone range:
+
+$$\boxed{V_{\mathrm{in}} \in \left[-\frac{V_{\mathrm{os}}}{A_1}, \frac{V_{\mathrm{os}}}{A_1}\right]}$$
+
+where $V_{\mathrm{os}}$ = embedded offset voltage, $A_1$ = first stage gain.
+
+**At steady state:** $V_{BP} = 1$, $V_{BN} = 0$, output PMOS/NMOS both **OFF**, output voltage **frozen** on $C_L$ → **equivalent DC gain → ∞**.
 
 ---
 
-## Key Formulas
+## Dead-Zone Embedding
 
-### 1. Basic Voltage Gain
+Inject offset voltage $\pm V_{\mathrm{os}}$ **before second-stage inverters** using: (1) switched capacitors, (2) capacitive level shifting, or (3) resistor/current biasing.
 
-For a simple ring amplifier configuration:
+$$\boxed{V_{\mathrm{DZ,in}} = \frac{\pm V_{\mathrm{os}}}{A_1}}$$
 
-$$\boxed{A_V \approx g_m \cdot R_{\mathrm{out}}}$$
+**Trade-off:** Smaller dead-zone → higher accuracy, less stable. Larger dead-zone → more stable, requires higher $A_1$.
 
-where:
-- $g_m$ = transconductance of inverter stage
-- $R_{\mathrm{out}}$ = output impedance
+---
 
-### 2. Dead-Zone Width
+## Effective Gain
 
-The dead-zone width ($\Delta V_{\mathrm{DZ}}$) determines amplifier accuracy:
+$$\boxed{A_{\mathrm{eff}} = \frac{V_{\mathrm{signal}}}{V_{\mathrm{residual}}} \approx A_1 \times \frac{1}{\Delta V_{\mathrm{DZ,in}}}}$$
 
-$$\boxed{\mathrm{Accuracy} \approx \frac{1}{1 + A_{\mathrm{OL}}}}$$
+**Typical values:**
+- Class-B with dead-zone: 50-70 dB
+- Class-AB with Monticelli cell: 70+ dB
 
-where:
-- $A_{\mathrm{OL}}$ = open-loop gain related to dead-zone width
+**Gain mechanism:** Dead-zone locking (output stage OFF), NOT linear $g_m \cdot R_o$ amplification.
 
-**Smaller dead-zone → Higher accuracy**
+---
 
-### 3. Bandwidth
+## Bandwidth (GBW)
 
-Ring amplifiers provide high bandwidth due to the inverter-based topology:
+$$\boxed{GBW = \frac{A_{v1} A_{v2} g_{m3}}{2\pi C_L}}$$
 
-$$\boxed{BW \propto \frac{1}{\tau_{\mathrm{inv}} \cdot N}}$$
+**Expanded form:**
 
-where:
-- $\tau_{\mathrm{inv}}$ = inverter delay
-- $N$ = number of stages in the ring
-
-### 4. Power Efficiency
-
-The power consumption scales with:
-
-$$\boxed{P_{\mathrm{total}} = N \cdot I_{\mathrm{bias}} \cdot V_{\mathrm{DD}}}$$
+$$\boxed{GBW = \frac{g_{m1} r_{o1} \cdot g_{m2} r_{o2} \cdot g_{m3}}{2\pi C_L}}$$
 
 where:
-- $N$ = number of inverter stages
-- $I_{\mathrm{bias}}$ = bias current per stage
-- $V_{\mathrm{DD}}$ = supply voltage
+- $A_{v1} = g_{m1} r_{o1}$ = gain of first stage
+- $A_{v2} = g_{m2} r_{o2}$ = gain of second stage
+- $g_{m3}$ = transconductance of output stage
+- $C_L$ = load capacitance
 
-**Advantage**: Efficient use of bias current through multiple stages
+**Relation:** $GBW = A_{v1} \cdot A_{v2} \cdot UGB_3$ where $UGB_3 = \frac{g_{m3}}{2\pi C_L}$
 
-### 5. Settling Time
+**Dynamic bandwidth:** During settling, instantaneous GBW increases → can use 3-4× lower initial GBW vs static OTA.
 
-The settling behavior is governed by:
+Typical: 50-120 MHz
+
+---
+
+## Poles
+
+**Dominant pole:** At output node
+
+$$\boxed{p_{\mathrm{dom}} = \frac{1}{R_{\mathrm{out}} C_L} = \frac{g_{m3}}{A_{v3} C_L}}$$
+
+where $A_{v3}$ = output stage gain, $R_{\mathrm{out}} = r_{o3,p} \| r_{o3,n}$
+
+**Non-dominant poles:** At internal nodes (stages 1 and 2)
+
+$$\boxed{p_1 = \frac{g_{m2}}{C_1}, \quad p_2 = \frac{g_{m3}}{C_2}}$$
+
+**Approximate relation:**
+
+$$\boxed{p_1 \approx p_2 \approx \frac{f_T}{A_v}}$$
+
+where $f_T$ = transistor intrinsic cutoff frequency, $A_v$ = per-stage gain.
+
+**Stability criterion:**
+
+$$\boxed{f_T \gg GBW \cdot A_v}$$
+
+$$PM \propto \frac{1}{\sqrt{1 + \left(\frac{p_1}{GBW}\right)^2}}$$
+
+---
+
+## Settling Time
 
 $$\boxed{t_{\mathrm{settle}} \approx N \cdot \tau_{\mathrm{inv}} \cdot \ln\left(\frac{1}{\varepsilon}\right)}$$
 
-where:
-- $\varepsilon$ = required settling accuracy
-- $N$ = number of stages
-- $\tau_{\mathrm{inv}}$ = propagation delay per inverter
+where $N$ = number of stages, $\tau_{\mathrm{inv}}$ = inverter delay, $\varepsilon$ = accuracy.
+
+Typical: 10-15 ns for 0.1% accuracy (40nm @ 1.1V)
 
 ---
 
-## Advanced Techniques
+## Slew Rate
 
-### 1. Dead-Zone Degeneration (DZD)
+$$\boxed{SR = \frac{I_{\mathrm{out,p}} + I_{\mathrm{out,n}}}{C_L}}$$
 
-**Purpose**: Extend linearity limits
+**SR/GBW ratio:**
 
-**Method**: Dynamically adjust the dead-zone width based on signal conditions
+$$\boxed{\frac{SR}{GBW} = \frac{4\pi}{A_{v1} A_{v2} g_{m3}/I_{\mathrm{on}}}}$$
 
-**Benefit**: Improved THD and SFDR performance
+Much higher SR/GBW than Miller OTA due to $A_{v1} A_{v2}$ denominator.
 
-### 2. Second-Stage Bias Enhancement
-
-**Purpose**: Increase speed limits
-
-**Method**: Enhance biasing in second stage of inverter chain
-
-**Benefit**: Higher bandwidth without proportional power increase
-
-### 3. Multi-Stage Configuration
-
-For higher gain applications:
-
-$$\boxed{A_{\mathrm{total}} = A_1 \times A_2 \times \ldots \times A_N}$$
-
-Typical: 2-3 stage ringamp for SC circuits
+**Enhancement:** Combine LVT (static bias) + HVT (doubles slewing current) devices.
 
 ---
 
-## Performance Characteristics
+## Power Efficiency vs Miller OTA
 
-### Gain vs. Frequency
+### Output Stage $g_m$ Requirement
 
-Unlike traditional op-amps, ringamps exhibit:
-- **Flat open-loop gain** vs. output voltage
-- **High bandwidth** at low voltage
-- **Better linearity** in deep nanoscale processes
+**Miller OTA:**
+$$g_{m2,\mathrm{Miller}} = 6\pi C_L \times GBW$$
 
-### Open-Loop Gain Behavior
+**Ring Amplifier:**
+$$g_{m3,\mathrm{ringamp}} = \frac{2\pi}{A_{v1}A_{v2}} C_L \times GBW$$
 
-$$A_{\mathrm{OL}}(V_{\mathrm{out}}) \approx \mathrm{constant}\ \mathrm{(relatively\ flat)}$$
+**Ratio:**
+$$\boxed{r = \frac{g_{m2,\mathrm{Miller}}}{g_{m3,\mathrm{ringamp}}} = 3A_{v1}A_{v2}}$$
 
-Typical value: 20-40 dB (depending on design)
+**Power saving:** Proportional to $(A_v)^2$
 
-This flat characteristic is a **key advantage** for linearity.
+Even with intrinsic gain = 6 (advanced process): **>100× output stage power reduction**
+
+### Input Stage Power Saving
+
+Ringamp noise formula (same as Miller OTA):
+
+$$\overline{v_{no}^2} \approx \frac{2\pi\gamma kT}{\beta^2} \frac{GBW}{g_{m1}}$$
+
+**But** ringamp has dynamic bandwidth → final GBW is higher → can use **3-4× lower initial GBW** → **3-4× input stage power reduction**
+
+**Total power saving: typically 5-10×** vs Miller OTA for same specs.
+
+---
+
+## Noise
+
+$$\boxed{\overline{v_{no}^2} \approx \frac{\gamma kT}{\beta C_{L,\mathrm{tot}}} A_{v2} g_{m3} r_{o1}}$$
+
+$$\boxed{\overline{v_{no}^2} \approx \frac{2\pi\gamma kT}{\beta^2} \frac{GBW}{g_{m1}}}$$
+
+**Reduce noise:** Increase $\beta C_{L,\mathrm{tot}}$, reduce 2nd stage gain $A_{v2}$ or current.
+
+---
+
+## Circuit Topology
+
+### Why 3 Stages?
+
+**3 stages** is optimal. Even number of stages causes CM latch-up (positive CM feedback).
+
+### Stage Biasing
+
+**Stage 1:** Fully differential, Class-A (40 μA typical)
+
+**Stage 2:** Pseudo-differential, Class-A (20 μA typical)
+
+**Stage 3:** Pseudo-differential, Class-AB with **Monticelli cell** (<1 μA static, >100 μA slewing)
+
+### Common-Mode Feedback
+
+**Multiple CMFB loops** critical for stability:
+
+1. **Stage 1:** Direct connection to tail transistors
+2. **Stage 2/3:** Switched-capacitor CMFB with auxiliary amplifier
+3. **Local CMFB:** Tail transistors prevent CM ringing
+
+---
+
+## CMRR
+
+$$\boxed{CMRR = \frac{A_{\mathrm{dm}}}{A_{\mathrm{cm}}} \approx g_{m1} \cdot r_{o,\mathrm{tail}}}$$
+
+$$\boxed{CMRR_{\mathrm{total}} = CMRR_1 \times \left(1 + \frac{A_{v2} A_{v3}}{CMRR_2}\right)}$$
+
+DC CMRR: >100 dB (40nm), >95 dB (28nm)
+
+---
+
+## Class-AB vs Class-B
+
+**Class-B:** Output PMOS/NMOS both OFF in static state. Accuracy limited by dead-zone width.
+
+**Class-AB (Recommended):** Output transistors weakly ON in static state. Accuracy determined by DC gain and UGB. **Monticelli cell** provides well-defined static current.
+
+---
+
+## Typical Specifications
+
+| Parameter | Value (40nm, 1.1V) | Value (28nm, 1.0V) |
+|-----------|-------------------|-------------------|
+| **Effective Gain** | 70+ dB | 65-75 dB |
+| **UGB** | 50-120 MHz | 100-150 MHz |
+| **Phase Margin** | 60-80° | 60-75° |
+| **Settling (0.1%)** | 10-15 ns | 8-12 ns |
+| **Slew Rate** | High (class-AB) | Very High |
+| **Power** | 80-100 μW | 60-80 μW |
+| **Noise (RMS)** | 100-120 μV | 80-100 μV |
+| **CMRR (DC)** | >100 dB | >95 dB |
+| **PSRR (DC)** | >110 dB | >100 dB |
+| **Output Swing** | 0.13-0.95 V | 0.15-0.85 V |
+| **Input CM Range** | 0.35-0.62 V | 0.3-0.6 V |
 
 ---
 
 ## Design Guidelines
 
-### 1. Number of Stages
+### Stage Gain Allocation
 
-Typical: $N = 3$-$5$ stages
+**Example (40nm):**
+- Stage 1: ×16 (24 dB), UGB = 7.8 GHz
+- Stage 2: ×5 (14 dB), UGB = 4 GHz
+- Stage 3: ×40 (32 dB), UGB = 1.5 MHz
+- **Total: 70 dB, 120 MHz**
 
-**Trade-off:**
-- More stages → Higher gain, more power
-- Fewer stages → Lower gain, less power, faster
+### Number of Stages
 
-### 2. Inverter Sizing
+**3 stages** (standard). Cannot use >5 stages (too many internal poles).
 
-$$\frac{W_p}{W_n} \approx 2\text{-}3\ \text{(for balanced rise/fall times)}$$
-
-**Larger devices:**
-- + Lower noise
-- + Higher speed
-- - More power
-- - Larger area
-
-### 3. Dead-Zone Capacitor Sizing
+### Dead-Zone Sizing
 
 $$C_{\mathrm{DZ}} \gg C_{\mathrm{parasitic}}$$
 
-Typical: $C_{\mathrm{DZ}} = 50$-$200$ fF (28nm process)
+Typical: $C_{\mathrm{DZ}} = 50$-$200$ fF (28nm)
 
-**Larger $C_{\mathrm{DZ}}$:**
-- + Better noise immunity
-- + More accurate offset
-- - Larger area
+### Reservoir Capacitor
 
-### 4. Reservoir Capacitor
-
-For dynamic operation:
-
-$$\boxed{C_{\mathrm{RES}} \geq 10 \times C_{\mathrm{load}}}$$
-
-Ensures minimal voltage droop during amplification
+$$C_{\mathrm{RES}} \geq 10 \times C_{\mathrm{load}}$$
 
 ---
 
-## Application Example: Pipelined ADC
+## PVT Robustness
 
-### State-of-the-Art Performance (2021)
+**Challenge:** Intrinsic gain $g_m r_o$ varies with PVT when using current biasing.
 
-A 4-GS/s ADC in 16nm CMOS using **36 ringamps**:
+### Voltage Headroom in Advanced Nodes
 
-| Metric | Value |
-|--------|-------|
-| **Sampling Rate** | 4 GS/s |
-| **SNDR** | 62 dB |
-| **SFDR** | 75 dB |
-| **Power** | 75 mW (including input buffer) |
-| **Walden FoM** | 18 fJ/conversion-step |
-| **Schreier FoM** | 166 dB |
-| **Technology** | 16nm CMOS |
+$$\boxed{V_{DZ2} = I_2 \cdot R}$$
 
-**Key insight**: 36 amplifiers operating efficiently in parallel
+where $R \propto \frac{1}{g_m}$.
+
+**PVT variation:** $V_{DZ2}$ varies ~10× across corners (FS to SS).
+
+**Design tension:**
+- Smaller $I_2$ → higher $A_v$
+- Larger $I_2$ → smaller $V_{DZ2}$ variation, more headroom for $I_3$
+
+**Optimal allocation:** $V_{DZ2,\mathrm{nom}} \approx 0.15$-$0.25$ V (28nm @ 1.0V), reserve 100-150 mV for PVT margin.
+
+### Solutions
+
+1. **Adaptive biasing:** Sense process corner, adjust $I_2$, $I_3$ dynamically
+
+2. **Combine LVT/HVT devices:** LVT for input (high $g_m$), HVT for output (lower leakage)
+
+3. **Multiple CMFB loops:** Maintain dead-zone alignment across PVT
+
+4. **Digital calibration:** Capacitor DAC at input or dead-zone injection
+
+5. **Process-tracking resistor biasing:** Replace diode MOS with poly resistors (reduces variation from ~10× to ~2-3×)
+
+### Achieved Performance
+
+**40nm CMOS:**
+- Gain variation: 53-70 dB over 30 corners
+- Phase margin: >60° yield = 99.2%
+- Offset: 2.5 mV (1σ), <100 μV after auto-zero
+
+**28nm CMOS:**
+- Effective gain: 65-75 dB, Power: <100 μW
+- Supply variation: $\pm 10\%$
+- Temperature: -40°C to 125°C
 
 ---
 
 ## Comparison with Other Amplifiers
 
-| Criterion | Ring Amp | Op-Amp | FIA | FCT |
-|-----------|----------|---------|-----|-----|
-| **Gain** | Medium (20-40 dB) | High (60-100 dB) | Low-High | Medium |
-| **Bandwidth** | High | Low-Med | High | High |
-| **Power Efficiency** | Good | Poor-Med | Excellent | Excellent |
-| **Linearity** | Good (flat OL gain) | Excellent | Good | Excellent |
-| **Complexity** | Medium | High | Low | Low |
-| **Scalability** | Excellent | Poor | Good | Good |
-| **Stability** | Good (no feedback) | Challenging | Excellent | Excellent |
-
----
-
-## Key Design Equations Summary
-
-### Inverter Stage Design
-
-1. $$\boxed{g_m = \mu C_{\mathrm{ox}} \frac{W}{L} (V_{\mathrm{GS}} - V_{\mathrm{TH}})}$$
-
-2. $$\boxed{R_{\mathrm{out}} \approx \frac{1}{g_{\mathrm{ds},n} + g_{\mathrm{ds},p}}}$$
-
-3. $$\boxed{f_{\mathrm{unity}} \approx \frac{g_m}{2\pi C_L}}$$
-
-4. $$\boxed{V_{n,\mathrm{inv}}^2 \approx \frac{16kT}{3g_m} \times \gamma}$$
-
-### Ring Amplifier Specific
-
-5. $$\boxed{\Delta V_{\mathrm{DZ}} = \frac{Q_{\mathrm{stored}}}{C_{\mathrm{DZ}}}}$$
-
-6. $$\boxed{\varepsilon_{\mathrm{gain}} \approx \frac{\Delta V_{\mathrm{DZ}}}{V_{\mathrm{signal}}}}$$
-
-7. $$\boxed{\tau_{\mathrm{total}} = N \times \tau_{\mathrm{inv}}}$$
-
-8. $$\boxed{P = I_{\mathrm{avg}} \times V_{\mathrm{DD}} \times N}$$
-
----
-
-## Practical Implementation Tips
-
-### 1. Layout Considerations
-
-- **Symmetry is critical**: Match both signal paths precisely
-- **Minimize parasitic capacitance**: Affects dead-zone accuracy
-- **Guard rings**: Isolate from substrate noise
-- **Compact layout**: Reduce routing parasitic
-
-### 2. Biasing Strategy
-
-**Typical biasing:**
-- Self-biased inverters (simple)
-- External bias for better control
-- Adaptive biasing for PVT robustness
-
-### 3. Reset and Amplification Phases
-
-For SC applications:
-
-**Phase 1 (Reset):**
-- Charge reservoir capacitor
-- Reset output to CM voltage
-- Establish dead-zone offset
-
-**Phase 2 (Amplification):**
-- Disconnect from supplies
-- Allow ring to settle within dead-zone
-
-### 4. Common-Mode Stability
-
-Ring amplifiers can exhibit CM instability. Solutions:
-- **CM feedback circuit**
-- **Differential architecture** with proper biasing
-- **Careful dead-zone design**
-
----
-
-## Noise Analysis
-
-### Total Input-Referred Noise
-
-$$V_{n,\mathrm{total}}^2 = V_{n,1\mathrm{st\_stage}}^2 + \frac{V_{n,2\mathrm{nd\_stage}}^2}{A_1^2} + \ldots$$
-
-Dominated by first stage inverter noise:
-
-$$\boxed{V_{n,\mathrm{in}}^2 \approx \frac{16kT\gamma}{3g_{m,1}}}$$
-
-where:
-- $\gamma \approx 2/3$ for long-channel
-- $g_{m,1}$ = transconductance of first stage
-
-### Noise Efficiency Factor (NEF)
-
-$$\boxed{NEF = V_{n,\mathrm{rms}} \times \sqrt{\frac{2I_{\mathrm{total}}}{\pi U_T \times 4kT \times BW}}}$$
-
-Good ringamp: $NEF < 3$
-
----
-
-## Limitations and Challenges
-
-### 1. Limited DC Gain
-
-- Open-loop gain typically **20-40 dB**
-- Not suitable for very high precision (>12-bit without calibration)
-
-### 2. Dead-Zone Sensitivity
-
-- Requires careful design and calibration
-- PVT variations affect dead-zone width
-
-### 3. Common-Mode Range
-
-- Limited by inverter switching threshold
-- Typically 0.3V_DD to 0.7V_DD
-
-### 4. Offset and Mismatch
-
-- Device mismatch creates offset
-- Requires **foreground or background calibration**
-
----
-
-## Evolution and Variants
-
-### Type 1: Basic Ring Amplifier
-- Single ring with dead-zone
-- Simple, but limited performance
-
-### Type 2: Enhanced Ring Amplifier
-- Dead-zone degeneration (DZD)
-- Second-stage bias enhancement
-- Improved linearity and speed
-
-### Type 3: Multi-Stage Ring Amplifier
-- Cascade of ring stages
-- Higher gain for specific applications
-- Used in some delta-sigma modulators
-
----
-
-## Typical Specifications (28nm CMOS)
-
-| Parameter | Typical Value |
-|-----------|---------------|
-| **DC Gain** | 25-35 dB |
-| **Unity-Gain BW** | 500 MHz - 2 GHz |
-| **Settling Time (0.1%)** | 0.5 - 2 ns |
-| **Input-Referred Noise** | 50 - 200 μV_rms |
-| **Power** | 0.5 - 2 mW |
-| **THD** | -60 to -75 dB |
-| **Supply Voltage** | 0.9 - 1.2 V |
-| **Dead-Zone Width** | 50 - 200 mV |
+| Criterion | Ring Amp | Miller OTA | FIA |
+|-----------|----------|------------|-----|
+| **Effective Gain** | 65-75 dB | 60-100 dB | 20-90 dB |
+| **Power Efficiency** | Excellent | Poor-Med | Excellent |
+| **Scalability** | Excellent | Poor | Good |
+| **Slew Rate** | Very High | Low-Med | High |
+| **Stability** | Good (output dom.) | Challenging | Excellent |
+| **Noise** | Medium | Low-Med | Medium |
+| **Suitable for** | 50-90dB, 15MS/s-4GS/s | High-res, low-speed | DTDSM |
 
 ---
 
 ## Applications
 
-### 1. Pipelined ADCs
-- Inter-stage residue amplification
-- High-speed, medium resolution (8-12 bit)
-
-### 2. Switched-Capacitor Circuits
-- SC filters
-- SC gain stages
-- Sample-and-hold circuits
-
-### 3. Delta-Sigma Modulators
-- Loop filter integrators (with modifications)
-- High-speed DTDSM
-
-### 4. Time-Interleaved ADCs
-- Per-channel amplification
-- Reduced mismatch sensitivity
+- Pipelined ADC residue amplifier (15 MS/s - 4 GS/s)
+- SAR ADC with gain stage
+- High-speed switched-capacitor circuits
+- Target: 50-90 dB gain, >10-bit precision
 
 ---
 
-## References and Sources
+## Key Design Equations
 
-- [Ring Amplifiers for Switched Capacitor Circuits - B. Hershberg](https://www.benjamin.hershberg.com/wp-content/papercite-data/slides/2012-isscc-ringamp.pdf) - ISSCC 2012 original paper
-- [The Ring Amplifier: Scalable Amplification with Ring Oscillators](https://link.springer.com/chapter/10.1007/978-3-319-07938-7_18) - SpringerLink chapter
-- [THE RING AMPLIFIER: SCALABLE AMPLIFICATION WITH RING OSCILLATORS](https://www.benjamin.hershberg.com/wp-content/papercite-data/papers/2015-aacdchapter-ringamp.pdf) - AACD Chapter 2015
-- [Benjamin Hershberg Publications](https://www.benjamin.hershberg.com/publications/)
-- [A 4-GS/s 10-ENOB 75-mW ringamp ADC in 16-nm CMOS](https://www.benjamin.hershberg.com/wp-content/papercite-data/papers/2021-jssc-type1-direct-rf-ringamp.pdf) - JSSC 2021
+**Gain-Bandwidth Product:**
 
----
+$$\boxed{GBW = \frac{A_{v1} A_{v2} g_{m3}}{2\pi C_L} = \frac{g_{m1} r_{o1} \cdot g_{m2} r_{o2} \cdot g_{m3}}{2\pi C_L}}$$
 
-## Related Topics
+**Dead-Zone:**
 
-See also:
-- [Floating-Charge-Transfer-Amplifier.md](Floating-Charge-Transfer-Amplifier.md) - FCT amplifier
-- [Floating-Inverter-Amplifier.md](Floating-Inverter-Amplifier.md) - FIA topology
-- [5T-Differential-Amplifier-Analysis.md](5T-Differential-Amplifier-Analysis.md) - Traditional differential amplifiers
-- [Amplifier-Bandwidth-Calculations.md](Amplifier-Bandwidth-Calculations.md) - GBW analysis
+$$\boxed{V_{\mathrm{DZ,in}} = \left[-\frac{V_{\mathrm{os}}}{A_1}, \frac{V_{\mathrm{os}}}{A_1}\right]}$$
+
+**Poles:**
+
+$$\boxed{p_{\mathrm{dom}} = \frac{g_{m3}}{A_{v3} C_L}, \quad p_{\mathrm{internal}} \approx \frac{f_T}{A_v}}$$
+
+**Noise:**
+
+$$\boxed{\overline{v_{no}^2} \approx \frac{\gamma kT}{\beta C_L} A_{v2} g_{m3} r_{o1} \approx \frac{2\pi\gamma kT}{\beta^2} \frac{GBW}{g_{m1}}}$$
+
+**Power Efficiency vs Miller OTA:**
+
+$$\boxed{\frac{g_{m,\mathrm{Miller}}}{g_{m,\mathrm{ringamp}}} = 3A_{v1}A_{v2}}$$
+
+**Slew Rate:**
+
+$$\boxed{SR = \frac{I_{\mathrm{out,p}} + I_{\mathrm{out,n}}}{C_L}}$$
+
+**CMRR:**
+
+$$\boxed{CMRR \approx g_{m1} \cdot r_{o,\mathrm{tail}}}$$
+
+**Stability:**
+
+$$\boxed{f_T \gg GBW \cdot A_v}$$

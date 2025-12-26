@@ -393,11 +393,3 @@ C_L:   C_S/A (where A is desired gain)
 - [ISSCC 2025] **S. Huang et al.**, "A 70dB SNDR 80MHz BW Filter-Embedded Pipeline-SAR ADC Achieving 172dB FoMs with Progressive Conversion and Floating-Charge-Transfer Amplifier"
 - [JSSC] **S. Huang et al.**, "A Filter-Embedded Pipe-SAR ADC With Progressive Conversion and Floating Charge Transfer Amplifier," *IEEE Journal of Solid-State Circuits*
 
----
-
-## Related Topics
-
-See also:
-- [5T-Differential-Amplifier-Analysis.md](5T-Differential-Amplifier-Analysis.md) - Traditional differential amplifiers
-- [Single-Transistor-Amplifier-Configurations.md](Single-Transistor-Amplifier-Configurations.md) - CG, CS, CD configurations
-- [Amplifier-Bandwidth-Calculations.md](Amplifier-Bandwidth-Calculations.md) - GBW analysis
