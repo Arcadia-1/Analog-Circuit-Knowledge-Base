@@ -10,6 +10,8 @@ Input: reference/phase_noise_calculation.tex | Output: Phase noise and amplitude
 
 - **Phase noise (SSB)**: $L = P_{\mathrm{n}}/P_{\mathrm{c}}$ (linear), or $\mathcal{L}(f) = 10\log_{10}(L)$ [dBc/Hz]
 - **Phase PSD**: $S_{\phi}(f) = 2 \times L(f)$ [rad²/Hz]
+- **$S_{\mathrm{v}}$**: Voltage noise power spectral density [V²/Hz]
+- **$S_{\mathrm{t}}$**: Timing jitter power spectral density [s²/Hz]
 
 ### Conversion Steps
 
@@ -29,19 +31,31 @@ $$\boxed{S_{\mathrm{v}}(f) = 2 \times 10^{\mathcal{L}(f)/10} \times \left(\frac{
 
 ### Example
 
-**Given:** $f_{\mathrm{0}} = 500$ MHz, $SR = 20$ GV/s
+**Given:** $f_{\mathrm{0}} = 500$ $\text{MHz}$
 
-**Case 1:** $\mathcal{L}(10\text{ MHz}) = -180$ dBc/Hz
+**Case 1:** $\mathcal{L}(f) = -180$ $\text{dBc/Hz}$, $SR = 20$ $\text{GV/s}$
 
-$$S_{\mathrm{v}} = 2 \times 10^{-18} \times \left(\frac{20 \times 10^9}{2\pi \times 500 \times 10^6}\right)^2 = 8.1 \times 10^{-17} \text{ V}^2\text{/Hz}$$
+$$S_{\mathrm{v}} = 2 \times 10^{-18} \times \left(\frac{20 \times 10^9}{2\pi \times 500 \times 10^6}\right)^2 = 0.081 \text{ fV}^2\text{/Hz}$$
 
-$$v_{\text{rms}} = \sqrt{S_{\mathrm{v}}} = 9.0 \text{ nV} / \sqrt{\text{Hz}}$$
+$$S_{\mathrm{v}}[\text{dB}] = 10\log_{10}(8.1 \times 10^{-17}) = -160.9 \text{ dB (V}^2\text{/Hz)}$$
 
-**Case 2:** $\mathcal{L}(10\text{ MHz}) = -170$ dBc/Hz
+$$v_{\mathrm{n}}(f) = \sqrt{S_{\mathrm{v}}} = 9.0 \text{ nV} / \sqrt{\text{Hz}}$$
 
-$$S_{\mathrm{v}} = 2 \times 10^{-17} \times \left(\frac{20 \times 10^9}{2\pi \times 500 \times 10^6}\right)^2 = 8.1 \times 10^{-16} \text{ V}^2\text{/Hz}$$
+**Case 2:** $\mathcal{L}(f) = -160$ $\text{dBc/Hz}$, $SR = 20$ $\text{GV/s}$
 
-$$v_{\text{rms}} = \sqrt{S_{\mathrm{v}}} = 28.5 \text{ nV} / \sqrt{\text{Hz}}$$
+$$S_{\mathrm{v}} = 2 \times 10^{-16} \times \left(\frac{20 \times 10^9}{2\pi \times 500 \times 10^6}\right)^2 = 8.1 \text{ fV}^2\text{/Hz}$$
+
+$$S_{\mathrm{v}}[\text{dB}] = 10\log_{10}(8.1 \times 10^{-15}) = -140.9 \text{ dB (V}^2\text{/Hz)}$$
+
+$$v_{\mathrm{n}}(f) = \sqrt{S_{\mathrm{v}}} = 90.0 \text{ nV} / \sqrt{\text{Hz}}$$
+
+**Case 3:** $\mathcal{L}(f) = -180$ $\text{dBc/Hz}$, $SR = 200$ $\text{GV/s}$
+
+$$S_{\mathrm{v}} = 2 \times 10^{-18} \times \left(\frac{200 \times 10^9}{2\pi \times 500 \times 10^6}\right)^2 = 8.1 \text{ fV}^2\text{/Hz}$$
+
+$$S_{\mathrm{v}}[\text{dB}] = 10\log_{10}(8.1 \times 10^{-15}) = -140.9 \text{ dB (V}^2\text{/Hz)}$$
+
+$$v_{\mathrm{n}}(f) = \sqrt{S_{\mathrm{v}}} = 90.0 \text{ nV} / \sqrt{\text{Hz}}$$
 
 ---
 
@@ -73,12 +87,22 @@ $$\boxed{\mathcal{L}(f) = 10\log_{10}(S_{\mathrm{v}}) + 20\log_{10}(2\pi f_{\mat
 
 ### Example
 
-**Given:** $f_{\mathrm{0}} = 500$ MHz, $SR = 20$ GV/s
+**Given:** $f_{\mathrm{0}} = 500$ $\text{MHz}$
 
-**Case 1:** $S_{\mathrm{v}}(10\text{ MHz}) = 8.1 \times 10^{-17}$ V²/Hz, $v_{\text{rms}} = 9.0 \text{ nV} / \sqrt{\text{Hz}}$
+**Case 1:** $S_{\mathrm{v}}(f) = 0.081$ $\text{fV}^2\text{/Hz}$, $v_{\mathrm{n}}(f) = 9.0 \text{ nV} / \sqrt{\text{Hz}}$, $SR = 20$ $\text{GV/s}$
+
+$$S_{\mathrm{v}}[\text{dB}] = 10\log_{10}(8.1 \times 10^{-17}) = -160.9 \text{ dB (V}^2\text{/Hz)}$$
 
 $$\mathcal{L} = 10\log_{10}\left(\frac{8.1 \times 10^{-17} \times (2\pi \times 500 \times 10^6)^2}{2 \times (20 \times 10^9)^2}\right) = -180 \text{ dBc/Hz}$$
 
-**Case 2:** $S_{\mathrm{v}}(10\text{ MHz}) = 8.1 \times 10^{-16}$ V²/Hz, $v_{\text{rms}} = 28.5 \text{ nV} / \sqrt{\text{Hz}}$
+**Case 2:** $S_{\mathrm{v}}(f) = 8.1$ $\text{fV}^2\text{/Hz}$, $v_{\mathrm{n}}(f) = 90.0 \text{ nV} / \sqrt{\text{Hz}}$, $SR = 20$ $\text{GV/s}$
 
-$$\mathcal{L} = 10\log_{10}\left(\frac{8.1 \times 10^{-16} \times (2\pi \times 500 \times 10^6)^2}{2 \times (20 \times 10^9)^2}\right) = -170 \text{ dBc/Hz}$$
+$$S_{\mathrm{v}}[\text{dB}] = 10\log_{10}(8.1 \times 10^{-15}) = -140.9 \text{ dB (V}^2\text{/Hz)}$$
+
+$$\mathcal{L} = 10\log_{10}\left(\frac{8.1 \times 10^{-15} \times (2\pi \times 500 \times 10^6)^2}{2 \times (20 \times 10^9)^2}\right) = -160 \text{ dBc/Hz}$$
+
+**Case 3:** $S_{\mathrm{v}}(f) = 8.1$ $\text{fV}^2\text{/Hz}$, $v_{\mathrm{n}}(f) = 90.0 \text{ nV} / \sqrt{\text{Hz}}$, $SR = 200$ $\text{GV/s}$
+
+$$S_{\mathrm{v}}[\text{dB}] = 10\log_{10}(8.1 \times 10^{-15}) = -140.9 \text{ dB (V}^2\text{/Hz)}$$
+
+$$\mathcal{L} = 10\log_{10}\left(\frac{8.1 \times 10^{-15} \times (2\pi \times 500 \times 10^6)^2}{2 \times (200 \times 10^9)^2}\right) = -180 \text{ dBc/Hz}$$
