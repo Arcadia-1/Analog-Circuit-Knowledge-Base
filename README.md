@@ -12,6 +12,9 @@ Reference guide for the three fundamental MOSFET amplifier topologies (Common So
 #### `5T-Differential-Amplifier-Analysis.md`
 Complete mathematical analysis of 5-transistor differential amplifiers including differential/common-mode gains, CMRR, PSRR, noise analysis (thermal and flicker), frequency response (poles, zeros, transfer function), and pole-zero doublet settling time analysis.
 
+#### `Miller-Compensated-Two-Stage-Amplifier.md`
+Classical two-stage operational amplifier with Miller compensation. Comprehensive reference covering DC gain equations, dominant/non-dominant poles, RHP zero analysis, GBW calculations, phase margin design, slew rate, settling time, noise analysis, CMRR/PSRR, and complete design procedure with sizing equations.
+
 ### Dynamic and Advanced Amplifiers
 
 #### `Ring-Amplifier.md`
@@ -46,6 +49,23 @@ Comprehensive guide to amplifier bandwidth theory including gain-bandwidth produ
 
 #### `Phase-Noise-Calculations.md`
 Bidirectional conversion formulas between phase noise and amplitude noise, including definitions, step-by-step derivations, direct formulas, and worked examples for high-speed applications.
+
+#### `Comparator-Noise-Calculation.md`
+Statistical analysis of comparator noise using Gaussian distribution theory. Covers probability density/cumulative distribution functions, noise sigma extraction formulas (inverse CDF method), visualization of noise impact on decision probability, and figures of merit (FoM₁, FoM₂) for comparator performance evaluation.
+
+#### `Capacitance-AC-Simulation.md`
+Practical method for extracting capacitance values from AC simulation results using current-frequency relationships. Includes derivation from I = jωCV, formulas for imaginary current component analysis, and ready-to-use Virtuoso Calculator expressions for automated capacitance extraction.
+
+### Source Degeneration Analysis
+
+#### `Degenerated-Resistor-Noise.md`
+Complete noise analysis comparing non-degenerated vs source-degenerated resistor configurations. Covers transistor and resistor noise contributions, output current/voltage noise PSD derivations, frequency-dependent behavior, noise ratio calculations, and numerical examples showing noise contribution breakdown for different γ and gₘRₛ values.
+
+#### `Degenerated-Resistor-Current-Noise.md`
+Focused current noise analysis for source-degenerated circuits. Derives output current noise PSD for both cases, includes sanity checks for limiting cases (Rₛ→0 and gₘRₛ≫1), and provides simplified noise ratio formulas for design calculations.
+
+#### `Degenerated-Resistor-Charging-Time.md`
+Charging time comparison between RC charging and constant-current source degeneration. Includes time-to-Vdd/2 derivations, equivalence conditions for matched speed, design tables mapping gₘ/Rₛ/Rₗ values, effective transconductance calculations, and output resistance boosting analysis.
 
 ## Directories
 
