@@ -30,8 +30,8 @@ export const topics: Topic[] = [
       {
         href: '/adc/binary-vs-redundant-sar/',
         title: 'Binary vs redundant SAR',
-        summary: 'Step through a successive-approximation conversion, add DAC settling error, comparator noise and mismatch, and see what redundancy does and does not fix.',
-        tags: ['capacitor DAC', 'redundancy', 'settling', 'SNDR', 'ENOB'],
+        summary: 'Step through the SAR conversion of ADCToolbox, add unit-capacitor mismatch and comparator noise, and compare the spectra before and after sine-fit calibration.',
+        tags: ['capacitor DAC', 'redundancy', 'unit-cap mismatch', 'calibration', 'ENOB'],
         thumb: 'sar',
       },
     ],

@@ -28,7 +28,7 @@ Run these in `web/` with Node 22.12 or newer and pnpm 11.
 | `src/styles/` | Design tokens and chart classes in `global.css`, the shared illustration page layout in `illustration.css` |
 | `src/data/illustrations.ts` | Topics and entries on the home page |
 | `tests/` | Vitest checks of each TypeScript model against numbers from its Python reference |
-| `python/` | Python reference models that implement the same equations; run one to print its self-check table |
+| `python/` | Python references: the PLL model in NumPy, and SAR numbers computed with ADCToolbox (`pip install adctoolbox==0.9.1`) |
 | `public/` | Favicon and Cloudflare Pages response headers |
 
 ## Illustrations
@@ -36,9 +36,10 @@ Run these in `web/` with Node 22.12 or newer and pnpm 11.
 - **Integer-N vs fractional-N PLL** at `/pll/integer-vs-fractional/`. A reference-rate time-domain simulation of two loops that
   share one reference, loop filter and VCO. The fractional-N divider is an accumulator, a MASH 1-1-1, or a MASH 1-1-1 with a
   DTC that has adjustable INL.
-- **Binary vs redundant SAR ADC** at `/adc/binary-vs-redundant-sar/`. A comparison-by-comparison view of both converters with
-  DAC settling error, comparator noise and capacitor mismatch, plus a 4096-sample sine test for SNDR, ENOB and SFDR. It grows
-  out of [ADC_Visualization](https://github.com/Arcadia-1/ADC_Visualization).
+- **Binary vs redundant SAR ADC** at `/adc/binary-vs-redundant-sar/`. The SAR conversion, unit-capacitor mismatch, sine-fit weight
+  calibration and spectrum analysis are ports of [ADCToolbox](https://github.com/Arcadia-1/ADCToolbox), checked against it to
+  0.001 ENOB. The page steps through one conversion and compares the output spectra of both converters before and after
+  calibration. It grows out of [ADC_Visualization](https://github.com/Arcadia-1/ADC_Visualization).
 
 ## Adding an illustration
 

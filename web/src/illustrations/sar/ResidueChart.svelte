@@ -2,15 +2,15 @@
   import Plot from '../../components/chart/Plot.svelte';
   import Tip from '../../components/chart/Tip.svelte';
   import { nf } from '../../lib/format';
-  import { symlog } from '../../lib/scale';
-  import type { Step } from './model';
+  import { clamp, symlog } from '../../lib/scale';
+  import type { Trial } from './model';
 
   /**
-   * Residue V_in − V_DAC at each comparison on a symmetric log axis. Bars show every DAC level the remaining steps
-   * can still reach; when V_in (the zero line) falls outside, the conversion can no longer come out right.
+   * Residue V_in − V_test at each comparison on a symmetric log axis. Bars span the DAC levels the remaining capacitors can
+   * still reach; once V_in falls outside a bar, no digital weights can recover the conversion.
    */
-  let { steps, x, n, slots, shown, series, hover, onhover, label }: {
-    steps: Step[];
+  let { trace, x, n, slots, shown, series, hover, onhover, label }: {
+    trace: Trial[];
     x: number;
     n: number;
     slots: number;
@@ -22,31 +22,31 @@
   } = $props();
 
   const X0 = 46;
-  const code = $derived(Math.floor(x));
 
   function geo(W: number, H: number) {
     const X1 = W - 6, Y0 = 30, Y1 = H - 20, cw = (X1 - X0) / slots;
-    const ymax = symlog(2 ** (n - 1) + 2);
+    const ymax = symlog(0.56 * 2 ** n);
     const ys = (v: number) => Y0 + ((ymax - symlog(v)) / (2 * ymax)) * (Y1 - Y0);
+    const yc = (v: number) => clamp(ys(v), Y0, Y1);
     const xc = (k: number) => X0 + (k + 0.5) * cw;
     const ticks: number[] = [0];
     for (let v = 1, last = ys(0); v <= 2 ** (n - 1); v *= 4) {
-      if (last - ys(v) < 13) continue;
+      if (last - ys(v) < 15) continue;
       ticks.push(v, -v);
       last = ys(v);
     }
     const top = Math.max(...ticks);
-    const vis = steps.slice(0, Math.min(shown, steps.length));
-    const path = vis.map((s, k) => `${k ? 'L' : 'M'}${xc(k)},${ys(x - s.t)}`).join('');
+    const vis = trace.slice(0, Math.min(shown, trace.length));
+    const path = vis.map((t, k) => `${k ? 'L' : 'M'}${xc(k)},${ys(x - t.test)}`).join('');
     const every = cw < 22 ? 2 : 1;
-    return { X1, Y0, Y1, cw, ys, xc, ticks, top, vis, path, every };
+    return { X1, Y0, Y1, cw, ys, yc, xc, ticks, top, vis, path, every };
   }
 
   function move(px: number, W: number) {
     const k = Math.floor((px - X0) / ((W - 6 - X0) / slots));
-    onhover(k >= 0 && k < Math.min(shown, steps.length) ? k : null);
+    onhover(k >= 0 && k < Math.min(shown, trace.length) ? k : null);
   }
-  const recoverable = (s: Step) => s.lo <= code && code <= s.hi;
+  const reachable = (t: Trial) => t.lo < x && x < t.hi;
 </script>
 
 <Plot {label} onpointermove={move} onpointerleave={() => onhover(null)}>
@@ -58,16 +58,16 @@
     {/each}
     <text class="tx2 halo" x={g.X1} y={g.ys(0) - 6} text-anchor="end">V<tspan font-size="9" dy="2">in</tspan></text>
     {#each Array.from({ length: slots }, (_, k) => k) as k (k)}
-      {#if k < steps.length}
+      {#if k < trace.length}
         {#if k < shown}
-          {@const s = steps[k]}
-          <text class="bit mono {s.b !== s.ideal ? 'f-bad' : 'tx-ink'}" x={g.xc(k)} y="12" text-anchor="middle" dominant-baseline="central">{s.b}</text>
+          {@const t = trace[k]}
+          <text class="bit mono {t.bit !== t.ideal ? 'f-bad' : 'tx-ink'}" x={g.xc(k)} y="12" text-anchor="middle" dominant-baseline="central">{t.bit}</text>
           <rect
-            class={recoverable(s) ? 'window' : 'window lost'}
+            class={reachable(t) ? 'window' : 'window lost'}
             x={g.xc(k) - Math.min(9, g.cw * 0.28)}
-            y={g.ys(x - s.lo)}
+            y={g.yc(x - t.lo)}
             width={Math.min(18, g.cw * 0.56)}
-            height={Math.max(1, g.ys(x - s.hi - 1) - g.ys(x - s.lo))}
+            height={Math.max(1, g.yc(x - t.hi) - g.yc(x - t.lo))}
             rx="2"
           />
         {:else}
@@ -79,24 +79,21 @@
       {/if}
     {/each}
     <path class="c{series} link" d={g.path} />
-    {#each g.vis as s, k (k)}
-      {#if Math.abs(s.seen - s.t) > 0.02}
-        <line class="c{series}" stroke-width="2" x1={g.xc(k)} y1={g.ys(x - s.t)} x2={g.xc(k)} y2={g.ys(x - s.seen)} />
-      {/if}
-      <circle class="f{series} ring" cx={g.xc(k)} cy={g.ys(x - s.t)} r="4" />
-      {#if s.b !== s.ideal}<circle class="bad" stroke-width="1.75" cx={g.xc(k)} cy={g.ys(x - s.t)} r="7.5" />{/if}
+    {#each g.vis as t, k (k)}
+      <circle class="f{series} ring" cx={g.xc(k)} cy={g.ys(x - t.test)} r="4" />
+      {#if t.bit !== t.ideal}<circle class="bad" stroke-width="1.75" cx={g.xc(k)} cy={g.ys(x - t.test)} r="7.5" />{/if}
     {/each}
     {#if hover !== null}<line class="cross" x1={g.xc(hover)} y1={g.Y0 - 6} x2={g.xc(hover)} y2={g.Y1} />{/if}
   {/snippet}
   {#snippet overlay({ width, height })}
-    {#if hover !== null && steps[hover]}
+    {#if hover !== null && trace[hover]}
       {@const g = geo(width, height)}
-      {@const s = steps[hover]}
+      {@const t = trace[hover]}
       <Tip
         x={g.xc(hover)}
-        y={Math.min(g.ys(x - s.t), g.Y0 + 30)}
+        y={Math.min(g.ys(x - t.test), g.Y0 + 30)}
         {width}
-        text="comparison {hover + 1} · DAC {nf(s.t, 0)} · residue {nf(x - s.t, 1)} LSB · bit {s.b}{s.b !== s.ideal ? ' (wrong)' : ''}"
+        text="comparison {hover + 1} · DAC {nf(t.test, 1)} · residue {nf(x - t.test, 1)} LSB · bit {t.bit}{t.bit !== t.ideal ? ' (noise)' : ''}"
       />
     {/if}
   {/snippet}
