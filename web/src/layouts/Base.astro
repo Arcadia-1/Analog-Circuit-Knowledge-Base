@@ -28,5 +28,17 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
   </head>
   <body>
     <slot />
+    <script>
+      // First-party page-view beacon for worker/index.ts. Honours Do Not Track and sends only the referrer's origin.
+      if (navigator.doNotTrack !== '1') {
+        const referrer = URL.canParse(document.referrer) ? new URL(document.referrer) : null;
+        const payload = JSON.stringify({
+          p: location.pathname,
+          r: referrer?.protocol.startsWith('http') ? referrer.origin : '',
+          s: new URLSearchParams(location.search).get('utm_source')?.trim().toLowerCase().slice(0, 40) ?? '',
+        });
+        navigator.sendBeacon('/api/track', new Blob([payload], { type: 'application/json' }));
+      }
+    </script>
   </body>
 </html>
