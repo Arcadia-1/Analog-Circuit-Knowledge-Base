@@ -19,3 +19,4 @@ Thumbs.db
 # AMS Class site build output
 web/dist/
 __pycache__/
+.wrangler/
