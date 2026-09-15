@@ -9,7 +9,8 @@
     "build": "astro build",
     "preview": "astro preview",
     "test": "vitest run",
-    "check": "astro check && svelte-check --tsconfig ./tsconfig.json --fail-on-warnings && vitest run"
+    "check": "astro check && svelte-check --tsconfig ./tsconfig.json --fail-on-warnings && tsc -p worker && vitest run",
+    "deploy:analytics": "wrangler deploy --config worker/wrangler.jsonc"
   },
   "dependencies": {
     "@astrojs/sitemap": "^3.7.4",
@@ -22,6 +23,7 @@
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.10",
+    "@cloudflare/workers-types": "^5.20260914.1",
     "svelte-check": "^4.7.6",
     "typescript": "^5.9.3",
     "vitest": "^5.0.0",
