@@ -1,0 +1,39 @@
+---
+/** Small schematic previews for the home page. */
+interface Props { kind: 'pll' | 'sar' }
+const { kind } = Astro.props;
+const xs = Array.from({ length: 13 }, (_, i) => 6 + i * 14);
+const saw = [-14, -8, -2, 6, 14];
+const residues = [58, -26, 12, -6, 3, -1.5, 0.8, -0.4];
+const ys = (r: number) => 50 - Math.sign(r) * Math.log2(1 + Math.abs(r)) * 6.5;
+---
+<svg class="thumb" viewBox="0 0 188 100" aria-hidden="true">
+  {kind === 'pll' ? (
+    <>
+      <text x="0" y="10">integer-N</text>
+      <line class="base" x1="0" y1="30" x2="188" y2="30" />
+      {xs.map((x, i) => <g class="s1"><line x1={x} y1="30" x2={x} y2={30 + ((i % 3) - 1)} /><circle cx={x} cy={30 + ((i % 3) - 1)} r="2.2" /></g>)}
+      <text x="0" y="56">fractional-N</text>
+      <line class="base" x1="0" y1="78" x2="188" y2="78" />
+      {xs.map((x, i) => <g class="s2"><line x1={x} y1="78" x2={x} y2={78 + saw[i % 5]} /><circle cx={x} cy={78 + saw[i % 5]} r="2.2" /></g>)}
+    </>
+  ) : (
+    <>
+      <text x="0" y="10">residue</text>
+      <line class="base" x1="0" y1="50" x2="188" y2="50" />
+      {residues.map((_, i) => <rect class="win" x={10 + i * 23 - 5} y={50 - (7 - i) * 5.5} width="10" height={(7 - i) * 11} rx="2" />)}
+      <polyline class="s1 link" points={residues.map((r, i) => `${10 + i * 23},${ys(r)}`).join(' ')} />
+      {residues.map((r, i) => <circle class="s1" cx={10 + i * 23} cy={ys(r)} r="2.6" />)}
+    </>
+  )}
+</svg>
+
+<style>
+  .thumb { width: 188px; height: auto; display: block; }
+  text { fill: var(--ink-3); font: 10px var(--mono); }
+  .base { stroke: var(--rule); }
+  .s1 { stroke: var(--s1); fill: var(--s1); stroke-width: 2; stroke-linecap: round; }
+  .s2 { stroke: var(--s2); fill: var(--s2); stroke-width: 2; stroke-linecap: round; }
+  .link { fill: none; stroke-width: 1.25; opacity: 0.5; }
+  .win { fill: var(--chip); }
+</style>

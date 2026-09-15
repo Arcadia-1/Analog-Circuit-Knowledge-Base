@@ -4,7 +4,7 @@ A knowledge repository for analog circuit design fundamentals, focusing on ampli
 
 ## Interactive illustrations
 
-The `web/` folder holds interactive illustrations published at <https://ams-class.tokenzhang.com>, starting with an integer-N vs fractional-N PLL comparison. See [`web/README.md`](web/README.md) for the layout, build and deployment.
+The `web/` folder holds interactive illustrations published at <https://ams-class.tokenzhang.com>: integer-N vs fractional-N PLLs and binary vs redundant SAR ADCs. See [`web/README.md`](web/README.md) for development and deployment.
 
 ## Contents
 

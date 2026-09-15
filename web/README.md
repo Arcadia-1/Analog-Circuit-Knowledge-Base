@@ -1,36 +1,55 @@
-# AMS Class site
+# AMS Class
 
-Interactive illustrations served at <https://ams-class.tokenzhang.com>.
+Interactive illustrations of analog and mixed-signal circuits, served at <https://ams-class.tokenzhang.com>. Each page runs a
+small behavioural model in the browser, so every control changes the physics you see.
+
+The site is static [Astro](https://astro.build) with [Svelte 5](https://svelte.dev) islands in strict TypeScript.
+
+## Commands
+
+Run these in `web/` with Node 22.12 or newer and pnpm 11.
+
+| Command | Action |
+|---|---|
+| `pnpm install` | Install dependencies |
+| `pnpm dev` | Start the dev server at <http://localhost:4321> |
+| `pnpm check` | Type-check Astro and Svelte files, then run the model tests |
+| `pnpm build` | Build the static site into `dist/` |
+| `pnpm preview` | Serve `dist/` locally |
 
 ## Layout
 
 | Path | Contents |
 |---|---|
-| `pages/<topic>/<name>/` | One interactive page: `shell.html` (markup and styles), `charts.css`, `model.js`, `render_a.js`, `render_b.js`, plus an optional Python reference model |
-| `static/` | Site home page, 404 page, favicon and response headers, copied as is |
-| `build.py` | Inlines every page into one self-contained `index.html` under `dist/` |
+| `src/pages/` | Home, 404 and one `.astro` route per illustration |
+| `src/illustrations/<topic>/` | One illustration: `model.ts` with the simulation as pure functions, plus its Svelte components |
+| `src/components/` | Shared controls in `ui/`, chart primitives in `chart/`, home page thumbnails |
+| `src/lib/` | Number formatting, seeded random numbers, FFT, scales |
+| `src/styles/` | Design tokens and chart classes in `global.css`, the shared illustration page layout in `illustration.css` |
+| `src/data/illustrations.ts` | Topics and entries on the home page |
+| `tests/` | Vitest checks of each TypeScript model against numbers from its Python reference |
+| `python/` | Python reference models that implement the same equations; run one to print its self-check table |
+| `public/` | Favicon and Cloudflare Pages response headers |
 
-## Build and preview
+## Illustrations
 
-```bash
-python3 web/build.py
-python3 -m http.server 8000 --directory web/dist
-```
-
-## Deploy
-
-Pushing changes under `web/` to `main` runs `.github/workflows/deploy-web.yml`, which builds the site and deploys it to the
-Cloudflare Pages project `ams-class`. The workflow needs the repository secrets `CLOUDFLARE_API_TOKEN` (Pages edit access)
-and `CLOUDFLARE_ACCOUNT_ID`.
+- **Integer-N vs fractional-N PLL** at `/pll/integer-vs-fractional/`. A reference-rate time-domain simulation of two loops that
+  share one reference, loop filter and VCO. The fractional-N divider is an accumulator, a MASH 1-1-1, or a MASH 1-1-1 with a
+  DTC that has adjustable INL.
+- **Binary vs redundant SAR ADC** at `/adc/binary-vs-redundant-sar/`. A comparison-by-comparison view of both converters with
+  DAC settling error, comparator noise and capacitor mismatch, plus a 4096-sample sine test for SNDR, ENOB and SFDR. It grows
+  out of [ADC_Visualization](https://github.com/Arcadia-1/ADC_Visualization).
 
 ## Adding an illustration
 
-1. Create `pages/<topic>/<name>/` with the same five files as `pages/pll/integer-vs-fractional/`.
-2. Add an entry for it to `static/index.html`.
-3. Run `python3 web/build.py` and check the page locally.
+1. Write the model in `src/illustrations/<topic>/model.ts`, a Python reference in `python/` and a test in `tests/`.
+2. Build the page component next to the model from the shared `ui` and `chart` components.
+3. Add a route in `src/pages/<topic>/` that renders the component with `client:load` and imports `illustration.css`.
+4. List it in `src/data/illustrations.ts` and draw its thumbnail in `src/components/Thumb.astro`.
+5. Run `pnpm check` and `pnpm build`.
 
-## Integer-N vs fractional-N PLL
+## Deploy
 
-`pages/pll/integer-vs-fractional/` compares an integer-N and a fractional-N PLL that share one reference, one loop filter and one
-VCO. `model.js` is a reference-rate time-domain simulation; `reference_model.py` implements the same equations in Python and
-agrees with the page to about 1 %.
+`.github/workflows/deploy-web.yml` installs, checks and builds the site for every pull request that touches `web/`. On `main` it
+also deploys `dist/` to the Cloudflare Pages project `ams-class`, using the repository secrets `CLOUDFLARE_API_TOKEN` and
+`CLOUDFLARE_ACCOUNT_ID`.
