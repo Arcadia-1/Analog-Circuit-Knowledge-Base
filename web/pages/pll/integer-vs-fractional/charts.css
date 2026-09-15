@@ -1,0 +1,30 @@
+[hidden] { display: none !important; }
+.ax { stroke: var(--rule); stroke-width: 1; fill: none; }
+.gr { stroke: var(--grid); stroke-width: 1; fill: none; }
+.tx { fill: var(--ink-3); font: 11px var(--mono); font-variant-numeric: tabular-nums; }
+.tx2 { fill: var(--ink-2); font: 11.5px var(--sans); }
+.tx-ink { fill: var(--ink); }
+.c-int { stroke: var(--int); fill: none; } .c-frac { stroke: var(--frac); fill: none; }
+.f-int { fill: var(--int); } .f-frac { fill: var(--frac); }
+.a-int { fill: var(--int-soft); stroke: none; } .a-frac { fill: var(--frac-soft); stroke: none; }
+.ring { stroke: var(--plot); stroke-width: 2; }
+.ghost { fill: var(--ghost); }
+.guide { stroke: var(--ink-3); stroke-width: 1; opacity: 0.55; }
+.zero { stroke: var(--ink-3); stroke-width: 1; }
+.dg-box { fill: var(--plot); stroke: var(--ink-3); stroke-width: 1.25; }
+.dg-box.int { stroke: var(--int); stroke-width: 1.75; } .dg-box.frac { stroke: var(--frac); stroke-width: 1.75; }
+.dg-line { stroke: var(--ink-3); stroke-width: 1.25; fill: none; }
+.dg-head { fill: var(--ink-3); stroke: none; }
+.dg-t { fill: var(--ink); font: 500 12.5px var(--sans); text-anchor: middle; dominant-baseline: central; }
+.dg-m { fill: var(--ink-2); font: italic 15px var(--math); dominant-baseline: central; }
+.rl-base { stroke: var(--rule); stroke-width: 2; }
+.rl-minor { stroke: var(--ink-3); stroke-width: 1; }
+.rl-chan { stroke: var(--ink); stroke-width: 2; }
+.rl-handle { stroke: var(--ink); stroke-width: 1.5; }
+.rl-knob { fill: var(--plot); stroke: var(--ink); stroke-width: 2; }
+.rl-lane { stroke: var(--frac); stroke-width: 2; opacity: 0.28; }
+.rl-slot { fill: var(--plot); stroke: var(--int); stroke-width: 1.5; }
+.rl-miss { stroke: var(--int); stroke-width: 1.5; opacity: 0.55; }
+.cross { stroke: var(--ink-2); stroke-width: 1; }
+.halo { paint-order: stroke; stroke: var(--ground); stroke-width: 4px; stroke-linejoin: round; }
+.dg-v { font-family: var(--math); font-style: italic; font-weight: 400; font-size: 14.5px; }

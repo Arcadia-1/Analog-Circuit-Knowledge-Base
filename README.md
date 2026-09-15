@@ -2,6 +2,10 @@
 
 A knowledge repository for analog circuit design fundamentals, focusing on amplifier theory, signal processing techniques, noise reduction, and ADC architectures.
 
+## Interactive illustrations
+
+The `web/` folder holds interactive illustrations published at <https://ams-class.tokenzhang.com>, starting with an integer-N vs fractional-N PLL comparison. See [`web/README.md`](web/README.md) for the layout, build and deployment.
+
 ## Contents
 
 ### Basic Amplifier Topologies
