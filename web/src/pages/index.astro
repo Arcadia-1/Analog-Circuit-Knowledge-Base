@@ -1,0 +1,59 @@
+---
+import Base from '../layouts/Base.astro';
+import Thumb from '../components/Thumb.astro';
+import { topics } from '../data/illustrations';
+
+const count = (n: number) => `${n} illustration${n === 1 ? '' : 's'}`;
+---
+<Base title="AMS Class" description="Interactive illustrations of analog and mixed-signal circuits, each built on a small behavioural model you can drive yourself.">
+  <main class="home">
+    <header>
+      <h1>AMS Class</h1>
+      <p class="lede">Interactive illustrations of analog and mixed-signal circuits. Each one runs a small behavioural model in the browser, so you can change a parameter and watch the physics respond.</p>
+    </header>
+    {topics.map((topic) => (
+      <section class="topic">
+        <div class="topic-head"><h2>{topic.name}</h2><span class="count">{count(topic.items.length)}</span></div>
+        {topic.items.map((item) => (
+          <a class="entry" href={item.href}>
+            <Thumb kind={item.thumb} />
+            <div>
+              <h3 set:html={item.title.replace(/-N\b/g, '-<var>N</var>')} />
+              <p>{item.summary}</p>
+              <p class="tags">{item.tags.join(' · ')}</p>
+            </div>
+          </a>
+        ))}
+      </section>
+    ))}
+    <footer>
+      <span>AMS Class</span>
+      <a href="https://github.com/Arcadia-1/Analog-Circuit-Knowledge-Base/tree/main/web">Source on GitHub</a>
+      <a href="https://tokenzhang.com">tokenzhang.com</a>
+    </footer>
+  </main>
+</Base>
+
+<style>
+  .home { max-width: 860px; margin: 0 auto; padding-block: 72px 56px; display: grid; gap: 48px; font-size: 15px; line-height: 1.6; }
+  h1 { margin: 0; font-size: 44px; line-height: 1.1; font-weight: 500; letter-spacing: -0.02em; }
+  .lede { margin: 14px 0 0; max-width: 60ch; color: var(--ink-2); font-size: 17px; }
+  .topic { display: grid; gap: 14px; }
+  .topic-head { display: flex; align-items: baseline; justify-content: space-between; border-bottom: 1px solid var(--rule); padding-bottom: 8px; }
+  h2 { margin: 0; font-size: 13px; font-weight: 500; letter-spacing: 0.09em; text-transform: uppercase; color: var(--ink-2); }
+  .count { font: 12.5px var(--mono); color: var(--ink-3); }
+  .entry { display: grid; grid-template-columns: 188px minmax(0, 1fr); gap: 24px; align-items: center; padding: 18px; margin-inline: -18px; border-radius: 12px; color: inherit; text-decoration: none; transition: background-color 0.15s; }
+  .entry:hover { background: var(--plot); }
+  h3 { margin: 0; font-size: 21px; font-weight: 500; letter-spacing: -0.01em; }
+  h3 :global(var) { font-size: 1.08em; }
+  .entry p { margin: 6px 0 0; color: var(--ink-2); }
+  .entry .tags { font: 12.5px var(--mono); color: var(--ink-3); margin-top: 10px; }
+  footer { border-top: 1px solid var(--rule); padding-top: 16px; display: flex; flex-wrap: wrap; gap: 6px 20px; color: var(--ink-3); font-size: 13.5px; }
+  footer a { color: var(--ink-2); text-decoration: none; border-bottom: 1px solid var(--rule); }
+  footer a:hover { color: var(--ink); border-bottom-color: var(--ink-3); }
+  @media (max-width: 640px) {
+    .home { padding-block: 40px; gap: 36px; }
+    h1 { font-size: 34px; }
+    .entry { grid-template-columns: 1fr; gap: 14px; }
+  }
+</style>

@@ -15,8 +15,3 @@ Thumbs.db
 *.swp
 *.swo
 *~
-
-# AMS Class site build output
-web/dist/
-__pycache__/
-.wrangler/

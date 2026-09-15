@@ -1,0 +1,11 @@
+---
+import Base from '../../layouts/Base.astro';
+import SarAdc from '../../illustrations/sar/SarAdc.svelte';
+import '../../styles/illustration.css';
+---
+<Base
+  title="Binary vs Redundant SAR ADC"
+  description="Step through a successive-approximation conversion in a binary and a redundant SAR ADC, add DAC settling error, comparator noise and capacitor mismatch, and see what redundancy does and does not fix."
+>
+  <SarAdc client:load />
+</Base>

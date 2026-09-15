@@ -1,0 +1,68 @@
+@import '@fontsource/ibm-plex-sans/400.css';
+@import '@fontsource/ibm-plex-sans/500.css';
+@import '@fontsource/ibm-plex-sans/600.css';
+@import '@fontsource/ibm-plex-mono/400.css';
+@import '@fontsource/ibm-plex-mono/500.css';
+@import '@fontsource/stix-two-text/400-italic.css';
+@import '@fontsource/stix-two-text/500-italic.css';
+
+/* ---------- design tokens: light is the base, dark redefines tokens only ---------- */
+:root {
+  color-scheme: light;
+  --ground: #f6f7f9;
+  --plot: #ffffff;
+  --ink: #12161d;
+  --ink-2: #4f5866;
+  --ink-3: #8a93a1;
+  --rule: #dde1e7;
+  --grid: #eceef2;
+  --chip: #eceff3;
+  --ghost: #b9c0ca;
+  --focus: #2a78d6;
+  --s1: #2a78d6;            /* series 1 (blue)   */
+  --s2: #eb6834;            /* series 2 (orange) */
+  --s1-soft: rgba(42, 120, 214, 0.1);
+  --s2-soft: rgba(235, 104, 52, 0.1);
+  --bad: #d03b3b;           /* a wrong decision  */
+  --sans: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --math: 'STIX Two Text', 'Times New Roman', Times, serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --ground: #0e1116; --plot: #13171d; --ink: #e8ebf0; --ink-2: #a3acb9; --ink-3: #6f7886;
+    --rule: #262c35; --grid: #1c2129; --chip: #1c2129; --ghost: #4a525e; --focus: #3987e5;
+    --s1: #3987e5; --s2: #e0703f; --s1-soft: rgba(57, 135, 229, 0.16); --s2-soft: rgba(224, 112, 63, 0.16); --bad: #e66767;
+  }
+}
+
+/* ---------- base ---------- */
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; padding-inline: 24px; background: var(--ground); color: var(--ink); font: 14.5px/1.5 var(--sans); }
+@media (max-width: 900px) { body { padding-inline: 16px; } }
+var { font-family: var(--math); font-style: italic; font-weight: 400; }
+.mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.label { font-size: 11px; letter-spacing: 0.09em; text-transform: uppercase; color: var(--ink-2); font-weight: 500; }
+.label var { text-transform: none; letter-spacing: 0; font-size: 13px; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+a { color: inherit; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; } }
+
+/* ---------- chart primitives (SVG) ---------- */
+.gr { stroke: var(--grid); stroke-width: 1; fill: none; }
+.zero { stroke: var(--ink-3); stroke-width: 1; }
+.guide { stroke: var(--ink-3); stroke-width: 1; opacity: 0.55; }
+.cross { stroke: var(--ink-2); stroke-width: 1; }
+.tx { fill: var(--ink-3); font: 11px var(--mono); font-variant-numeric: tabular-nums; }
+.tx2 { fill: var(--ink-2); font: 11.5px var(--sans); }
+.tx-ink { fill: var(--ink); }
+.halo { paint-order: stroke; stroke: var(--ground); stroke-width: 4px; stroke-linejoin: round; }
+.ring { stroke: var(--plot); stroke-width: 2; }
+.c1 { stroke: var(--s1); fill: none; } .c2 { stroke: var(--s2); fill: none; }
+.f1 { fill: var(--s1); } .f2 { fill: var(--s2); }
+.a1 { fill: var(--s1-soft); stroke: none; } .a2 { fill: var(--s2-soft); stroke: none; }
+.ghost { fill: var(--ghost); }
+.bad { stroke: var(--bad); fill: none; }
+.f-bad { fill: var(--bad); }

@@ -1,0 +1,11 @@
+---
+import Base from '../../layouts/Base.astro';
+import PllIntFrac from '../../illustrations/pll/PllIntFrac.svelte';
+import '../../styles/illustration.css';
+---
+<Base
+  title="Integer-N vs Fractional-N PLL"
+  description="Side-by-side behavioural model of an integer-N and a fractional-N PLL sharing one reference, loop and VCO: divider ratio, phase-detector timing, output spectrum and jitter."
+>
+  <PllIntFrac client:load />
+</Base>
