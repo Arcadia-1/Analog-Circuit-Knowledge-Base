@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AMS Class</title>
+<meta name="description" content="Interactive illustrations of analog and mixed-signal circuits, each built on a small behavioural model you can drive yourself.">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="canonical" href="https://ams-class.tokenzhang.com/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="AMS Class">
+<meta property="og:title" content="AMS Class">
+<meta property="og:description" content="Interactive illustrations of analog and mixed-signal circuits, each built on a small behavioural model you can drive yourself.">
+<meta property="og:url" content="https://ams-class.tokenzhang.com/">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=STIX+Two+Text:ital,wght@1,400;1,500&display=swap">
+<style>
+:root {
+  color-scheme: light;
+  --ground: #f6f7f9; --plot: #ffffff; --ink: #12161d; --ink-2: #4f5866; --ink-3: #8a93a1;
+  --rule: #dde1e7; --grid: #eceef2; --int: #2a78d6; --frac: #eb6834; --focus: #2a78d6;
+  --sans: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --math: "STIX Two Text", "Times New Roman", Times, serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --ground: #0e1116; --plot: #13171d; --ink: #e8ebf0; --ink-2: #a3acb9; --ink-3: #6f7886;
+    --rule: #262c35; --grid: #1c2129; --int: #3987e5; --frac: #e0703f; --focus: #3987e5;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --ground: #0e1116; --plot: #13171d; --ink: #e8ebf0; --ink-2: #a3acb9; --ink-3: #6f7886;
+  --rule: #262c35; --grid: #1c2129; --int: #3987e5; --frac: #e0703f; --focus: #3987e5;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--ground); color: var(--ink); font: 15px/1.6 var(--sans); padding-inline: 24px; }
+[hidden] { display: none !important; }
+var { font-family: var(--math); font-style: italic; font-weight: 400; font-size: 1.08em; }
+.home { max-width: 860px; margin: 0 auto; padding-block: 72px 56px; display: grid; gap: 48px; }
+h1 { margin: 0; font-size: 44px; line-height: 1.1; font-weight: 500; letter-spacing: -0.02em; }
+h1 span { color: var(--ink-3); font-weight: 400; }
+.lede { margin: 14px 0 0; max-width: 60ch; color: var(--ink-2); font-size: 17px; }
+.topic { display: grid; gap: 14px; }
+.topic-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--rule); padding-bottom: 8px; }
+.topic-head h2 { margin: 0; font-size: 13px; font-weight: 500; letter-spacing: 0.09em; text-transform: uppercase; color: var(--ink-2); }
+.count { font: 12.5px var(--mono); color: var(--ink-3); }
+.entry { display: grid; grid-template-columns: 188px minmax(0, 1fr); gap: 24px; align-items: center; padding: 18px; margin-inline: -18px; border-radius: 12px; color: inherit; text-decoration: none; transition: background-color 0.15s ease; }
+.entry:hover { background: var(--plot); }
+.entry:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.entry h3 { margin: 0; font-size: 21px; font-weight: 500; letter-spacing: -0.01em; }
+.entry p { margin: 6px 0 0; color: var(--ink-2); }
+.entry .tags { font: 12.5px var(--mono); color: var(--ink-3); margin-top: 10px; }
+.entry .open { color: var(--ink); font-weight: 500; white-space: nowrap; }
+.thumb { width: 188px; height: auto; display: block; }
+.thumb .base { stroke: var(--rule); stroke-width: 1; }
+.thumb .i { stroke: var(--int); } .thumb .f { stroke: var(--frac); }
+.thumb .di { fill: var(--int); } .thumb .df { fill: var(--frac); }
+.thumb text { fill: var(--ink-3); font: 10px var(--mono); }
+.soon { margin: -24px 0 0; color: var(--ink-3); font-size: 14px; }
+footer { border-top: 1px solid var(--rule); padding-top: 16px; display: flex; flex-wrap: wrap; gap: 6px 20px; color: var(--ink-3); font-size: 13.5px; }
+footer a { color: var(--ink-2); text-decoration: none; border-bottom: 1px solid var(--rule); }
+footer a:hover { color: var(--ink); border-bottom-color: var(--ink-3); }
+@media (max-width: 640px) {
+  body { padding-inline: 16px; }
+  .home { padding-block: 40px 40px; gap: 36px; }
+  h1 { font-size: 34px; }
+  .entry { grid-template-columns: 1fr; gap: 14px; }
+}
+@media (prefers-reduced-motion: reduce) { .entry { transition: none; } }
+</style>
+</head>
+<body>
+<main class="home">
+  <header>
+    <h1>AMS Class</h1>
+    <p class="lede">Interactive illustrations of analog and mixed-signal circuits. Each one runs a small behavioural model in the browser, so you can change a parameter and watch the physics respond.</p>
+  </header>
+
+  <section class="topic" aria-labelledby="topic-pll">
+    <div class="topic-head"><h2 id="topic-pll">Phase-locked loops</h2><span class="count">1 illustration</span></div>
+    <a class="entry" href="/pll/integer-vs-fractional/">
+      <svg class="thumb" viewBox="0 0 188 100" aria-hidden="true">
+        <text x="0" y="10">integer-N</text>
+        <line class="base" x1="0" y1="30" x2="188" y2="30"/>
+        <g class="i" stroke-width="2" stroke-linecap="round">
+          <line x1="6" y1="30" x2="6" y2="29"/><line x1="20" y1="30" x2="20" y2="31"/><line x1="34" y1="30" x2="34" y2="29"/><line x1="48" y1="30" x2="48" y2="30"/><line x1="62" y1="30" x2="62" y2="31"/><line x1="76" y1="30" x2="76" y2="29"/><line x1="90" y1="30" x2="90" y2="30"/><line x1="104" y1="30" x2="104" y2="31"/><line x1="118" y1="30" x2="118" y2="29"/><line x1="132" y1="30" x2="132" y2="30"/><line x1="146" y1="30" x2="146" y2="31"/><line x1="160" y1="30" x2="160" y2="29"/><line x1="174" y1="30" x2="174" y2="30"/>
+        </g>
+        <g class="di"><circle cx="6" cy="29" r="2.2"/><circle cx="20" cy="31" r="2.2"/><circle cx="34" cy="29" r="2.2"/><circle cx="48" cy="30" r="2.2"/><circle cx="62" cy="31" r="2.2"/><circle cx="76" cy="29" r="2.2"/><circle cx="90" cy="30" r="2.2"/><circle cx="104" cy="31" r="2.2"/><circle cx="118" cy="29" r="2.2"/><circle cx="132" cy="30" r="2.2"/><circle cx="146" cy="31" r="2.2"/><circle cx="160" cy="29" r="2.2"/><circle cx="174" cy="30" r="2.2"/></g>
+        <text x="0" y="56">fractional-N</text>
+        <line class="base" x1="0" y1="78" x2="188" y2="78"/>
+        <g class="f" stroke-width="2" stroke-linecap="round">
+          <line x1="6" y1="78" x2="6" y2="64"/><line x1="20" y1="78" x2="20" y2="70"/><line x1="34" y1="78" x2="34" y2="76"/><line x1="48" y1="78" x2="48" y2="84"/><line x1="62" y1="78" x2="62" y2="92"/><line x1="76" y1="78" x2="76" y2="64"/><line x1="90" y1="78" x2="90" y2="70"/><line x1="104" y1="78" x2="104" y2="76"/><line x1="118" y1="78" x2="118" y2="84"/><line x1="132" y1="78" x2="132" y2="92"/><line x1="146" y1="78" x2="146" y2="64"/><line x1="160" y1="78" x2="160" y2="70"/><line x1="174" y1="78" x2="174" y2="76"/>
+        </g>
+        <g class="df"><circle cx="6" cy="64" r="2.2"/><circle cx="20" cy="70" r="2.2"/><circle cx="34" cy="76" r="2.2"/><circle cx="48" cy="84" r="2.2"/><circle cx="62" cy="92" r="2.2"/><circle cx="76" cy="64" r="2.2"/><circle cx="90" cy="70" r="2.2"/><circle cx="104" cy="76" r="2.2"/><circle cx="118" cy="84" r="2.2"/><circle cx="132" cy="92" r="2.2"/><circle cx="146" cy="64" r="2.2"/><circle cx="160" cy="70" r="2.2"/><circle cx="174" cy="76" r="2.2"/></g>
+      </svg>
+      <div>
+        <h3>Integer-<var>N</var> vs fractional-<var>N</var></h3>
+        <p>One reference, one loop, one VCO. Drag the target frequency and see what a fractional divider does to the phase detector, the spectrum and the jitter.</p>
+        <p class="tags">accumulator · ΣΔ · DTC · loop bandwidth · reference frequency</p>
+      </div>
+    </a>
+  </section>
+
+  <p class="soon">More PLL and ADC illustrations are on the way.</p>
+
+  <footer>
+    <span>AMS Class</span>
+    <a href="https://github.com/Arcadia-1/Analog-Circuit-Knowledge-Base">Source on GitHub</a>
+    <a href="https://tokenzhang.com">tokenzhang.com</a>
+  </footer>
+</main>
+</body>
+</html>
