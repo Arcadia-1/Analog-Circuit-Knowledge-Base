@@ -1,14 +1,17 @@
 {
   "$schema": "../node_modules/wrangler/config-schema.json",
-  // First-party analytics for ams-class.tokenzhang.com; the pages themselves stay on Cloudflare Pages.
+  // First-party analytics for ams-class.tokenzhang.com (module in ../analytics); the pages stay on Cloudflare Pages.
   "name": "ams-class-analytics",
   "main": "index.ts",
   "compatibility_date": "2026-09-01",
   "workers_dev": false,
   "routes": [{ "pattern": "ams-class.tokenzhang.com/api/*", "zone_name": "tokenzhang.com" }],
   "durable_objects": {
-    "bindings": [{ "name": "ANALYTICS", "class_name": "AnalyticsDO" }]
+    "bindings": [{ "name": "VISIT_STATS", "class_name": "VisitStatsDurableObject" }]
   },
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["AnalyticsDO"] }],
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["AnalyticsDO"] },
+    { "tag": "v2", "deleted_classes": ["AnalyticsDO"], "new_sqlite_classes": ["VisitStatsDurableObject"] }
+  ],
   "observability": { "enabled": true }
 }

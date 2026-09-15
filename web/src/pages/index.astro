@@ -1,11 +1,12 @@
 ---
 import Base from '../layouts/Base.astro';
 import Thumb from '../components/Thumb.astro';
+import Visits from '../components/Visits';
 import { topics } from '../data/illustrations';
 
 const count = (n: number) => `${n} illustration${n === 1 ? '' : 's'}`;
 ---
-<Base title="AMS Class" description="Interactive illustrations of analog and mixed-signal circuits, each built on a small behavioural model you can drive yourself.">
+<Base visits={false} title="AMS Class" description="Interactive illustrations of analog and mixed-signal circuits, each built on a small behavioural model you can drive yourself.">
   <main class="home">
     <header>
       <h1>AMS Class</h1>
@@ -30,25 +31,10 @@ const count = (n: number) => `${n} illustration${n === 1 ? '' : 's'}`;
       <span>AMS Class</span>
       <a href="https://github.com/Arcadia-1/Analog-Circuit-Knowledge-Base/tree/main/web">Source on GitHub</a>
       <a href="https://tokenzhang.com">tokenzhang.com</a>
-      <p class="visitors" aria-live="polite">
-        <span class="value" data-count="uniqueVisitors">—</span><span>visitors</span>
-        <span aria-hidden="true">·</span>
-        <span class="value" data-count="pageViews">—</span><span>views</span>
-      </p>
+      <Visits client:load path="/" counter />
     </footer>
   </main>
 </Base>
-
-<script>
-  // Site totals from the analytics Worker; the dashes stay when it cannot be reached.
-  const format = new Intl.NumberFormat('en');
-  fetch('/api/analytics/public')
-    .then((res) => (res.ok ? (res.json() as Promise<Record<string, number>>) : Promise.reject(res.status)))
-    .then((totals) => {
-      for (const el of document.querySelectorAll<HTMLElement>('[data-count]')) el.textContent = format.format(totals[el.dataset.count!]);
-    })
-    .catch(() => {});
-</script>
 
 <style>
   .home { max-width: 860px; margin: 0 auto; padding-block: 72px 56px; display: grid; gap: 48px; font-size: 15px; line-height: 1.6; }
@@ -65,10 +51,9 @@ const count = (n: number) => `${n} illustration${n === 1 ? '' : 's'}`;
   .entry p { margin: 6px 0 0; color: var(--ink-2); }
   .entry .tags { font: 12.5px var(--mono); color: var(--ink-3); margin-top: 10px; }
   footer { border-top: 1px solid var(--rule); padding-top: 16px; display: flex; flex-wrap: wrap; gap: 6px 20px; color: var(--ink-3); font-size: 13.5px; }
-  footer a { color: var(--ink-2); text-decoration: none; border-bottom: 1px solid var(--rule); }
-  footer a:hover { color: var(--ink); border-bottom-color: var(--ink-3); }
-  .visitors { margin: 0 0 0 auto; display: flex; align-items: baseline; gap: 5px; white-space: nowrap; font-size: 12.5px; letter-spacing: 0.02em; }
-  .visitors .value { font: 13.5px var(--mono); font-variant-numeric: tabular-nums; letter-spacing: 0; color: var(--ink); }
+  footer a, footer :global(.visitors) { color: var(--ink-2); text-decoration: none; border-bottom: 1px solid var(--rule); }
+  footer a:hover, footer :global(.visitors:hover) { color: var(--ink); border-bottom-color: var(--ink-3); }
+  footer :global(.visitors) { margin-left: auto; font: 12.5px var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
   @media (max-width: 640px) {
     .home { padding-block: 40px; gap: 36px; }
     h1 { font-size: 34px; }
