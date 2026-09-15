@@ -9,38 +9,64 @@
   import AdcSpectrumChart from './AdcSpectrumChart.svelte';
   import CdacDiagram from './CdacDiagram.svelte';
   import InputRuler from './InputRuler.svelte';
-  import { binaryMoves, convert, mismatchFor, redundancy, redundantMoves, sineTest, type Step } from './model';
+  import {
+    analyzeSpectrum,
+    binaryWeights,
+    calibrate,
+    capMismatch,
+    capture,
+    convert,
+    margin,
+    N_FFT,
+    reconstruct,
+    redundantWeights,
+    TEST_BIN,
+    TEST_PHASE,
+    TRAIN_BIN,
+    type Trial,
+  } from './model';
   import ResidueChart from './ResidueChart.svelte';
 
-  let n = $state(8);
-  let vin = $state(0.7434);
-  let settling = $state(0.05);
-  let noiseLsb = $state(0.1);
-  let mismatch = $state(0);
+  const NAMES = ['Binary', 'Redundant'];
+
+  // defaults show a chip whose binary 4th capacitor is 3.8 LSB too large: inputs near 0.689 V fall into its gap
+  let n = $state(12);
+  let vin = $state(0.6888);
+  let sigma = $state(0.1);
+  let noiseLsb = $state(0.2);
+  let chip = $state(29);
   let seed = $state(1);
   let shown = $state(Infinity);
   let playing = $state(false);
   let hoverK = $state<number | null>(null);
   let hoverBin = $state<number | null>(null);
 
-  const red = $derived(redundantMoves(n));
-  const archs = $derived([
-    { moves: binaryMoves(n), seed: 101 },
-    { moves: red.moves, seed: 202 },
-  ]);
-  const slots = $derived(red.moves.length + 1);
+  const nominals = $derived([binaryWeights(n), redundantWeights(n)]);
+  // the capacitors one chip actually has
+  const actuals = $derived(nominals.map((w, i) => capMismatch(w, sigma, gaussians(w.length, 1000 * chip + i))));
+  // standard normals for the test and training captures, drawn once per resolution and scaled by the noise slider
+  const normals = $derived(nominals.map((w, i) => gaussians(2 * N_FFT * w.length, 11 + i)));
+  // calibrate on one tone, show the spectra of another; independent of the stepped conversion
+  const spectra = $derived(
+    nominals.map((nominal, i) => {
+      const rows = N_FFT * nominal.length, scaled = noiseLsb ? normals[i].map((v) => v * noiseLsb) : null;
+      const test = capture(n, actuals[i], scaled?.subarray(0, rows) ?? null, TEST_BIN, TEST_PHASE);
+      const calibrated = calibrate(capture(n, actuals[i], scaled?.subarray(rows) ?? null, TRAIN_BIN, 0), nominal, TRAIN_BIN);
+      return [analyzeSpectrum(reconstruct(test, nominal), n), analyzeSpectrum(reconstruct(test, calibrated), n)];
+    }),
+  );
+
+  const slots = $derived(nominals[1].length);
   const at = $derived(Math.min(shown, slots));
-  const imp = $derived({ settling, noiseLsb, mismatch });
   const x = $derived(vin * 2 ** n);
   const ideal = $derived(Math.floor(x));
-  const noise = $derived(gaussians(32, seed));
-
-  const results = $derived(
-    archs.map(({ moves, seed: chip }) => {
-      const dev = mismatch ? mismatchFor(moves, mismatch, chip) : null;
-      const steps: Step[] = [];
-      const code = convert(x, n, moves, imp, dev, noise, steps);
-      return { moves, steps, code, test: sineTest(n, moves, imp, dev) };
+  const noise = $derived(gaussians(32, seed).map((v) => v * noiseLsb));
+  const conversions = $derived(
+    nominals.map((nominal, i) => {
+      const trace: Trial[] = [];
+      const bits = new Uint8Array(nominal.length);
+      convert(x, actuals[i], noise, bits, trace);
+      return { trace, code: reconstruct(bits, nominal)[0], lost: trace.findIndex((t) => !(t.lo < x && x < t.hi)) };
     }),
   );
 
@@ -64,28 +90,38 @@
     }, 520);
     return () => clearInterval(id);
   });
-
-  const errText = (code: number) => (code === ideal ? null : `off by ${code > ideal ? '+' : '−'}${Math.abs(code - ideal)} LSB`);
 </script>
 
-{#snippet header(i: 0 | 1)}
-  {@const r = results[i]}
-  {@const err = errText(r.code)}
+{#snippet header(i: number)}
+  {@const nominal = nominals[i]}
+  {@const c = conversions[i]}
   <div class="head col{i + 1}">
     <div class="line">
       <div class="name-f">
-        <div class="name"><span class="key k{i + 1}"></span><span>{i ? 'Redundant' : 'Binary'} SAR</span></div>
-        <div class="formula"><var>s</var><sub><var>k</var>+1</sub> <span class="op">{i ? '≈' : '='}</span> <var>s</var><sub><var>k</var></sub> <span class="op">/</span> {i ? red.radix.toFixed(2) : 2}</div>
+        <div class="name"><span class="key k{i + 1}"></span><span>{NAMES[i]} SAR</span></div>
+        <div class="formula"><var>w</var><sub><var>j</var>+1</sub> <span class="op">{i ? '≈' : '='}</span> <var>w</var><sub><var>j</var></sub> <span class="op">/</span> {i ? '1.8' : 2}</div>
       </div>
-      <span class="meta">{r.moves.length + 1} comparisons · {i ? `first step tolerates ±${redundancy(r.moves)[0]} LSB` : 'no redundancy'}</span>
+      <span class="meta">{nominal.length} comparisons · {i ? `first step has ${margin(nominal, 0)} LSB of margin` : 'no redundancy'}</span>
     </div>
     <div class="line">
       <div class="readout">
-        <span>code <span class="mono">{r.code}</span></span>
+        <span>code <span class="mono">{c.code}</span></span>
         <span>ideal <span class="mono">{ideal}</span></span>
-        {#if err}<span class="chip off">{err}</span>{:else}<span class="chip">correct</span>{/if}
+        {#if c.code === ideal}<span class="chip">correct</span>{:else}<span class="chip off">off by {c.code > ideal ? '+' : '−'}{Math.abs(c.code - ideal)} LSB</span>{/if}
+        {#if c.lost >= 0}<span class="chip off">lost at comparison {c.lost + 1}</span>{:else if c.code !== ideal}<span class="chip">recoverable</span>{/if}
       </div>
     </div>
+  </div>
+{/snippet}
+
+{#snippet spectrumChart(i: number, k: number)}
+  {@const sp = spectra[i][k]}
+  <div class="chart">
+    <div class="cap">
+      <span class="label"><span class="tag">{NAMES[i]}</span>{k ? 'Calibrated' : 'Uncalibrated'}</span>
+      <span>ENOB <b>{nf(sp.enob, 2)}</b> · SFDR <b>{nf(sp.sfdr, 1)} dB</b></span>
+    </div>
+    <AdcSpectrumChart spectrum={sp} {n} series={i ? 2 : 1} hover={hoverBin} onhover={(b) => (hoverBin = b)} label="{NAMES[i]} SAR output spectrum, {k ? 'calibrated' : 'uncalibrated'}" />
   </div>
 {/snippet}
 
@@ -93,25 +129,28 @@
   <header class="top">
     <a class="crumb" href="/">AMS Class</a>
     <h1>Binary vs redundant SAR</h1>
-    <p class="sub">One sampled input, one comparator, one capacitor array. Only the step sizes differ.</p>
+    <p class="sub">One sampled input, one comparator, one capacitor array. Only the weights differ.</p>
     <div class="pick">
       <span class="label" id="res-label">Resolution</span>
-      <Segmented size="sm" mono label="Resolution in bits" options={[6, 8, 10, 12].map((b) => ({ value: b, label: String(b) }))} bind:value={() => n, (b) => { n = b; reset(); }} />
+      <Segmented size="sm" mono label="Resolution in bits" options={[8, 10, 12, 14, 16].map((b) => ({ value: b, label: String(b) }))} bind:value={() => n, (b) => { n = b; reset(); }} />
       <span class="unit">bits</span>
     </div>
     <Notes>
-      <p><b>Conversion.</b> In LSB units the first comparison tests mid-scale, 2<sup><var>N</var>−1</sup>. After each decision the DAC moves up or down by the next step <var>s</var>; the output code is the last threshold plus the last bit, minus one.</p>
-      <p><b>Binary SAR.</b> <var>N</var> comparisons, each step half the previous one, so any wrong decision is final.</p>
-      <p><b>Redundant SAR.</b> <var>N</var> + ⌈<var>N</var>/6⌉ comparisons with integer steps shrinking by a radix of about 1.7 that still add up to the full scale. A decision wrong by up to 1 + (sum of later steps) − (this step) LSB is corrected by the comparisons that follow.</p>
-      <p><b>Impairments.</b> DAC settling: the comparator sees the new level minus a fraction ε of the last step. Comparator noise: Gaussian per comparison. Capacitor mismatch: each step's capacitor (2<var>s</var> unit capacitors) deviates by σ/√(2<var>s</var>), fixed per chip. The drawn conversion uses one noise sample; the spectra draw new noise for every comparison.</p>
-      <p><b>Sine test.</b> 4096 conversions of a −0.5 dBFS sine with 409 cycles (coherent), rectangular window. ENOB = (SNDR − 1.76) / 6.02.</p>
+      <p><b>ADCToolbox.</b> The conversion, capacitor mismatch, calibration and spectrum analysis are ports of <a href="https://github.com/Arcadia-1/ADCToolbox">ADCToolbox</a> 0.9.1 and agree with it to 0.001 ENOB.</p>
+      <p><b>Conversion.</b> Comparison <var>j</var> adds weight <var>w<sub>j</sub></var> to the DAC level kept so far and keeps it when the input is not lower. The code is the sum of the kept nominal weights.</p>
+      <p><b>Weights.</b> Binary: <var>w<sub>j</sub></var> = 2<sup><var>N</var>−1−<var>j</var></sup>. Redundant: integers shrinking by a radix of 1.8 that add up to 2<sup><var>N</var></sup> − 1; at 16 bits this is the weight set of the ADCToolbox examples. A comparison that wrongly drops its weight is recovered while the input stays within the later weights plus one LSB.</p>
+      <p><b>Capacitor mismatch.</b> Weight <var>w<sub>j</sub></var> is built from <var>w<sub>j</sub></var>/<var>w</var><sub>min</sub> unit capacitors, each with relative mismatch σ, so its relative error is σ/√units. New chip draws another set of errors.</p>
+      <p><b>Comparator noise.</b> Gaussian, drawn anew for every decision. The stepped conversion uses one draw; New noise replaces it.</p>
+      <p><b>Calibration.</b> Sine-fit weight calibration: a least-squares fit of the bit columns plus an offset to a unit sine at the known frequency 499/4096 <var>f</var><sub>s</sub>, rescaled to the nominal weight sum. The spectra use a second tone at 613/4096 <var>f</var><sub>s</sub>, so the weights are tested on data they were not fitted to.</p>
+      <p><b>Spectrum.</b> 4096 conversions of a −0.5 dBFS sine, rectangular window. ENOB = (SNDR − 1.76) / 6.02. The largest spur is labelled with its harmonic order when it is one.</p>
+      <p><b>Input frequency.</b> None of these errors depend on it: every conversion works on a held sample, so another tone frequency only moves the harmonics.</p>
     </Notes>
   </header>
 
   <section class="tuner" aria-label="Input voltage">
     <div class="tuner-left">
       <label class="label" for="vin-num">Input</label>
-      <ValueField id="vin-num" value={vin} digits={4} unit="V" step={1 / 2 ** n} onchange={(v) => { vin = clamp(v, 0, 1); reset(); }} title="Type a voltage between 0 and 1 V, or use ↑ ↓ to step one LSB (Shift: ten)" />
+      <ValueField id="vin-num" value={vin} digits={n > 12 ? 5 : 4} unit="V" step={1 / 2 ** n} onchange={(v) => { vin = clamp(v, 0, 1); reset(); }} title="Type a voltage between 0 and 1 V, or use ↑ ↓ to step one LSB (Shift: ten)" />
       <div class="transport">
         <button type="button" onclick={() => step(-1)} disabled={at === 0} aria-label="Previous comparison">‹</button>
         <button type="button" onclick={() => step(1)} disabled={at >= slots} aria-label="Next comparison">›</button>
@@ -120,58 +159,56 @@
         {#if noiseLsb > 0}<button type="button" onclick={() => seed++} title="Draw a new comparator-noise sample for this conversion">New noise</button>{/if}
       </div>
     </div>
-    <InputRuler {vin} {n} codeA={results[0].code} codeB={results[1].code} onchange={(v) => { vin = v; reset(); }} />
+    <InputRuler {vin} {n} codeA={conversions[0].code} codeB={conversions[1].code} onchange={(v) => { vin = v; reset(); }} />
   </section>
 
   <section class="compare">
     <div class="imp">
       <span class="label">Impairments, same for both</span>
-      <Range id="settling" min={0} max={0.12} step={0.005} output="{nf(settling * 100, 1)} %" bind:value={settling}>DAC settling error</Range>
+      <Range id="mismatch" min={0} max={0.1} step={0.001} output="{nf(sigma * 100, 1)} %" bind:value={sigma}>Unit-cap mismatch</Range>
       <Range id="noise" min={0} max={1} step={0.05} output="{nf(noiseLsb, 2)} LSB" bind:value={noiseLsb}>Comparator noise</Range>
-      <Range id="mismatch" min={0} max={0.02} step={0.001} output="{nf(mismatch * 100, 1)} %" bind:value={mismatch}>Capacitor mismatch</Range>
+      <button type="button" onclick={() => chip++} title="Draw another set of capacitor errors">New chip</button>
     </div>
 
     {@render header(0)}
     {@render header(1)}
-    {#each results as r, i (i)}
-      <div class="col{i + 1}"><CdacDiagram moves={r.moves} steps={r.steps} shown={at} series={i ? 2 : 1} label="{i ? 'Redundant' : 'Binary'} capacitor DAC switch states" /></div>
+    {#each nominals as w, i (i)}
+      <div class="col{i + 1}"><CdacDiagram weights={w} trace={conversions[i].trace} shown={at} series={i ? 2 : 1} label="{NAMES[i]} capacitor DAC switch states" /></div>
     {/each}
-    {#each results as r, i (i)}
+    {#each conversions as c, i (i)}
       <div class="chart">
         <div class="cap">
-          <span class="left"><span class="label"><span class="tag">{i ? 'Redundant' : 'Binary'}</span>Successive approximation</span><span>residue, log scale</span></span>
+          <span class="left"><span class="label"><span class="tag">{NAMES[i]}</span>Successive approximation</span><span>residue, log scale</span></span>
           <span class="keys"><i class="sw"></i>reachable<i class="sw lost"></i>V<sub>in</sub> lost<i class="sw wrong"></i>wrong bit</span>
         </div>
-        <ResidueChart steps={r.steps} {x} {n} {slots} shown={at} series={i ? 2 : 1} hover={hoverK} onhover={(k) => (hoverK = k)} label="{i ? 'Redundant' : 'Binary'} SAR residue per comparison" />
+        <ResidueChart trace={c.trace} {x} {n} {slots} shown={at} series={i ? 2 : 1} hover={hoverK} onhover={(k) => (hoverK = k)} label="{NAMES[i]} SAR residue per comparison" />
       </div>
     {/each}
-    {#each results as r, i (i)}
-      <div class="chart">
-        <div class="cap">
-          <span class="left"><span class="label"><span class="tag">{i ? 'Redundant' : 'Binary'}</span>Sine test</span><span>4096 conversions</span></span>
-          <span>SNDR <b>{nf(r.test.sndr, 1)} dB</b> · ENOB <b>{nf(r.test.enob, 2)}</b> · SFDR <b>{nf(r.test.sfdr, 1)} dB</b></span>
-        </div>
-        <AdcSpectrumChart test={r.test} {n} series={i ? 2 : 1} hover={hoverBin} onhover={(b) => (hoverBin = b)} label="{i ? 'Redundant' : 'Binary'} SAR output spectrum" />
-      </div>
+    {#each spectra as _, i (i)}
+      <div class="pair">{@render spectrumChart(i, 0)}{@render spectrumChart(i, 1)}</div>
     {/each}
   </section>
 </main>
 
 <style>
-  .compare { --rows: auto auto 78px minmax(0, 1.1fr) minmax(0, 1fr); padding-top: 10px; }
+  .compare { --rows: auto auto 78px minmax(0, 1fr) minmax(0, 1fr); padding-top: 10px; }
   .imp { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 28px; }
   .imp .label { color: var(--ink-3); }
   .meta { font-size: 12.5px; color: var(--ink-3); }
   .chip.off { color: var(--bad); box-shadow: inset 0 0 0 1px var(--bad); background: transparent; }
   .transport { display: flex; align-items: center; gap: 6px; }
-  .transport button { font: 500 13px/1 var(--sans); color: var(--ink-2); background: var(--plot); border: 1px solid var(--rule); border-radius: 7px; padding: 5px 10px; min-width: 30px; cursor: pointer; }
-  .transport button:hover:not(:disabled) { color: var(--ink); border-color: var(--ink-3); }
-  .transport button:disabled { opacity: 0.45; cursor: default; }
-  .transport .play { min-width: 58px; }
-  .count { font-size: 12.5px; color: var(--ink-3); min-width: 4ch; }
+  button { font: 500 13px/1 var(--sans); color: var(--ink-2); background: var(--plot); border: 1px solid var(--rule); border-radius: 7px; padding: 5px 10px; min-width: 30px; cursor: pointer; }
+  button:hover:not(:disabled) { color: var(--ink); border-color: var(--ink-3); }
+  button:disabled { opacity: 0.45; cursor: default; }
+  .play { min-width: 58px; }
+  .count { font-size: 12.5px; color: var(--ink-3); min-width: 5ch; }
   .keys { display: flex; align-items: center; gap: 5px; color: var(--ink-3); }
   .keys i { display: inline-block; margin-left: 9px; }
   .sw { width: 8px; height: 11px; border-radius: 2px; background: var(--chip); }
   .sw.lost { background: color-mix(in srgb, var(--bad) 12%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--bad) 60%, transparent); }
   .sw.wrong { width: 9px; height: 9px; border-radius: 50%; background: transparent; box-shadow: inset 0 0 0 1.5px var(--bad); }
+  .pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 18px; min-height: 0; }
+  @media (max-width: 900px) {
+    .pair { order: 3; grid-template-columns: minmax(0, 1fr); row-gap: 16px; }
+  }
 </style>

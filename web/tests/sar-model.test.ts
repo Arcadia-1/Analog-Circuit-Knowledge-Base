@@ -1,51 +1,75 @@
 import { describe, expect, it } from 'vitest';
-import { binaryMoves, convert, redundancy, redundantMoves, sineTest, type Step } from '../src/illustrations/sar/model';
+import {
+  analyzeSpectrum,
+  binaryWeights,
+  calibrate,
+  capMismatch,
+  capture,
+  convert,
+  margin,
+  reconstruct,
+  redundantWeights,
+  TEST_BIN,
+  TEST_PHASE,
+  TRAIN_BIN,
+} from '../src/illustrations/sar/model';
 
-const movesFor = (arch: 'binary' | 'redundant', n: number) => (arch === 'binary' ? binaryMoves(n) : redundantMoves(n).moves);
+/** The fixed "standard normals" of python/sar_binary_vs_redundant.py. */
+const zFixed = (m: number) => Float64Array.from({ length: m }, (_, j) => 1.5 * Math.sin(2.3 * j + 0.9));
+const weightsFor = (arch: 'binary' | 'redundant', n: number) => (arch === 'binary' ? binaryWeights(n) : redundantWeights(n));
 
-const ideal = { settling: 0, noiseLsb: 0, mismatch: 0 };
-
-describe('SAR ADC model', () => {
-  it('builds redundant moves that cover the full scale and keep every decision recoverable', () => {
-    for (const n of [6, 8, 10, 12]) {
-      const { moves, radix } = redundantMoves(n);
-      expect(moves.reduce((a, b) => a + b, 0)).toBe(2 ** (n - 1) - 1);
-      expect(moves.length).toBe(n - 1 + Math.ceil(n / 6));
-      expect(Math.min(...redundancy(moves))).toBeGreaterThanOrEqual(0);
-      expect(radix).toBeGreaterThan(1.6);
-      expect(radix).toBeLessThan(1.8);
-      expect(Math.min(...redundancy(binaryMoves(n)))).toBe(0);
+describe('SAR ADC model, ported from ADCToolbox', () => {
+  it('builds radix-1.8 weights that match ADCToolbox and keep every decision recoverable', () => {
+    expect(redundantWeights(16)).toEqual([29127, 16182, 8990, 4995, 2775, 1542, 856, 476, 264, 147, 82, 45, 25, 14, 8, 4, 2, 1]);
+    expect(redundantWeights(12)).toEqual([1820, 1011, 562, 312, 173, 96, 54, 30, 17, 9, 5, 3, 2, 1]);
+    for (const n of [8, 10, 12, 14, 16]) {
+      for (const w of [binaryWeights(n), redundantWeights(n)]) {
+        expect(w.reduce((a, b) => a + b, 0) + w[w.length - 1]).toBe(2 ** n);
+        expect(Math.min(...w.map((_, j) => margin(w, j)))).toBe(0);
+      }
+      expect(margin(redundantWeights(n), 0)).toBeGreaterThan(0);
     }
   });
 
-  it('converts every input exactly when ideal (both architectures)', () => {
-    for (const n of [6, 8, 10]) {
-      for (const arch of ['binary', 'redundant'] as const) {
-        const mv = movesFor(arch, n);
-        for (let x = 0; x < 2 ** n; x += 0.125) expect(convert(x, n, mv, ideal, null, null)).toBe(Math.floor(x));
+  it('scales capacitor mismatch with the square root of the unit count', () => {
+    const w = capMismatch([4, 2, 1], 0.1, [1, 1, 1]);
+    expect(Array.from(w)).toEqual([4 * (1 + 0.1 / 2), 2 * (1 + 0.1 / Math.SQRT2), 1.1]);
+  });
+
+  it('converts every input to floor(x) with ideal capacitors', () => {
+    for (const n of [8, 10]) {
+      for (const w of [binaryWeights(n), redundantWeights(n)]) {
+        const bits = new Uint8Array(w.length);
+        for (let x = 0; x < 2 ** n; x += 0.125) {
+          convert(x, w, null, bits);
+          expect(reconstruct(bits, w)[0]).toBe(Math.floor(x));
+        }
       }
     }
   });
 
-  // Deterministic cases (no random draws) must match python/sar_binary_vs_redundant.py to 0.05 dB.
-  const cases: [number, number, 'binary' | 'redundant', number, number][] = [
-    [8, 0, 'binary', 49.5, 0], [8, 0.04, 'binary', 45.9, 3], [8, 0.04, 'redundant', 49.2, 1],
-    [10, 0.1, 'binary', 39.6, 26], [10, 0.1, 'redundant', 60.0, 1],
+  // [N, sigma, arch, ENOB before, SFDR before, ENOB after, SFDR after, DC code with nominal weights] from the Python reference
+  const cases: [number, number, 'binary' | 'redundant', number, number, number, number, number][] = [
+    [12, 0, 'binary', 11.9117, 95.281, 11.8995, 94.926, 3044],
+    [12, 0, 'redundant', 11.9117, 95.281, 11.9105, 95.275, 3044],
+    [12, 0.1, 'binary', 8.9193, 61.719, 11.4565, 94.217, 3040],
+    [12, 0.1, 'redundant', 8.8363, 62.689, 12.0153, 97.492, 3042],
+    [16, 0.1, 'binary', 10.927, 73.739, 14.8795, 115.711, 48701],
+    [16, 0.1, 'redundant', 10.8421, 74.77, 15.7497, 121.075, 48707],
   ];
-  it.each(cases)('N=%i settling=%f %s: SNDR %f dB, max error %i LSB', (n, eps, arch, sndr, maxErr) => {
-    const r = sineTest(n, movesFor(arch, n), { settling: eps, noiseLsb: 0, mismatch: 0 }, null);
-    expect(r.sndr).toBeCloseTo(sndr, 0);
-    expect(Math.abs(r.sndr - sndr)).toBeLessThan(0.06);
-    expect(r.maxErr).toBe(maxErr);
-  });
-
-  it('shows the binary MSB error the page opens with, and the redundant SAR correcting it', () => {
-    const n = 8, x = 0.7434 * 256, imp = { settling: 0.05, noiseLsb: 0, mismatch: 0 };
-    const bs: Step[] = [], rs: Step[] = [];
-    const b = convert(x, n, movesFor('binary', n), imp, null, null, bs);
-    const r = convert(x, n, movesFor('redundant', n), imp, null, null, rs);
-    expect(bs[1].b).not.toBe(bs[1].ideal);
-    expect(b).not.toBe(Math.floor(x));
-    expect(r).toBe(Math.floor(x));
+  it.each(cases)('matches ADCToolbox for N=%i, sigma=%f, %s', (n, sigma, arch, enobB, sfdrB, enobA, sfdrA, code) => {
+    const nominal = weightsFor(arch, n);
+    const actual = capMismatch(nominal, sigma, zFixed(nominal.length));
+    const test = capture(n, actual, null, TEST_BIN, TEST_PHASE);
+    const calibrated = calibrate(capture(n, actual, null, TRAIN_BIN, 0), nominal, TRAIN_BIN);
+    const before = analyzeSpectrum(reconstruct(test, nominal), n);
+    const after = analyzeSpectrum(reconstruct(test, calibrated), n);
+    expect(before.enob).toBeCloseTo(enobB, 3);
+    expect(before.sfdr).toBeCloseTo(sfdrB, 2);
+    expect(after.enob).toBeCloseTo(enobA, 3);
+    expect(after.sfdr).toBeCloseTo(sfdrA, 2);
+    const bits = new Uint8Array(nominal.length);
+    convert(0.7434 * 2 ** n, actual, null, bits);
+    expect(reconstruct(bits, nominal)[0]).toBe(code);
   });
 });

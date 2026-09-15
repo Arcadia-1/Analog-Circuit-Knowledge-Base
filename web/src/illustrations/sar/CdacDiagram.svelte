@@ -1,18 +1,18 @@
 <script lang="ts">
-  import type { Step } from './model';
+  import type { Trial } from './model';
 
   /**
-   * Capacitor DAC as a row of capacitors, one per move, drawn to scale on a log axis.
-   * After comparison k the capacitor of move k switches its bottom plate to Vref (decision 1) or ground (0);
-   * capacitors not yet used sit at mid-scale.
+   * Capacitor DAC as a row of capacitors, one per weight, heights on a log scale. Comparison j switches capacitor j up;
+   * it stays up when the input is not lower (bit 1) and drops back otherwise. Capacitors not yet tried are outlined.
    */
-  let { moves, steps, shown, series, label }: { moves: number[]; steps: Step[]; shown: number; series: 1 | 2; label: string } = $props();
+  let { weights, trace, shown, series, label }: { weights: number[]; trace: Trial[]; shown: number; series: 1 | 2; label: string } = $props();
 
-  const K = $derived(moves.length);
-  const slot = $derived(Math.min(34, 388 / K));
-  const maxLog = $derived(Math.log2(2 * Math.max(...moves)));
-  const h = (s: number) => 6 + (Math.log2(2 * s) / maxLog) * 26;
-  const lastBit = $derived(shown > 0 ? steps[Math.min(shown, steps.length) - 1].b : null);
+  const slot = $derived(Math.min(34, 388 / weights.length));
+  const maxLog = $derived(Math.log2(2 * weights[0]));
+  const h = (w: number) => 6 + (Math.log2(2 * w) / maxLog) * 26;
+  // full value when it fits the slot (about 5.8 px per character), otherwise thousands
+  const text = (w: number) => (String(w).length * 5.8 <= slot - 3 ? String(w) : `${Math.round(w / 1e3)}k`);
+  const lastBit = $derived(shown > 0 ? trace[Math.min(shown, trace.length) - 1].bit : null);
 </script>
 
 <svg viewBox="0 0 470 78" preserveAspectRatio="xMinYMid meet" role="img" aria-label={label}>
@@ -20,15 +20,15 @@
   <text class="m" x="0" y="10">V<tspan font-size="9" dy="3">x</tspan></text>
   <polygon class="cmp" points="436,1 436,19 452,10" />
   <text class="bit mono" x="458" y="10">{lastBit ?? '·'}</text>
-  {#each moves as s, i (i)}
-    {@const x = 28 + i * slot}
-    {@const st = i < shown && i < steps.length - 1 ? (steps[i].b ? 'up' : 'down') : 'idle'}
-    <line class="wire" x1={x + slot / 2 - 2} y1="10" x2={x + slot / 2 - 2} y2="16" />
-    <rect class="cell {st} s{series}" class:active={i === shown - 1} x={x} y="16" width={slot - 4} height={h(s)} rx="2" />
-    {#if st === 'up'}<path class="arrow s{series}" d="M{x + slot / 2 - 2},{58} l-3,4 h6 z" />{/if}
-    {#if st === 'down'}<path class="arrow s{series}" d="M{x + slot / 2 - 2},{62} l-3,-4 h6 z" />{/if}
-    {#if st === 'idle'}<circle class="rest" cx={x + slot / 2 - 2} cy="60" r="1.6" />{/if}
-    <text class="tx s" x={x + slot / 2 - 2} y="74" text-anchor="middle">{s}</text>
+  {#each weights as w, j (j)}
+    {@const x = 28 + j * slot + slot / 2 - 2}
+    {@const st = j < shown ? (trace[j].bit ? 'up' : 'down') : 'idle'}
+    <line class="wire" x1={x} y1="10" x2={x} y2="16" />
+    <rect class="cell {st} s{series}" class:active={j === shown - 1} x={x - slot / 2 + 2} y="16" width={slot - 4} height={h(w)} rx="2" />
+    {#if st === 'up'}<path class="arrow s{series}" d="M{x},58 l-3,4 h6 z" />{/if}
+    {#if st === 'down'}<path class="arrow s{series}" d="M{x},62 l-3,-4 h6 z" />{/if}
+    {#if st === 'idle'}<circle class="rest" cx={x} cy="60" r="1.6" />{/if}
+    <text class="tx s" x={x} y="74" text-anchor="middle">{text(w)}</text>
   {/each}
 </svg>
 

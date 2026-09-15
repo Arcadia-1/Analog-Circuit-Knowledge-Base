@@ -1,124 +1,186 @@
 /**
- * Binary vs redundant SAR ADC behavioural model (mirrors python/sar_binary_vs_redundant.py).
+ * Binary vs redundant SAR ADC, ported from ADCToolbox 0.9.1 (github.com/Arcadia-1/ADCToolbox, python/src/adctoolbox).
+ * Mirrors python/sar_binary_vs_redundant.py, which calls ADCToolbox directly; tests/sar-model.test.ts compares the two.
  *
- * Units are LSBs; the input x lies in [0, 2^N). Comparison k = 0..M-1 tests threshold t_k:
- *   t_0 = 2^(N-1),  t_{k+1} = t_k + (2 b_k − 1) s_k,  code = clip(t_{M-1} + b_{M-1} − 1, 0, 2^N − 1).
- * Binary: M = N, s_k = 2^(N−2−k). Redundant: M = N + ceil(N/6), geometric integer moves (radix ≈ 1.7) that still
- * sum to 2^(N−1) − 1; a decision error of up to R_k = 1 + Σ_{j>k} s_j − s_k LSB at comparison k is corrected later.
- * Impairments seen by the comparator: capacitor mismatch (each move realised as s_k (1 + d_k)), incomplete DAC
- * settling (the comparator sees a_k − ε (a_k − a_{k−1})) and Gaussian comparator noise.
+ * Units are LSBs: ADCToolbox's normalised weights and input (full scale 1) times 2^N. Weights are MSB first.
+ *   models/sar.py              sar_convert, sar_reconstruct, sar_apply_cap_mismatch
+ *   calibration/               calibrate_weight_sine at a known frequency + scale_calibration_output(target_weights)
+ *   spectrum/compute_spectrum  rectangular window, side_bin = 0, harmonics 2..5
  */
 import { fft } from '../../lib/fft';
-import { gaussians } from '../../lib/rng';
-import { clamp } from '../../lib/scale';
 
-export interface Impairments { settling: number; noiseLsb: number; mismatch: number }
+export const N_FFT = 4096;
+export const TRAIN_BIN = 499;
+export const TEST_BIN = 613;
+export const TEST_PHASE = 0.37;
+const AMP_DBFS = -0.5;
 
-export function binaryMoves(n: number): number[] {
-  return Array.from({ length: n - 1 }, (_, k) => 2 ** (n - 2 - k));
+function sum(a: ArrayLike<number>): number {
+  let s = 0;
+  for (let i = 0; i < a.length; i++) s += a[i];
+  return s;
 }
 
-/** Geometric integer moves (MSB first) for M = N + ceil(N/6) comparisons, summing to 2^(N−1) − 1. */
-export function redundantMoves(n: number): { moves: number[]; radix: number } {
-  const k = n - 1 + Math.ceil(n / 6);
-  const target = 2 ** (n - 1) - 1;
-  let lo = 1 + 1e-9, hi = 2;
-  for (let i = 0; i < 200; i++) {
-    const r = (lo + hi) / 2;
-    if ((r ** k - 1) / (r - 1) < target) lo = r;
-    else hi = r;
-  }
-  const r = (lo + hi) / 2;
-  const moves = Array.from({ length: k }, (_, j) => Math.round(r ** j));
-  let diff = target - moves.reduce((a, b) => a + b, 0);
-  let j = k - 1;
-  while (diff) {
-    const step = diff > 0 ? 1 : -1;
-    moves[j] += step;
-    diff -= step;
-    j = j > k >> 1 ? j - 1 : k - 1;
-  }
-  return { moves: moves.reverse(), radix: r };
+export const binaryWeights = (n: number): number[] => Array.from({ length: n }, (_, j) => 2 ** (n - 1 - j));
+
+/** Radix-1.8 integer weights summing to 2^N − 1 (largest-remainder rounding); N = 16 gives ADCToolbox's exp_d16 list. */
+export function redundantWeights(n: number, radix = 1.8): number[] {
+  const target = 2 ** n - 1;
+  const m = Math.floor((n * Math.LN2) / Math.log(radix));
+  const c = (target * (radix - 1)) / (radix ** m - 1);
+  const exact = Array.from({ length: m }, (_, j) => c * radix ** (m - 1 - j));
+  const w = exact.map(Math.floor);
+  const order = w.map((_, j) => j).sort((a, b) => exact[b] - w[b] - (exact[a] - w[a]));
+  for (const j of order.slice(0, target - sum(w))) w[j]++;
+  return w;
 }
 
-/** Recoverable decision error (LSB) at each comparison: R_k = 1 + Σ_{j>k} s_j − s_k (last comparison: 0). */
-export function redundancy(moves: number[]): number[] {
-  const out: number[] = [];
-  for (let k = 0; k < moves.length; k++) out.push(1 + moves.slice(k + 1).reduce((a, b) => a + b, 0) - moves[k]);
-  return [...out, 0];
+/** How far (LSB) the input may lie above w_j when comparison j wrongly drops it: later weights plus one LSB, minus w_j. */
+export const margin = (w: number[], j: number): number => sum(w.slice(j + 1)) + w[w.length - 1] - w[j];
+
+/** sar_apply_cap_mismatch: weight j is w_j / w_min unit capacitors, each with relative sigma σ, so σ_j = σ / √units. */
+export function capMismatch(w: number[], sigma: number, z: ArrayLike<number>): Float64Array {
+  const unit = Math.min(...w);
+  return Float64Array.from(w, (v, j) => v * (1 + (sigma / Math.sqrt(v / unit)) * z[j]));
 }
 
-/** Per-move relative capacitor error for a unit-capacitor sigma, fixed per "chip" (seeded). */
-export function mismatchFor(moves: number[], sigmaUnit: number, seed: number): Float64Array {
-  const z = gaussians(moves.length, seed);
-  return Float64Array.from(moves, (s, i) => (z[i] * sigmaUnit) / Math.sqrt(2 * s));
-}
-
-export interface Step {
-  /** digital (nominal) threshold, LSB */
-  t: number;
-  /** threshold actually seen by the comparator, LSB */
-  seen: number;
-  /** comparator decision */
-  b: 0 | 1;
-  /** decision of an ideal comparator against the nominal threshold */
+export interface Trial {
+  /** DAC level tested in this comparison (LSB, actual capacitors) */
+  test: number;
+  bit: 0 | 1;
+  /** decision of a noiseless comparator */
   ideal: 0 | 1;
-  /** codes still reachable from this comparison on, [lo, hi] */
+  /** the conversion can still end within half an LSB of the input's code if lo < x < hi */
   lo: number;
   hi: number;
 }
 
-/** One conversion of input x (LSB); returns the code. `noise[k]` are standard normals; pass `trace` to record each comparison. */
-export function convert(x: number, n: number, moves: number[], imp: Impairments, dev: Float64Array | null, noise: Float64Array | null, trace?: Step[]): number {
-  const m = moves.length + 1;
-  const full = 2 ** n - 1;
-  let t = 2 ** (n - 1), a = t, aPrev = a, b: 0 | 1 = 0;
-  let remaining = moves.reduce((p, q) => p + q, 0);
-  for (let k = 0; k < m; k++) {
-    const seen = a - imp.settling * (a - aPrev);
-    const nz = noise && imp.noiseLsb ? noise[k] * imp.noiseLsb : 0;
-    b = x + nz >= seen ? 1 : 0;
-    trace?.push({ t, seen, b, ideal: x >= t ? 1 : 0, lo: Math.max(0, t - remaining - 1), hi: Math.min(full, t + remaining) });
-    if (k === m - 1) break;
-    const s = moves[k];
-    remaining -= s;
-    aPrev = a;
-    a += (2 * b - 1) * s * (1 + (dev ? dev[k] : 0));
-    t += (2 * b - 1) * s;
+/** sar_convert for one sample: add weight j to the kept DAC level and keep it if the input (plus comparator noise) is not lower. */
+export function convert(x: number, w: ArrayLike<number>, noise: ArrayLike<number> | null, bits: Uint8Array, trace?: Trial[]): void {
+  let dac = 0;
+  let rest = sum(w);
+  for (let j = 0; j < w.length; j++) {
+    const test = dac + w[j];
+    const bit = x + (noise ? noise[j] : 0) >= test ? 1 : 0;
+    trace?.push({ test, bit, ideal: x >= test ? 1 : 0, lo: dac - 0.5, hi: dac + rest + 1.5 });
+    bits[j] = bit;
+    rest -= w[j];
+    if (bit) dac = test;
   }
-  return clamp(t + b - 1, 0, full);
 }
 
-export const N_FFT = 4096;
-export const CYCLES = 409;
-export const AMP_DBFS = -0.5;
+/** sar_reconstruct: weighted sum of the bits of every sample (rows of `bits`). */
+export function reconstruct(bits: Uint8Array, w: ArrayLike<number>): Float64Array {
+  const m = w.length;
+  return Float64Array.from({ length: bits.length / m }, (_, i) => {
+    let v = 0;
+    for (let j = 0; j < m; j++) v += bits[i * m + j] * w[j];
+    return v;
+  });
+}
 
-export interface SineTest { sndr: number; enob: number; sfdr: number; maxErr: number; dbfs: Float64Array }
-
-/** Coherent sine test: N_FFT conversions, rectangular-window FFT, SNDR / ENOB / SFDR and the dBFS spectrum. */
-export function sineTest(n: number, moves: number[], imp: Impairments, dev: Float64Array | null, noiseSeed = 5): SineTest {
-  const m = moves.length + 1;
-  const half = 2 ** (n - 1), amp = half * 10 ** (AMP_DBFS / 20);
-  const re = new Float64Array(N_FFT), im = new Float64Array(N_FFT);
-  const g = imp.noiseLsb ? gaussians(N_FFT * m, noiseSeed) : null;
-  let maxErr = 0;
+/** Bits of N_FFT conversions of a coherent −0.5 dBFS sine at `bin`; `noise` holds the comparator noise (LSB) row by row. */
+export function capture(n: number, w: ArrayLike<number>, noise: Float64Array | null, bin: number, phase: number): Uint8Array {
+  const m = w.length, half = 2 ** (n - 1), amp = half * 10 ** (AMP_DBFS / 20);
+  const bits = new Uint8Array(N_FFT * m);
   for (let i = 0; i < N_FFT; i++) {
-    const x = half + amp * Math.sin((2 * Math.PI * CYCLES * i) / N_FFT);
-    const code = convert(x, n, moves, imp, dev, g ? g.subarray(i * m, (i + 1) * m) : null);
-    maxErr = Math.max(maxErr, Math.abs(code - clamp(Math.floor(x), 0, 2 ** n - 1)));
-    re[i] = code + 0.5 - half;
+    const x = half + amp * Math.sin((2 * Math.PI * bin * i) / N_FFT + phase);
+    convert(x, w, noise?.subarray(i * m, (i + 1) * m) ?? null, bits.subarray(i * m, (i + 1) * m));
   }
+  return bits;
+}
+
+/** Solve the symmetric positive-definite system G x = h (Cholesky, G stored row-major k × k). */
+function solveSpd(G: Float64Array, h: Float64Array, k: number): Float64Array {
+  const L = new Float64Array(k * k);
+  for (let i = 0; i < k; i++) {
+    for (let j = 0; j <= i; j++) {
+      let s = G[i * k + j];
+      for (let p = 0; p < j; p++) s -= L[i * k + p] * L[j * k + p];
+      L[i * k + j] = i === j ? Math.sqrt(s) : s / L[j * k + j];
+    }
+  }
+  const y = new Float64Array(k), x = new Float64Array(k);
+  for (let i = 0; i < k; i++) {
+    let s = h[i];
+    for (let p = 0; p < i; p++) s -= L[i * k + p] * y[p];
+    y[i] = s / L[i * k + i];
+  }
+  for (let i = k - 1; i >= 0; i--) {
+    let s = y[i];
+    for (let p = i + 1; p < k; p++) s -= L[p * k + i] * x[p];
+    x[i] = s / L[i * k + i];
+  }
+  return x;
+}
+
+/**
+ * calibrate_weight_sine at a known frequency (fundamental only), then scale_calibration_output(target_weights = nominal).
+ * Least squares fits  Σ_j w_j b_j + offset + a·quadrature = −(unit tone), once with cosine and once with sine as the unit
+ * tone, keeps the smaller residual, divides by the fitted tone magnitude √(1 + a²) and rescales to the nominal weight sum.
+ */
+export function calibrate(bits: Uint8Array, nominal: number[], bin: number): Float64Array {
+  const m = nominal.length, k = m + 2;
+  const fits = [true, false].map((unitCos) => {
+    const G = new Float64Array(k * k), h = new Float64Array(k), row = new Float64Array(k);
+    let bb = 0;
+    for (let i = 0; i < N_FFT; i++) {
+      const ph = (2 * Math.PI * bin * i) / N_FFT, c = Math.cos(ph), s = Math.sin(ph);
+      for (let j = 0; j < m; j++) row[j] = bits[i * m + j];
+      row[m] = 1;
+      row[m + 1] = unitCos ? s : c;
+      const b = unitCos ? -c : -s;
+      bb += b * b;
+      for (let p = 0; p < k; p++) {
+        h[p] += row[p] * b;
+        for (let q = 0; q <= p; q++) G[p * k + q] += row[p] * row[q];
+      }
+    }
+    for (let p = 0; p < k; p++) for (let q = p + 1; q < k; q++) G[p * k + q] = G[q * k + p];
+    const x = solveSpd(G, h, k);
+    let xh = 0;
+    for (let p = 0; p < k; p++) xh += x[p] * h[p];
+    return { x, residual: bb - xh };
+  });
+  const w = (fits[0].residual < fits[1].residual ? fits[0] : fits[1]).x.slice(0, m);
+  const scale = sum(nominal) / sum(w);
+  return w.map((v) => v * scale);
+}
+
+export interface Spectrum {
+  /** dBFS per bin, 0 … N_FFT/2 */
+  dbfs: Float64Array;
+  signal: number;
+  spur: number;
+  /** bins of harmonics 2 … 5 after folding */
+  harmonics: number[];
+  enob: number;
+  sfdr: number;
+}
+
+/** analyze_spectrum: remove DC, normalise to full scale 2^N, one-sided power with a rectangular window, side_bin = 0. */
+export function analyzeSpectrum(trace: Float64Array, n: number): Spectrum {
+  const len = trace.length, half = len / 2, mean = sum(trace) / len, peak = 2 ** (n - 1);
+  const re = trace.map((v) => (v - mean) / peak), im = new Float64Array(len);
   fft(re, im);
-  const bins = N_FFT / 2 + 1, P = new Float64Array(bins), dbfs = new Float64Array(bins);
-  let total = 0, spur = 0;
-  for (let k = 0; k < bins; k++) {
-    const v = (re[k] ** 2 + im[k] ** 2) / (N_FFT / 2) ** 2;
-    P[k] = k === 0 ? 0 : v;
+  const P = Float64Array.from({ length: half + 1 }, (_, k) => (4 * (re[k] ** 2 + im[k] ** 2)) / len ** 2);
+  P[0] /= 2;
+  P[half] /= 2;
+  let signal = 1;
+  for (let k = 2; k <= half; k++) if (P[k] > P[signal]) signal = k;
+  let spur = 0, total = 0;
+  for (let k = 0; k <= half; k++) {
     total += P[k];
-    dbfs[k] = 10 * Math.log10(P[k] / half ** 2 + 1e-30);
+    if (k !== signal && P[k] > P[spur]) spur = k;
   }
-  const sig = P[CYCLES];
-  for (let k = 1; k < bins; k++) if (k !== CYCLES) spur = Math.max(spur, P[k]);
-  const sndr = 10 * Math.log10(sig / (total - sig));
-  return { sndr, enob: (sndr - 1.76) / 6.02, sfdr: 10 * Math.log10(sig / spur), maxErr, dbfs };
+  const fold = (b: number) => (b % len > half ? len - (b % len) : b % len);
+  const sndr = 10 * Math.log10(P[signal] / (total - P[signal] + 1e-20));
+  return {
+    dbfs: P.map((p) => 10 * Math.log10(p + 1e-20)),
+    signal,
+    spur,
+    harmonics: [2, 3, 4, 5].map((h) => fold(h * signal)),
+    enob: (sndr - 1.76) / 6.02,
+    sfdr: 10 * Math.log10(P[signal] / P[spur]),
+  };
 }
