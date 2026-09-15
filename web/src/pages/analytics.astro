@@ -1,0 +1,37 @@
+---
+import '@fontsource-variable/google-sans-code';
+import AnalyticsPage from '../../analytics/AnalyticsPage';
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Site Analytics — AMS Class</title>
+    <meta name="robots" content="noindex, follow" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <script is:inline>
+      // The analytics module reads the theme from html.light; apply the saved one before first paint.
+      if (localStorage.theme === 'light' || (!localStorage.theme && matchMedia('(prefers-color-scheme: light)').matches)) {
+        document.documentElement.classList.add('light');
+      }
+    </script>
+  </head>
+  <body>
+    <AnalyticsPage client:only="react" />
+  </body>
+</html>
+
+<style is:global>
+  /* What the module gets from its host in analog-arena: the mono font token and Tailwind's preflight. */
+  :root { --font-mono: "Google Sans Code Variable", "Google Sans Code", ui-monospace, "SF Mono", monospace; }
+  *, ::before, ::after { box-sizing: border-box; margin: 0; padding: 0; border: 0 solid; }
+  html { line-height: 1.5; -webkit-text-size-adjust: 100%; }
+  h1, h2 { font-size: inherit; font-weight: inherit; }
+  a { color: inherit; text-decoration: inherit; }
+  code { font-family: var(--font-mono); font-size: 1em; }
+  table { border-collapse: collapse; }
+  ul { list-style: none; }
+  svg { display: block; vertical-align: middle; }
+  button, input { font: inherit; color: inherit; border-radius: 0; background-color: transparent; }
+</style>

@@ -1,11 +1,14 @@
 ---
+import Visits from '../components/Visits';
 import '../styles/global.css';
 
 interface Props {
   title: string;
   description: string;
+  /** false when the page records its own visit, e.g. with a footer counter */
+  visits?: boolean;
 }
-const { title, description } = Astro.props;
+const { title, description, visits = true } = Astro.props;
 const canonical = new URL(Astro.url.pathname, Astro.site);
 ---
 <!doctype html>
@@ -28,17 +31,6 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
   </head>
   <body>
     <slot />
-    <script>
-      // First-party page-view beacon for worker/index.ts. Honours Do Not Track and sends only the referrer's origin.
-      if (navigator.doNotTrack !== '1') {
-        const referrer = URL.canParse(document.referrer) ? new URL(document.referrer) : null;
-        const payload = JSON.stringify({
-          p: location.pathname,
-          r: referrer?.protocol.startsWith('http') ? referrer.origin : '',
-          s: new URLSearchParams(location.search).get('utm_source')?.trim().toLowerCase().slice(0, 40) ?? '',
-        });
-        navigator.sendBeacon('/api/track', new Blob([payload], { type: 'application/json' }));
-      }
-    </script>
+    {visits && <Visits client:idle path={Astro.url.pathname} />}
   </body>
 </html>

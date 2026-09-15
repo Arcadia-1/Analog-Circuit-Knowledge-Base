@@ -31,7 +31,8 @@ Run these in `web/` with Node 22.12 or newer and pnpm 11.
 | `tests/` | Vitest checks of each TypeScript model against numbers from its Python reference |
 | `python/` | Python references: the PLL model in NumPy, and SAR numbers computed with ADCToolbox (`pip install adctoolbox==0.9.1`) |
 | `public/` | Favicon and Cloudflare Pages response headers |
-| `worker/` | Analytics Worker and Durable Object on `ams-class.tokenzhang.com/api/*` |
+| `analytics/` | Copied analytics module: tracking, dashboard, routes and Durable Object |
+| `worker/` | Analytics Worker that mounts the module on `ams-class.tokenzhang.com/api/*` |
 
 ## Illustrations
 
@@ -53,12 +54,15 @@ Run these in `web/` with Node 22.12 or newer and pnpm 11.
 
 ## Analytics
 
-First-party analytics work like those of tokenzhang.com but run in a Worker and Durable Object of their own, so the two
-sites share nothing. Every page sends a beacon to `/api/track`; it honours Do Not Track and sends only the path, the
-referrer's origin and an optional `utm_source`. The Worker keeps visitors, views, countries, sources and pages; the home
-page footer shows the totals from `/api/analytics/public`, and `/api/analytics` returns the full summary (set the
-`ANALYTICS_KEY` secret to require `?key=`). The Worker is routed on `/api/*` in front of the Pages site and is deployed
-with `pnpm deploy:analytics`; run `pnpm exec wrangler dev --config worker/wrangler.jsonc` to try it locally.
+`analytics/` is the copyable first-party analytics module of analog-arena (`site/analytics` in Arcadia-1/analog-arena): the
+tracking hook, the dashboard page and styles, the world-map data, the HTTP routes and the Durable Object. It is identical
+to the source except for the page title; update it by copying the folder again. The host wires it in three places:
+
+- `src/components/Visits.tsx` calls `useVisitStats` on every page through `Base.astro` and shows the totals in the home
+  page footer.
+- `src/pages/analytics.astro` mounts the dashboard at `/analytics/` with the mono font, theme class and reset it expects.
+- `worker/index.ts` registers the routes on Hono and exports the Durable Object. The Worker is routed on `/api/*` in
+  front of the Pages site and deployed with `pnpm deploy:analytics`.
 
 ## Deploy
 

@@ -3,3 +3,4 @@ dist/
 .astro/
 .wrangler/
 __pycache__/
+worker/worker-configuration.d.ts
