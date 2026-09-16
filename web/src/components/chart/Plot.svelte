@@ -6,7 +6,7 @@
     label: string;
     children: Snippet<[{ width: number; height: number }]>;
     overlay?: Snippet<[{ width: number; height: number }]>;
-    onpointermove?: (x: number, width: number, height: number) => void;
+    onpointermove?: (x: number, width: number, height: number, y: number) => void;
     onpointerleave?: () => void;
   } = $props();
 
@@ -19,7 +19,10 @@
     viewBox="0 0 {width} {height}"
     role="img"
     aria-label={label}
-    onpointermove={(e) => onpointermove?.(e.clientX - e.currentTarget.getBoundingClientRect().left, width, height)}
+    onpointermove={(e) => {
+      const box = e.currentTarget.getBoundingClientRect();
+      onpointermove?.(e.clientX - box.left, width, height, e.clientY - box.top);
+    }}
     {onpointerleave}
   >
     {@render children({ width, height })}

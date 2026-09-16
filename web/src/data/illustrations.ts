@@ -3,7 +3,7 @@ export interface Illustration {
   title: string;
   summary: string;
   tags: string[];
-  thumb: 'pll' | 'sar' | 'inl' | 'err' | 'win' | 'fold' | 'ntf';
+  thumb: 'pll' | 'sar' | 'inl' | 'err' | 'win' | 'fold' | 'ntf' | 'ti';
   /** The ADCToolbox module and examples this page runs, shown under the card. */
   toolbox?: string;
 }
@@ -17,7 +17,10 @@ export interface Topic {
 
 /** Parts of the toolbox that have no page yet, named so the gaps are honest ones. */
 export const coming = [
-  'time interleaving',
+  'reading the digital output bit by bit',
+  'polar spectra and averaging',
+  'jitter and dynamic nonlinearity',
+  'figures of merit',
 ];
 
 export const topics: Topic[] = [
@@ -47,6 +50,14 @@ export const topics: Topic[] = [
         tags: ['OSR', 'noise shaping', 'NTF', 'in-band SNDR', 'ideal filter'],
         thumb: 'ntf',
         toolbox: 'oversampling, siggen · exp_o01, exp_o02, exp_o03',
+      },
+      {
+        href: '/adc/time-interleaved-adcs/',
+        title: 'Time-interleaved ADCs',
+        summary: 'Four converters take turns, each with its own offset, gain and sampling skew. See where predict_spurs puts every spur, measure the mismatch from one sine, and calibrate it out, until the input crosses fs/2M.',
+        tags: ['offset spurs', 'image spurs', 'timing skew', 'fractional delay', 'foreground calibration'],
+        thumb: 'ti',
+        toolbox: 'timeinterleave · exp_ti01',
       },
       {
         href: '/adc/reading-the-error/',
