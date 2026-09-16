@@ -2,8 +2,9 @@
   import Plot from '../../components/chart/Plot.svelte';
   import Tip from '../../components/chart/Tip.svelte';
   import { freqText, nf } from '../../lib/format';
+  import { foldFrequency } from '../../lib/frequency';
   import { clamp } from '../../lib/scale';
-  import { F_MAX, foldFrequency, FS, zoneOf, type Landing } from './model';
+  import { F_MAX, FS, zoneOf, type Landing } from './model';
 
   /**
    * Where every input from 0 to F_MAX lands at the output rate: one tooth per pair of Nyquist zones, the mirrored zones

@@ -2,8 +2,9 @@
   import Plot from '../../components/chart/Plot.svelte';
   import Tip from '../../components/chart/Tip.svelte';
   import { nf } from '../../lib/format';
+  import { residual } from '../../lib/frequency';
   import { clamp } from '../../lib/scale';
-  import { FS, residual } from './model';
+  import { FS } from './model';
 
   /**
    * The first kept samples over the input they were taken from and the one slow sine that passes through all of them.
