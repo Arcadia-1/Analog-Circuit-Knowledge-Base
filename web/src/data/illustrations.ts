@@ -75,7 +75,7 @@ export const topics: Topic[] = [
         summary: 'Subtract the sine you asked for and read what is left four ways. Noise, static curvature, clock jitter, settling memory and an interfering tone each sign their name in a different view.',
         tags: ['sine fit', 'AM / PM', 'error PDF', 'jitter', 'memory effect'],
         thumb: 'err',
-        toolbox: 'aout · exp_a01, exp_a02, exp_a03, exp_a21',
+        toolbox: 'aout · exp_a01, exp_a02, exp_a03, exp_a21, exp_a22',
       },
       {
         href: '/adc/inl-and-dnl/',
