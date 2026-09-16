@@ -69,9 +69,9 @@ jobs:
           touch web/dist/doc/.nojekyll
 
       # The manual used to be the whole of this domain, so every link into it still has to land.
-      - name: Send the manual's old links to their new home
+      - name: Fold the manual into the site
         working-directory: .
-        run: python3 .github/doc-redirects.py web/dist
+        run: python3 .github/doc-postprocess.py web/dist
 
       - name: Deploy to Cloudflare Pages
         if: github.ref == 'refs/heads/main'

@@ -15,6 +15,43 @@ export interface Topic {
   items: Illustration[];
 }
 
+/** One step of the path through the pages, for a reader who arrived with a spectrum they do not like. */
+export interface Step {
+  when: string;
+  then: string;
+  href: string;
+  title: string;
+}
+
+export const path: Step[] = [
+  {
+    when: 'Something is wrong with the spectrum.',
+    then: 'Subtract the sine you asked for and read the residual four ways. Noise, static curvature, jitter, settling memory and interference each sign their name somewhere different.',
+    href: '/adc/reading-the-error/',
+    title: 'Reading the error',
+  },
+  {
+    when: 'It follows the input value, so it is static.',
+    then: 'Look at where the codes actually sit — DNL, INL, missing codes — and at how much of that a ramp or a sine code-density test can really measure.',
+    href: '/adc/inl-and-dnl/',
+    title: 'INL and DNL',
+  },
+  {
+    when: 'It is a SAR, and the capacitors are to blame.',
+    then: 'Step through one conversion, see what redundancy buys when a comparison goes wrong, and what sine-fit calibration gets back.',
+    href: '/adc/binary-vs-redundant-sar/',
+    title: 'Binary vs redundant SAR',
+  },
+];
+
+/** Parts of the toolbox that have no page yet, named so the gaps are honest ones. */
+export const coming = [
+  'coherent sampling, windows and FFT length',
+  'aliasing and the Nyquist zones',
+  'oversampling and noise shaping',
+  'time interleaving',
+];
+
 export const topics: Topic[] = [
   {
     name: 'Analog-to-digital converters',

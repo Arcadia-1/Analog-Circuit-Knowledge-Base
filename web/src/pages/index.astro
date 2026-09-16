@@ -2,7 +2,7 @@
 import Base from '../layouts/Base.astro';
 import Thumb from '../components/Thumb.astro';
 import Visits from '../components/Visits';
-import { topics } from '../data/illustrations';
+import { coming, path, topics } from '../data/illustrations';
 ---
 <Base
   visits={false}
@@ -28,6 +28,22 @@ import { topics } from '../data/illustrations';
       </div>
     </header>
 
+    <section class="start-here">
+      <div class="topic-head"><h2>Start from what went wrong</h2><span class="note">or open any page on its own</span></div>
+      <ol class="path">
+        {path.map((step, i) => (
+          <li>
+            <span class="step">{i + 1}</span>
+            <div>
+              <p class="when">{step.when}</p>
+              <p class="then">{step.then}</p>
+              <a class="go" href={step.href}>{step.title} →</a>
+            </div>
+          </li>
+        ))}
+      </ol>
+    </section>
+
     {topics.map((topic) => (
       <section class="topic">
         <div class="topic-head">
@@ -47,6 +63,14 @@ import { topics } from '../data/illustrations';
         ))}
       </section>
     ))}
+
+    <section class="topic">
+      <div class="topic-head"><h2>Still only in the library</h2><span class="note">every example is a page waiting to happen</span></div>
+      <p class="rest">
+        The toolbox reaches a good deal further than these pages do — {coming.join(', ')} — and each of its examples is a
+        page waiting to happen. Until then they live in the <a href="/doc/examples/index">manual</a>.
+      </p>
+    </section>
 
     <footer>
       <span>ADCToolbox</span>
@@ -69,6 +93,16 @@ import { topics } from '../data/illustrations';
   .cta { font-size: 13.5px; color: var(--ink-2); text-decoration: none; border-bottom: 1px solid var(--rule); }
   .cta:hover { color: var(--ink); border-bottom-color: var(--ink-3); }
   .topic { display: grid; gap: 14px; }
+  .start-here { display: grid; gap: 14px; }
+  .path { list-style: none; margin: 0; padding: 0; display: grid; gap: 18px; }
+  .path li { display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 14px; align-items: start; }
+  .step { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--chip); color: var(--ink-2); font: 500 13px var(--mono); }
+  .when { margin: 3px 0 0; color: var(--ink); font-weight: 500; }
+  .then { margin: 4px 0 0; color: var(--ink-2); max-width: 62ch; }
+  .go { display: inline-block; margin-top: 6px; font-size: 14px; color: var(--ink-2); text-decoration: none; border-bottom: 1px solid var(--rule); }
+  .go:hover { color: var(--ink); border-bottom-color: var(--ink-3); }
+  .rest { margin: 0; color: var(--ink-2); max-width: 66ch; }
+  .rest a { color: var(--ink); text-decoration: none; border-bottom: 1px solid var(--rule); }
   .topic-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--rule); padding-bottom: 8px; }
   h2 { margin: 0; font-size: 13px; font-weight: 500; letter-spacing: 0.09em; text-transform: uppercase; color: var(--ink-2); }
   .note { font-size: 12.5px; color: var(--ink-3); text-align: right; }
