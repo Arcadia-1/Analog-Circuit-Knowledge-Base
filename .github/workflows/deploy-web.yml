@@ -6,10 +6,18 @@ on:
     paths:
       - "web/**"
       - ".github/workflows/deploy-web.yml"
+      - ".github/doc-postprocess.py"
+      - ".github/toolbox-drift.py"
   pull_request:
     paths:
       - "web/**"
       - ".github/workflows/deploy-web.yml"
+      - ".github/doc-postprocess.py"
+      - ".github/toolbox-drift.py"
+  # ADCToolbox does not trigger this workflow, so pick up its main once a day: its manual gets rebuilt from there, and
+  # the functions the pages port are rerun against it
+  schedule:
+    - cron: "23 4 * * *"
   workflow_dispatch:
 
 concurrency:
@@ -79,3 +87,31 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: pnpm exec wrangler pages deploy dist --project-name ams-class --branch main --commit-message "GitHub Actions ${GITHUB_SHA}"
+
+  # The pages' tests pin the numbers ADCToolbox printed when each page was written, so they cannot notice the library
+  # changing a ported function. Rerun those scripts against its main as it is now. A separate job, so that a page left
+  # behind is reported without holding back the deploy.
+  toolbox-drift:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Check out ADCToolbox
+        uses: actions/checkout@v7
+        with:
+          repository: Arcadia-1/ADCToolbox
+          path: toolbox
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: toolbox/python/pyproject.toml
+
+      - run: pip install -e ./toolbox/python
+
+      - name: Compare the verification scripts with what they printed before
+        run: python .github/toolbox-drift.py

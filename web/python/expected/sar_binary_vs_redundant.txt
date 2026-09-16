@@ -1,0 +1,19 @@
+ADCToolbox exp_d16, radix 1.8 without the margin cap (18): [29127, 16182, 8990, 4995, 2775, 1542, 856, 476, 264, 147, 82, 45, 25, 14, 8, 4, 2, 1], margins [2, 0, 0, 0, 0]
+N= 8 redundant weights (10, radix 1.741): [108, 63, 36, 21, 12, 7, 4, 2, 1, 1]
+N=10 redundant weights (12, radix 1.782): [450, 252, 142, 79, 45, 25, 14, 8, 4, 2, 1, 1]
+N=12 redundant weights (15, radix 1.741): [1743, 1001, 575, 330, 190, 109, 63, 36, 21, 12, 7, 4, 2, 1, 1]
+N=14 redundant weights (17, radix 1.770): [7126, 4027, 2275, 1286, 726, 411, 232, 131, 74, 42, 24, 13, 8, 4, 2, 1, 1]
+N=16 redundant weights (19, radix 1.793): [28979, 16165, 9017, 5030, 2806, 1565, 873, 487, 272, 152, 85, 47, 26, 15, 8, 4, 2, 1, 1]
+
+ N  sigma  arch       | before ENOB  SFDR | after ENOB  SFDR | max |w_cal - w_actual| LSB | DC code nominal / calibrated
+12    0%  binary    |    11.9289  94.777 |   11.9142  94.036 |       0.0407 | 3045.0000 / 3044.9620
+12    0%  redundant |    11.9289  94.777 |   11.9247  94.319 |       1.0000 | 3045.0000 / 3045.7838
+12   10%  binary    |     8.9173  61.796 |   11.4426  94.218 |       2.2925 | 3040.0000 / 3041.4417
+12   10%  redundant |     8.8702  63.685 |   11.9329  97.409 |       1.3975 | 3042.0000 / 3042.5956
+16   10%  binary    |    10.9269  73.727 |   14.8209 115.921 |       8.5335 | 48701.0000 / 48707.2972
+16   10%  redundant |    10.8404  74.965 |   16.2412 124.839 |       6.5679 | 48709.0000 / 48708.4358
+
+clock jitter at f_in = 14.966 MHz, 12 bits, ideal capacitors
+  0.0 ps: ENOB 11.9289  SNDR  73.572 dB  (jitter alone allows inf dB)
+  2.0 ps: ENOB 11.4928  SNDR  70.947 dB  (jitter alone allows 74.51 dB)
+  5.0 ps: ENOB 10.6245  SNDR  65.719 dB  (jitter alone allows 66.55 dB)
