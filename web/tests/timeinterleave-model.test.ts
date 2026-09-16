@@ -16,6 +16,7 @@ import {
   predictedSfdr,
   predictSpurs,
   read,
+  tonesOf,
   spectrumOf,
   sweep,
   SWEEP,
@@ -95,7 +96,7 @@ describe('time-interleaved mismatch', () => {
         ['image', 2, 400.146484, -51.2794, -49.3413],
         ['offset', 2, 500, -68.8363, -66.8982],
       ],
-      metrics: [49.165, 45.011, 93.223, 68.726, 57.596, 56.862, 49.341],
+      metrics: [49.165, 45.011, 93.223, 68.726, 57.596, 56.862, 49.165],
       left: [
         [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]],
         [[-1e-05, -0.00025, 6e-05, 0.0002], [0.00066, -0.00056, 0, 0.00021], [2.26583, -3.05004, 1.93852, -1.15431]],
@@ -114,7 +115,7 @@ describe('time-interleaved mismatch', () => {
         ['image', 2, 483.154297, -41.1083, -39.1701],
         ['offset', 2, 500, -54.8678, -52.9297],
       ],
-      metrics: [35.193, 31.471, 93.342, 68.78, 93.255, 68.755, 38.544],
+      metrics: [35.193, 31.471, 93.342, 68.78, 93.255, 68.755, 35.193],
       left: [
         [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]],
         [[0, 0, 0, 0], [1e-05, -1e-05, 0, 0], [0.00175, -0.00231, 0.00157, -0.001]],
@@ -156,7 +157,7 @@ describe('time-interleaved mismatch', () => {
         ['image', 4, 460.205078, -58.1592, -56.221],
         ['offset', 4, 500, -61.6123, -59.6741],
       ],
-      metrics: [42.145, 38.49, 104.898, 80.822, 75.576, 70.603, 48.166],
+      metrics: [42.145, 38.49, 104.898, 80.822, 75.576, 70.603, 42.145],
       left: [
         [[0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0]],
         [[1e-05, -4e-05, 2e-05, 3e-05, 1e-05, -8e-05, 4e-05, 1e-05], [0.00058, -0.00069, 0.00028, -0.0001, 0, -0.00031, -0.0001, 0.00041], [1.01618, -1.50235, 0.86459, -0.60046, -1.01873, 1.82124, 0.32042, -0.90088]],
@@ -212,14 +213,14 @@ describe('time-interleaved mismatch', () => {
 
   // the first case at each frequency of SWEEP: fin (MHz), then SFDR off, predicted, after fft and after farrow
   const sweepRows = [
-    [6.103516, 49.168, 55.003, 93.308, 93.057],
-    [18.798828, 49.162, 54.82, 93.317, 92.965],
-    [31.005859, 49.179, 54.436, 91.907, 91.903],
-    [43.701172, 49.163, 53.562, 92.944, 92.791],
-    [56.396484, 49.163, 52.573, 93.606, 91.555],
-    [68.603516, 49.173, 51.577, 92.649, 78.825],
-    [81.298828, 49.143, 50.61, 93.711, 68.532],
-    [93.505859, 49.163, 49.759, 92.991, 60.843],
+    [6.103516, 49.168, 49.168, 93.308, 93.057],
+    [18.798828, 49.162, 49.162, 93.317, 92.965],
+    [31.005859, 49.179, 49.179, 91.907, 91.903],
+    [43.701172, 49.163, 49.163, 92.944, 92.791],
+    [56.396484, 49.163, 49.163, 93.606, 91.555],
+    [68.603516, 49.173, 49.174, 92.649, 78.825],
+    [81.298828, 49.143, 49.143, 93.711, 68.532],
+    [93.505859, 49.163, 49.163, 92.991, 60.843],
     [106.201172, 48.951, 48.951, 92.574, 54.779],
     [118.896484, 48.143, 48.143, 93.504, 50.248],
     [131.103516, 47.424, 47.424, 42.534, 47.139],
@@ -334,6 +335,23 @@ describe('time-interleaved mismatch', () => {
       // a tone on the last bin is its own mirror, and holds twice the power of a sine as tall
       const measured = s.dbfs[bin] - (bin === N / 2 ? 10 * Math.log10(2) : 0);
       expect(measured).toBeCloseTo(20 * Math.log10(amp / 0.5), 1);
+    }
+  });
+
+  it('adds up the two entries predict_spurs gives each offset tone', () => {
+    for (const c of cases) {
+      const { fin } = coherentFrequency(FS, c.target, N);
+      const x = capture(fin, mismatch(c.m, c.rms[0] / 100, c.rms[1] / 1e3, c.rms[2] / 1e12), c.bits);
+      const spurs = predictSpurs(extractMismatch(x, c.m, FS, fin), FS, 0.5), tones = tonesOf(spurs);
+      // an image for every k, and an offset tone for k = 1 … m/2
+      expect(tones).toHaveLength(c.m - 1 + c.m / 2);
+      for (const t of tones.filter((t) => t.kind === 'offset')) {
+        const k = t.ks[0], first = spurs.find((s) => s.kind === 'offset' && s.k === k)!;
+        expect(t.ks).toEqual(2 * k === c.m ? [k] : [k, c.m - k]);
+        expect(t.dbfs - first.dbfs).toBeCloseTo(2 * k === c.m ? 0 : 20 * Math.log10(2), 9);
+      }
+      // with nothing but spurs above the floor, the prediction is the measurement
+      if (c.target / 1e6 < 200) expect(Math.abs(c.metrics[6] - c.metrics[0])).toBeLessThan(0.01);
     }
   });
 
