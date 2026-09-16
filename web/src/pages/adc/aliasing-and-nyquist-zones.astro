@@ -1,0 +1,11 @@
+---
+import Base from '../../layouts/Base.astro';
+import Aliasing from '../../illustrations/aliasing/Aliasing.svelte';
+import '../../styles/illustration.css';
+---
+<Base
+  title="Aliasing and Nyquist zones"
+  description="Sweep a tone across six Nyquist zones and watch it land between 0 and fs/2 every time, see where its harmonics fold, and what keeping only every N-th sample does to all of them."
+>
+  <Aliasing client:load />
+</Base>

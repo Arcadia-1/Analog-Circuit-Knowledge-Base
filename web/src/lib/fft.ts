@@ -24,3 +24,41 @@ export function fft(re: Float64Array, im: Float64Array): void {
     }
   }
 }
+
+/**
+ * The same transform for a record of any length, as numpy's FFT takes it: radix-2 lengths go straight to `fft`, any
+ * other length through Bluestein's chirp, X_k = w_k · (a ∗ b)_k with w_k = e^(−iπk²/n), a_j = x_j·w_j and b = conj(w),
+ * the convolution done by radix-2 transforms at least 2n − 1 long.
+ */
+export function fftAny(re: Float64Array, im: Float64Array): void {
+  const n = re.length;
+  if ((n & (n - 1)) === 0) return fft(re, im);
+  let m = 1;
+  while (m < 2 * n - 1) m <<= 1;
+  const wr = new Float64Array(n), wi = new Float64Array(n);
+  const ar = new Float64Array(m), ai = new Float64Array(m), br = new Float64Array(m), bi = new Float64Array(m);
+  for (let k = 0; k < n; k++) {
+    const phase = (Math.PI * k * k) / n;
+    wr[k] = Math.cos(phase);
+    wi[k] = -Math.sin(phase);
+    ar[k] = re[k] * wr[k] - im[k] * wi[k];
+    ai[k] = re[k] * wi[k] + im[k] * wr[k];
+    // b is the conjugate chirp at lags ±k, the negative ones wrapped to the top of the buffer
+    br[k] = br[(m - k) % m] = wr[k];
+    bi[k] = bi[(m - k) % m] = -wi[k];
+  }
+  fft(ar, ai);
+  fft(br, bi);
+  for (let k = 0; k < m; k++) {
+    const r = ar[k] * br[k] - ai[k] * bi[k];
+    ai[k] = ar[k] * bi[k] + ai[k] * br[k];
+    ar[k] = r;
+  }
+  // a forward transform read backwards is the inverse one, less its 1/m
+  fft(ar, ai);
+  for (let k = 0; k < n; k++) {
+    const cr = ar[(m - k) % m] / m, ci = ai[(m - k) % m] / m;
+    re[k] = wr[k] * cr - wi[k] * ci;
+    im[k] = wr[k] * ci + wi[k] * cr;
+  }
+}

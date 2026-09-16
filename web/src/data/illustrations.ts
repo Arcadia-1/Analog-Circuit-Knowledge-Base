@@ -3,7 +3,7 @@ export interface Illustration {
   title: string;
   summary: string;
   tags: string[];
-  thumb: 'pll' | 'sar' | 'inl' | 'err' | 'win';
+  thumb: 'pll' | 'sar' | 'inl' | 'err' | 'win' | 'fold';
   /** The ADCToolbox module and examples this page runs, shown under the card. */
   toolbox?: string;
 }
@@ -31,6 +31,12 @@ export const path: Step[] = [
     title: 'Coherent sampling',
   },
   {
+    when: 'A spur sits where no harmonic should be.',
+    then: 'It may be one all the same, folded back from above Nyquist. Every frequency lands somewhere between 0 and fs/2; find where the second and third harmonics went, and what keeping one sample in N did to them.',
+    href: '/adc/aliasing-and-nyquist-zones/',
+    title: 'Aliasing and Nyquist zones',
+  },
+  {
     when: 'The capture is sound, so it really is the converter.',
     then: 'Subtract the sine you asked for and read the residual four ways. Noise, static curvature, jitter, settling memory and interference each sign their name somewhere different.',
     href: '/adc/reading-the-error/',
@@ -52,7 +58,6 @@ export const path: Step[] = [
 
 /** Parts of the toolbox that have no page yet, named so the gaps are honest ones. */
 export const coming = [
-  'aliasing and the Nyquist zones',
   'oversampling and noise shaping',
   'time interleaving',
 ];
@@ -68,6 +73,14 @@ export const topics: Topic[] = [
         tags: ['leakage', 'windows', 'side bins', 'record length', 'SFDR'],
         thumb: 'win',
         toolbox: 'spectrum · exp_b02, exp_s06, exp_s08, exp_s09',
+      },
+      {
+        href: '/adc/aliasing-and-nyquist-zones/',
+        title: 'Aliasing and Nyquist zones',
+        summary: 'Sweep a tone across six Nyquist zones and it lands between 0 and fs/2 every time, backwards in every other zone. See where its harmonics fold, and what keeping only one sample in N does to all of them.',
+        tags: ['Nyquist zones', 'undersampling', 'spectral inversion', 'harmonic folding', 'decimation'],
+        thumb: 'fold',
+        toolbox: 'fundamentals, siggen · exp_c01, exp_d00',
       },
       {
         href: '/adc/reading-the-error/',
