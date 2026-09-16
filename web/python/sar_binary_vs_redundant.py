@@ -10,8 +10,9 @@ numbers printed here:
   calibration: calibrate_weight_sine at the known training frequency, then scale_calibration_output(target_weights)
   spectrum: analyze_spectrum with a rectangular window, side_bin=0, max_harmonic=5
 
-Redundant weights are radix-1.8 integers with largest-remainder rounding; 16 bits gives the list used in
-ADCToolbox examples/05_debug_digital/exp_d16. Mismatch uses fixed standard normals Z so both sides draw the same chip.
+Redundant weights come from the nominal resolution alone, see redundant_weights(). ADCToolbox's own 16-bit example
+set (examples/05_debug_digital/exp_d16) is the same family without the margin cap, printed below for comparison.
+Mismatch uses fixed standard normals Z so both sides draw the same chip.
 """
 import contextlib
 import io
@@ -29,15 +30,30 @@ def binary_weights(n):
     return [2 ** (n - 1 - j) for j in range(n)]
 
 
-def redundant_weights(n, r=1.8):
-    target = 2 ** n - 1
-    m = int(n * math.log(2) / math.log(r))
-    c = target * (r - 1) / (r ** m - 1)
-    exact = [c * r ** (m - 1 - j) for j in range(m)]
-    w = [math.floor(e) for e in exact]
-    for j in sorted(range(m), key=lambda j: exact[j] - w[j], reverse=True)[: target - sum(w)]:
-        w[j] += 1
+RADIX = 1.8
+
+
+def comparisons(n):
+    """The fewest comparisons whose radix 2^(n/m) does not exceed RADIX."""
+    return math.ceil(n * math.log(2) / math.log(RADIX))
+
+
+def redundant_weights(n, m=None):
+    """Geometric with radix 2^(n/m), summing to 2^n - 1, each weight capped by the sum of the ones after it so every
+    comparison but the last keeps at least one LSB of margin. The cap binds at the bottom: the tail is 4 2 1 1."""
+    m = m or comparisons(n)
+    p = 2 ** (n / m)
+    w = [0] * m
+    rest = 0
+    for j in range(m - 1, 0, -1):
+        w[j] = 1 if j == m - 1 else min(round((p - 1) * p ** (m - 1 - j)), rest)
+        rest += w[j]
+    w[0] = 2 ** n - 1 - rest
     return w
+
+
+def margins(w):
+    return [sum(w[j + 1:]) + w[-1] - w[j] for j in range(len(w))]
 
 
 def z_fixed(m):
@@ -106,10 +122,12 @@ def case(raw, n, sigma, jitter_ps=0.0):
 
 
 if __name__ == "__main__":
-    assert redundant_weights(16) == ADCTOOLBOX_RADIX18_16BIT
+    print(f"ADCToolbox exp_d16, radix 1.8 without the margin cap ({len(ADCTOOLBOX_RADIX18_16BIT)}): "
+          f"{ADCTOOLBOX_RADIX18_16BIT}, margins {margins(ADCTOOLBOX_RADIX18_16BIT)[-5:]}")
     for n in (8, 10, 12, 14, 16):
         w = redundant_weights(n)
-        print(f"N={n:2d} redundant weights ({len(w)}): {w}")
+        print(f"N={n:2d} redundant weights ({len(w)}, radix {2 ** (n / len(w)):.3f}): {w}")
+        assert min(margins(w)[:-1]) >= 1 and w[-1] == 1 and all(w[j] >= w[j + 1] for j in range(len(w) - 1))
     print()
     print(" N  sigma  arch       | before ENOB  SFDR | after ENOB  SFDR | max |w_cal - w_actual| LSB | DC code nominal / calibrated")
     for n, sigma in ((12, 0.0), (12, 0.10), (16, 0.10)):
