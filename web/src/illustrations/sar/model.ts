@@ -17,8 +17,12 @@ export const TRAIN_BIN = 499;
 export const TEST_BIN = 613;
 export const TEST_PHASE = 0.37;
 const AMP_DBFS = -0.5;
-/** How far outside the reachable range an input may still land inside its own code, in LSB. */
-const REACH = 0.5;
+/**
+ * The array is terminated by one more unit capacitor, which brings the total to 2^N units so that one unit is exactly
+ * one LSB. Half of that terminating capacitor is switched to the reference, which puts every decision level half an LSB
+ * below a code level: the converter rounds instead of truncating and its error is ±½ LSB rather than 0 … 1 LSB.
+ */
+const HALF = 0.5;
 
 function sum(a: ArrayLike<number>): number {
   let s = 0;
@@ -55,18 +59,19 @@ export function redundantWeights(n: number, m = comparisons(n)): number[] {
 export const margin = (w: number[], j: number): number => sum(w.slice(j + 1)) + w[w.length - 1] - w[j];
 
 /**
- * Inputs the converter can no longer resolve: a comparison that drops its weight leaves the later weights short of the
- * input, and no digital weights recover the sample. Sweeps the input range in steps of `step` LSB and returns the lost
- * ranges as fractions of full scale, with the fraction of full scale they cover.
+ * Inputs whose code comes out more than a whole LSB away from them, which no set of digital weights can put right: a
+ * comparison dropped its weight and left the later weights short of the input. Sub-LSB spacing errors are ordinary DNL
+ * and are not counted. Sweeps the range in steps of `step` LSB and returns the lost ranges as fractions of full scale.
  */
 export function lostInputs(n: number, w: ArrayLike<number>, step = 0.25): { bands: [number, number][]; fraction: number } {
-  const m = w.length, full = 2 ** n, reach = w[m - 1] + REACH;
+  const m = w.length, full = 2 ** n;
   const bands: [number, number][] = [];
   let lost = 0, run = -1;
   for (let x = step / 2; x < full; x += step) {
+    const u = x + HALF;
     let dac = 0;
-    for (let j = 0; j < m; j++) if (x >= dac + w[j]) dac += w[j];
-    if (x - dac > reach) {
+    for (let j = 0; j < m; j++) if (u >= dac + w[j]) dac += w[j];
+    if (Math.abs(x - dac) > 1) {
       lost++;
       if (run < 0) run = x - step / 2;
     } else if (run >= 0) {
@@ -90,19 +95,23 @@ export interface Trial {
   bit: 0 | 1;
   /** decision of a noiseless comparator */
   ideal: 0 | 1;
-  /** the conversion can still end within half an LSB of the input's code if lo < x < hi */
+  /** the conversion can still end within one LSB of the input if lo < x < hi */
   lo: number;
   hi: number;
 }
 
-/** sar_convert for one sample: add weight j to the kept DAC level and keep it if the input (plus comparator noise) is not lower. */
+/**
+ * sar_convert for one sample: add weight j to the kept DAC level and keep it if the input (plus comparator noise) is not
+ * lower. The half unit of the terminating capacitor offsets the input, so an ideal array returns the nearest code.
+ */
 export function convert(x: number, w: ArrayLike<number>, noise: ArrayLike<number> | null, bits: Uint8Array, trace?: Trial[]): void {
+  const u = x + HALF;
   let dac = 0;
   let rest = sum(w);
   for (let j = 0; j < w.length; j++) {
     const test = dac + w[j];
-    const bit = x + (noise ? noise[j] : 0) >= test ? 1 : 0;
-    trace?.push({ test, bit, ideal: x >= test ? 1 : 0, lo: dac - REACH, hi: dac + rest + w[w.length - 1] + REACH });
+    const bit = u + (noise ? noise[j] : 0) >= test ? 1 : 0;
+    trace?.push({ test, bit, ideal: u >= test ? 1 : 0, lo: dac - HALF, hi: dac + rest + 1 });
     bits[j] = bit;
     rest -= w[j];
     if (bit) dac = test;
