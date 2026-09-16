@@ -3,7 +3,7 @@
  * the side bins that count as signal, and the metrics built from them. Harmonics 2 … 5.
  * Shared by the converter pages; python/sar_binary_vs_redundant.py checks the port against ADCToolbox itself.
  */
-import { fft } from './fft';
+import { fftAny } from './fft';
 
 function sum(a: ArrayLike<number>): number {
   let s = 0;
@@ -58,8 +58,8 @@ export function analyzeSpectrum(trace: Float64Array, n: number, kind: Window = '
   for (let i = 0; i < len; i++) ww += w[i] * w[i];
   const correction = 4 / (ww / len);
   const re = trace.map((v, i) => ((v - mean) / peak) * w[i]), im = new Float64Array(len);
-  fft(re, im);
-  const P = Float64Array.from({ length: half + 1 }, (_, k) => (correction * (re[k] ** 2 + im[k] ** 2)) / len ** 2);
+  fftAny(re, im);
+  const P =Float64Array.from({ length: half + 1 }, (_, k) => (correction * (re[k] ** 2 + im[k] ** 2)) / len ** 2);
   P[0] /= 2;
   P[half] /= 2;
   let peakBin = 1;
