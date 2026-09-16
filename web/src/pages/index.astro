@@ -11,19 +11,13 @@ import { coming, topics } from '../data/illustrations';
 >
   <main class="home">
     <header>
-      <p class="eyebrow">Analysis for data converters</p>
-      <h1>ADCToolbox</h1>
-      <p class="lede">
-        The conversion itself, the mismatch that spoils it, the calibration that recovers it, and the spectra and
-        histograms you judge all of it by — as a Python library, and as pages that run the same models in your browser.
-      </p>
-      <p class="lede">
-        Every page below is a port of the library, checked against it number for number, with the parameters in your
-        hands. Drag one and watch which plot notices.
-      </p>
+      <div>
+        <h1>ADCToolbox</h1>
+        <p class="lede">The Python library's models, running in your browser.</p>
+      </div>
       <div class="start">
         <code>pip install adctoolbox</code>
-        <a class="cta" href="/doc/">Reference manual</a>
+        <a class="cta" href="/doc/">Manual</a>
         <a class="cta" href="https://github.com/Arcadia-1/ADCToolbox">Source</a>
       </div>
     </header>
@@ -68,11 +62,11 @@ import { coming, topics } from '../data/illustrations';
 </Base>
 
 <style>
-  .home { max-width: 860px; margin: 0 auto; padding-block: 72px 56px; display: grid; gap: 48px; font-size: 15px; line-height: 1.6; }
-  .eyebrow { margin: 0 0 6px; font-size: 12px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3); }
-  h1 { margin: 0; font-size: 46px; line-height: 1.1; font-weight: 500; letter-spacing: -0.02em; }
-  .lede { margin: 14px 0 0; max-width: 62ch; color: var(--ink-2); font-size: 16.5px; }
-  .start { margin-top: 22px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
+  .home { max-width: 860px; margin: 0 auto; padding-block: 36px 56px; display: grid; gap: 30px; font-size: 15px; line-height: 1.6; }
+  header { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 24px; }
+  h1 { margin: 0; font-size: 34px; line-height: 1.1; font-weight: 500; letter-spacing: -0.02em; }
+  .lede { margin: 6px 0 0; color: var(--ink-2); }
+  .start { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
   .start code { font: 13.5px var(--mono); color: var(--ink); background: var(--plot); border: 1px solid var(--rule); border-radius: 8px; padding: 8px 14px; }
   .cta { font-size: 13.5px; color: var(--ink-2); text-decoration: none; border-bottom: 1px solid var(--rule); }
   .cta:hover { color: var(--ink); border-bottom-color: var(--ink-3); }
@@ -94,8 +88,8 @@ import { coming, topics } from '../data/illustrations';
   footer a:hover, footer :global(.visitors:hover) { color: var(--ink); border-bottom-color: var(--ink-3); }
   footer :global(.visitors) { margin-left: auto; font: 12.5px var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
   @media (max-width: 640px) {
-    .home { padding-block: 40px; gap: 36px; }
-    h1 { font-size: 34px; }
+    .home { padding-block: 24px 40px; gap: 24px; }
+    h1 { font-size: 30px; }
     .entry { grid-template-columns: 1fr; gap: 14px; }
     .note { text-align: left; }
   }
