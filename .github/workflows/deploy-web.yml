@@ -70,6 +70,7 @@ jobs:
 
       # The manual used to be the whole of this domain, so every link into it still has to land.
       - name: Send the manual's old links to their new home
+        working-directory: .
         run: python3 .github/doc-redirects.py web/dist
 
       - name: Deploy to Cloudflare Pages
