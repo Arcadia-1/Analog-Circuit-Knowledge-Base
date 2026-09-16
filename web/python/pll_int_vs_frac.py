@@ -5,7 +5,7 @@ Reference-rate time-domain PLL: reference 25 / 40 / 100 MHz (default 40), type-I
 poles at 6x BW, closed-loop -3 dB bandwidth 1 MHz, linear phase detector, VCO around 5 GHz.
 Noise: white reference/PFD timing noise from a normalised floor of -228 dBc/Hz (634 fs rms per edge);
 VCO -120 dBc/Hz at 1 MHz (white FM). RMS jitter = std of the output edge-time error, f_ref/32768 .. f_ref/2.
-Divider: integer N | first-order accumulator | MASH 1-1-1 (24 bit, LSB set) | MASH 1-1-1 + ideal DTC (+ bow INL).
+Divider: integer N | first-order accumulator | MASH 1-1-1 (24 bit, LSB set), either with an ideal DTC (+ bow INL).
 """
 import math
 import numpy as np
@@ -30,13 +30,15 @@ def loop_gain_for_bw(bw=BW):
         else: hi = mid
     return 0.5 * (lo + hi), beta
 
-def simulate(target_hz, mode, inl_ps=0.0, noise=True, n_warm=8192, n_fft=32768, seed=7, bw=BW, cp_mismatch=0.0):
+def simulate(target_hz, mode, dtc=False, inl_ps=0.0, noise=True, n_warm=8192, n_fft=32768, seed=7, bw=BW, cp_mismatch=0.0):
     if mode == "int":
         n_int, fcw = int(round(target_hz / F_REF)), 0
     else:
         n_int = int(math.floor(target_hz / F_REF)); fcw = int(round((target_hz / F_REF - n_int) * M))
-        if mode in ("sd", "dtc") and fcw: fcw |= 1
+        if mode == "sd" and fcw: fcw |= 1
     alpha = fcw / M; n_avg = n_int + alpha; t_out = T_REF / n_avg
+    # phase error the DTC has to cancel: one output period of sawtooth after the accumulator, four after MASH 1-1-1
+    top, span = (0.0, 1.0) if mode == "acc" else (2.0, 4.0)
     gp, beta = loop_gain_for_bw(bw); gi = gp * gp / 4; kp, ki = gp / n_avg, gi / n_avg
     sig_vco = (1e6 * t_out) * math.sqrt(10 ** (L_VCO_1M / 10) / F_REF)   # per reference cycle
     rng = np.random.default_rng(seed)
@@ -48,9 +50,9 @@ def simulate(target_hz, mode, inl_ps=0.0, noise=True, n_warm=8192, n_fft=32768, 
     xs = np.empty(n); es = np.empty(n); ns = np.empty(n, dtype=int); qs = np.empty(n)
     for k in range(n):
         q = Q / M
-        if mode == "dtc":
-            u01 = (2.0 - q) / 4.0
-            delta = (2.0 - q) * t_out + inl_ps * 1e-12 * 4 * u01 * (1 - u01)
+        if dtc:
+            u01 = (top - q) / span
+            delta = (top - q) * t_out + inl_ps * 1e-12 * 4 * u01 * (1 - u01)
         else:
             delta = 0.0
         e = x + q * t_out + delta + nref[k]
@@ -107,11 +109,11 @@ if __name__ == "__main__":
     print(f"loop: g_p = {gp:.5f}, beta = {beta:.4f}, max |pole| = {np.max(np.abs(roots)):.5f}, peaking = {20*np.log10(H.max()):.2f} dB, "
           f"|H(1 MHz)| = {20*np.log10(closed_loop_mag(1e6, gp, beta)):.2f} dB, |H(5 MHz)| = {20*np.log10(closed_loop_mag(5e6, gp, beta)):.2f} dB")
     import time
-    for mode, inl in (("int", 0), ("acc", 0), ("sd", 0), ("dtc", 0), ("dtc", 1.0)):
-        t0 = time.time(); r = simulate(5.005e9, mode, inl); a = analyze(r)
+    for mode, dtc, inl in (("int", False, 0), ("acc", False, 0), ("sd", False, 0), ("sd", True, 0), ("sd", True, 1.0)):
+        t0 = time.time(); r = simulate(5.005e9, mode, dtc, inl); a = analyze(r)
         band = (a["f"] > 2e5) & (a["f"] < 6e5); hump = a["L"][(a["f"] > 5e6) & (a["f"] < 1e7)]
         top = ", ".join(f"{s[1]:.1f} dBc @ {s[0]/1e6:.3f} MHz" for s in a["spurs"][:3]) or "none"
-        print(f"{mode:4s} INL {inl:3.1f} ps: N_avg {r['n_avg']:.6f} f_out {r['f_out']/1e9:.6f} GHz | jitter {a['jitter_fs']:8.1f} fs | "
+        print(f"{mode:3s}{'+dtc' if dtc else '    '} INL {inl:3.1f} ps: N_avg {r['n_avg']:.6f} f_out {r['f_out']/1e9:.6f} GHz | jitter {a['jitter_fs']:8.1f} fs | "
               f"L(200-600k) {np.median(a['L'][band]):7.1f} dBc/Hz | L(5-10 MHz) med {np.median(hump):7.1f} | e range [{r['e'].min()*1e12:7.1f}, {r['e'].max()*1e12:7.1f}] ps | "
               f"ndiv {r['ndiv'].min()}..{r['ndiv'].max()} | spurs: {top}   ({time.time()-t0:.1f}s)")
     r = simulate(5.005e9, "acc", noise=False); a = analyze(r)
@@ -119,11 +121,19 @@ if __name__ == "__main__":
     Hs = closed_loop_mag(5e6, gp, beta); print(f"linear prediction for the 5 MHz fundamental: 20log10(2|H|/2) = {20*np.log10(Hs):.2f} dBc")
     print()
     print("charge-pump mismatch at a near-integer channel (5.0005 GHz, 0.5 MHz offset):")
-    for mode, inl in (("acc", 0.0), ("sd", 0.0), ("dtc", 0.0), ("dtc", 3.0)):
+    for mode, dtc, inl in (("acc", False, 0.0), ("sd", False, 0.0), ("sd", True, 0.0), ("sd", True, 3.0)):
         for cp in (0.0, 0.05):
-            a = analyze(simulate(5.0005e9, mode, inl, bw=BW, cp_mismatch=cp))
+            a = analyze(simulate(5.0005e9, mode, dtc, inl, bw=BW, cp_mismatch=cp))
             spur = ", ".join(f"{s[1]:.2f} dBc @ {s[0]/1e6:.3f} MHz" for s in a["spurs"][:2]) or "none"
-            print(f"  {mode:3s} INL {inl:3.1f} ps, CP mismatch {cp*100:4.1f}%: jitter {a['jitter_fs']:8.1f} fs | {spur}")
+            print(f"  {mode:3s}{'+dtc' if dtc else '    '} INL {inl:3.1f} ps, CP mismatch {cp*100:4.1f}%: jitter {a['jitter_fs']:8.1f} fs | {spur}")
+    print()
+    print()
+    print("DTC INL at a near-integer channel (5.0005 GHz, alpha = 1/80, no charge-pump mismatch):")
+    for mode in ("acc", "sd"):
+        for inl in (0.0, 0.5, 1.0, 2.0, 5.0):
+            a = analyze(simulate(5.0005e9, mode, True, inl))
+            spur = ", ".join(f"{s[1]:.2f} dBc @ {s[0]/1e6:.3f} MHz" for s in a["spurs"][:3]) or "none"
+            print(f"  {mode}+dtc INL {inl:3.1f} ps: jitter {a['jitter_fs']:7.1f} fs | {spur}")
     print()
     a = analyze(simulate(5.0004e9, "acc", noise=True))
     print("acc near-integer 5.0004 GHz: " + ", ".join(f"{s[1]:.1f} dBc @ {s[0]/1e6:.3f} MHz" for s in a["spurs"][:3]) + f", jitter {a['jitter_fs']:.0f} fs")
