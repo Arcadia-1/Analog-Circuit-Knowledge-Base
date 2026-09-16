@@ -48,7 +48,7 @@
   const measured = $derived(test === 'ramp' ? measureRamp(hits, reference) : measureSine(hits, reference));
   const sp = $derived(spectrum(n, t));
 
-  const span = (a: ArrayLike<number>) => `${nf(Math.min(...a), 2)} … ${nf(Math.max(...a), 2)}`;
+  const span = (a: Float64Array) => `${nf(Math.min(...a), 2)} … ${nf(Math.max(...a), 2)}`;
 </script>
 
 <main class="page">
