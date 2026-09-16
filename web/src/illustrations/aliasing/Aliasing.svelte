@@ -5,10 +5,11 @@
   import Segmented from '../../components/ui/Segmented.svelte';
   import ValueField from '../../components/ui/ValueField.svelte';
   import { freqText, nf } from '../../lib/format';
+  import { residual } from '../../lib/frequency';
   import { clamp } from '../../lib/scale';
   import { N_FFT } from '../../lib/spectrum';
   import FoldChart from './FoldChart.svelte';
-  import { F_MAX, FS, KEEP, N_BITS, read, residual, twins, zoneOf } from './model';
+  import { F_MAX, FS, KEEP, N_BITS, read, twins, zoneOf } from './model';
   import SampleChart from './SampleChart.svelte';
   import ZoneRuler from './ZoneRuler.svelte';
 

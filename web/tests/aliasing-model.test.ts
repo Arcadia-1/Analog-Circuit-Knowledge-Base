@@ -1,18 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import {
-  coherentFrequency,
-  floorOf,
-  foldBin,
-  foldFrequency,
-  FS,
-  KEEP,
-  keepEvery,
-  read,
-  residual,
-  twins,
-  zoneOf,
-} from '../src/illustrations/aliasing/model';
+import { floorOf, FS, KEEP, keepEvery, read, twins, zoneOf } from '../src/illustrations/aliasing/model';
 import { fft, fftAny } from '../src/lib/fft';
+import { coherentFrequency, foldBin, foldFrequency, residual } from '../src/lib/frequency';
 
 describe('aliasing and the Nyquist zones', () => {
   // from python/adc_aliasing.py, after exp_c01: fs 1100 MHz and a 123 MHz tone
