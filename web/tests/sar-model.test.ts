@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { analyzeSpectrum, N_FFT } from '../src/lib/spectrum';
 import {
-  analyzeSpectrum,
   binaryWeights,
   calibrate,
   capMismatch,
@@ -9,7 +9,6 @@ import {
   FS,
   lostInputs,
   margin,
-  N_FFT,
   reconstruct,
   RADIX,
   redundantWeights,

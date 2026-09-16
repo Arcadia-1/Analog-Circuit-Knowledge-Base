@@ -1,9 +1,9 @@
 <script lang="ts">
-  import Plot from '../../components/chart/Plot.svelte';
-  import Tip from '../../components/chart/Tip.svelte';
   import { nf } from '../../lib/format';
   import { clamp } from '../../lib/scale';
-  import { N_FFT, type Spectrum } from './model';
+  import { N_FFT, type Spectrum } from '../../lib/spectrum';
+  import Plot from './Plot.svelte';
+  import Tip from './Tip.svelte';
 
   /** Output spectrum in dBFS; each pixel column spans the min … max of the bins it covers. */
   let { spectrum, n, series, hover, onhover, label }: {

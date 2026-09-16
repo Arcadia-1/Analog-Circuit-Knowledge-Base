@@ -1,4 +1,5 @@
 <script lang="ts">
+  import SpectrumChart from '../../components/chart/SpectrumChart.svelte';
   import Notes from '../../components/ui/Notes.svelte';
   import Range from '../../components/ui/Range.svelte';
   import Segmented from '../../components/ui/Segmented.svelte';
@@ -6,11 +7,11 @@
   import { nf } from '../../lib/format';
   import { gaussians } from '../../lib/rng';
   import { clamp } from '../../lib/scale';
-  import AdcSpectrumChart from './AdcSpectrumChart.svelte';
+
   import CdacDiagram from './CdacDiagram.svelte';
   import InputRuler from './InputRuler.svelte';
+  import { analyzeSpectrum, N_FFT } from '../../lib/spectrum';
   import {
-    analyzeSpectrum,
     binaryWeights,
     calibrate,
     capMismatch,
@@ -19,7 +20,6 @@
     FS,
     lostInputs,
     margin,
-    N_FFT,
     reconstruct,
     redundantWeights,
     TEST_BIN,
@@ -133,7 +133,7 @@
       <span class="label"><span class="tag">{NAMES[i]}</span>{k ? 'Calibrated' : 'Uncalibrated'}</span>
       <span>ENOB <b>{nf(sp.enob, 2)}</b> · SFDR <b>{nf(sp.sfdr, 1)} dB</b></span>
     </div>
-    <AdcSpectrumChart spectrum={sp} {n} series={i ? 2 : 1} hover={hoverBin} onhover={(b) => (hoverBin = b)} label="{NAMES[i]} SAR output spectrum, {k ? 'calibrated' : 'uncalibrated'}" />
+    <SpectrumChart spectrum={sp} {n} series={i ? 2 : 1} hover={hoverBin} onhover={(b) => (hoverBin = b)} label="{NAMES[i]} SAR output spectrum, {k ? 'calibrated' : 'uncalibrated'}" />
   </div>
 {/snippet}
 
