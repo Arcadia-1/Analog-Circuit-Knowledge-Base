@@ -30,7 +30,7 @@ def loop_gain_for_bw(bw=BW):
         else: hi = mid
     return 0.5 * (lo + hi), beta
 
-def simulate(target_hz, mode, inl_ps=0.0, noise=True, n_warm=8192, n_fft=32768, seed=7, bw=BW):
+def simulate(target_hz, mode, inl_ps=0.0, noise=True, n_warm=8192, n_fft=32768, seed=7, bw=BW, cp_mismatch=0.0):
     if mode == "int":
         n_int, fcw = int(round(target_hz / F_REF)), 0
     else:
@@ -54,7 +54,9 @@ def simulate(target_hz, mode, inl_ps=0.0, noise=True, n_warm=8192, n_fft=32768, 
         else:
             delta = 0.0
         e = x + q * t_out + delta + nref[k]
-        I += ki * e; pi = kp * e + I; p1 += beta * (pi - p1); p2 += beta * (p1 - p2); u = -p2
+        # charge pump: up and down currents differ, so the gain depends on the sign of the phase error
+        pump = e * (1 + (cp_mismatch if e >= 0 else -cp_mismatch) / 2)
+        I += ki * pump; pi = kp * pump + I; p1 += beta * (pi - p1); p2 += beta * (p1 - p2); u = -p2
         if mode == "int":
             y = 0
         elif mode == "acc":
@@ -115,5 +117,13 @@ if __name__ == "__main__":
     r = simulate(5.005e9, "acc", noise=False); a = analyze(r)
     print("acc, noise off: " + ", ".join(f"{s[1]:.2f} dBc @ {s[0]/1e6:.3f} MHz" for s in a["spurs"][:4]))
     Hs = closed_loop_mag(5e6, gp, beta); print(f"linear prediction for the 5 MHz fundamental: 20log10(2|H|/2) = {20*np.log10(Hs):.2f} dBc")
-    r = simulate(5.0004e9, "acc", noise=True); a = analyze(r)
+    print()
+    print("charge-pump mismatch at a near-integer channel (5.0005 GHz, 0.5 MHz offset):")
+    for mode, inl in (("acc", 0.0), ("sd", 0.0), ("dtc", 0.0), ("dtc", 3.0)):
+        for cp in (0.0, 0.05):
+            a = analyze(simulate(5.0005e9, mode, inl, bw=BW, cp_mismatch=cp))
+            spur = ", ".join(f"{s[1]:.2f} dBc @ {s[0]/1e6:.3f} MHz" for s in a["spurs"][:2]) or "none"
+            print(f"  {mode:3s} INL {inl:3.1f} ps, CP mismatch {cp*100:4.1f}%: jitter {a['jitter_fs']:8.1f} fs | {spur}")
+    print()
+    a = analyze(simulate(5.0004e9, "acc", noise=True))
     print("acc near-integer 5.0004 GHz: " + ", ".join(f"{s[1]:.1f} dBc @ {s[0]/1e6:.3f} MHz" for s in a["spurs"][:3]) + f", jitter {a['jitter_fs']:.0f} fs")

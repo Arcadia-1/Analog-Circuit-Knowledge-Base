@@ -79,7 +79,7 @@ export interface Sim {
   qd: Float64Array;
 }
 
-export function simulate(targetHz: number, mode: Mode, inlPs: number, fRef: number, bw: number): Sim {
+export function simulate(targetHz: number, mode: Mode, inlPs: number, fRef: number, bw: number, cpMismatch = 0): Sim {
   const T_REF = 1 / fRef;
   const { gp, beta } = loopFor(fRef, bw);
   let nInt: number, fcw: number;
@@ -104,8 +104,10 @@ export function simulate(targetHz: number, mode: Mode, inlPs: number, fRef: numb
       delta = (2 - q) * tOut + inlPs * 1e-12 * 4 * u * (1 - u);
     }
     const err = xo + q * tOut + delta + SIG_REF * G_REF[k];
-    I += ki * err;
-    p1 += beta * (kp * err + I - p1);
+    // charge-pump up/down current mismatch: the pump gain differs by sign of the phase error
+    const pump = err * (1 + (err >= 0 ? cpMismatch : -cpMismatch) / 2);
+    I += ki * pump;
+    p1 += beta * (kp * pump + I - p1);
     p2 += beta * (p1 - p2);
     let y = 0;
     if (mode === 'acc') {

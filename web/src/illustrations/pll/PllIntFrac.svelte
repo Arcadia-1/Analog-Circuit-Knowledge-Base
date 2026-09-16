@@ -14,9 +14,10 @@
   const T_LO = 4.95e9, T_HI = 5.15e9;
   const BW_STEPS = [100e3, 120e3, 150e3, 200e3, 250e3, 300e3, 400e3, 500e3, 600e3, 800e3, 1e6, 1.2e6, 1.5e6, 2e6, 2.5e6, 3e6, 4e6, 5e6];
 
-  let target = $state(5.005e9);
+  let target = $state(5.0005e9);
   let fRef = $state(40e6);
   let bw = $state(1e6);
+  let cp = $state(0.05);
   let mode = $state<Mode>('acc');
   let inl = $state(0);
   let hoverCycle = $state<number | null>(null);
@@ -31,9 +32,9 @@
 
   // integer-N depends on the channel only, so dragging the target does not re-run it
   const channel = $derived(Math.round(target / fRef));
-  const intSim: Sim = $derived(simulate(channel * fRef, 'int', 0, fRef, bw));
+  const intSim: Sim = $derived(simulate(channel * fRef, 'int', 0, fRef, bw, cp));
   const intAn: Analysis = $derived(analyze(intSim));
-  const fracSim: Sim = $derived(simulate(target, mode, inl, fRef, bw));
+  const fracSim: Sim = $derived(simulate(target, mode, inl, fRef, bw, cp));
   const fracAn: Analysis = $derived(analyze(fracSim));
 
   const edgeScale: EdgeScale = $derived.by(() => {
@@ -82,11 +83,15 @@
     <Range id="bw" min={0} max={bwSteps.length - 1} output={freqText(bw)} bind:value={() => bwSteps.indexOf(bw), (i) => (bw = bwSteps[i])}>
       <span class="long">Loop bandwidth</span><span class="short">BW</span>
     </Range>
+    <Range id="cp" min={0} max={0.1} step={0.005} output="{nf(cp * 100, 1)} %" bind:value={cp}>
+      <span class="long">Charge-pump mismatch</span><span class="short">CP</span>
+    </Range>
     <Notes>
       <p><b>Simulation.</b> Reference-rate time-domain model of both loops: 40 960 reference cycles, the first 8 192 discarded. Spectrum of e<sup>jφ</sup> with a Hann window.</p>
       <p><b>Jitter.</b> RMS of the output edge-time error against an ideal clock at <var>f</var><sub>out</sub>, one sample per reference cycle, so it integrates from <var>f</var><sub>ref</sub>/32 768 to <var>f</var><sub>ref</sub>/2. Integer-<var>N</var> jitter comes only from the assumed noise below; the extra jitter of fractional-<var>N</var> is produced by the divider.</p>
       <p><b>Assumed noise.</b> Reference and phase detector: white, normalised floor −228 dBc/Hz, so in-band noise is −228 + 10 log <var>f</var><sub>ref</sub> + 20 log <var>N</var> (634 fs rms per edge). VCO: −120 dBc/Hz at 1 MHz. The same noise realisation drives both PLLs.</p>
       <p><b>Loop.</b> Linear phase detector, type-II filter with ζ = 1 and two extra poles at six times the bandwidth. The closed-loop −3 dB bandwidth is set directly, from 100 kHz up to <var>f</var><sub>ref</sub>/12 (at most 5 MHz); the loop stays stable with about 1.5 dB of peaking over that range.</p>
+      <p><b>Charge pump.</b> Up and down currents differ by this fraction, so the pump gain depends on the sign of the phase error. An integer divider sees only noise and nothing folds. A fractional divider feeds the pump its shaped quantisation error, which folds into a spur at the fractional offset <var>α</var> · <var>f</var><sub>ref</sub>, visible while that offset is near the loop bandwidth. A DTC removes the error before the pump, so the spur goes with it.</p>
       <p><b>Divider.</b> Accumulator and MASH 1-1-1 are 24-bit; the ΣΔ word has its LSB set. DTC: ideal gain, a range of four VCO periods, parabolic INL.</p>
     </Notes>
   </header>

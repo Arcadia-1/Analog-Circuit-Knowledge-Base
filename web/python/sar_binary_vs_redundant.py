@@ -21,7 +21,7 @@ import numpy as np
 from adctoolbox import analyze_spectrum, calibrate_weight_sine, scale_calibration_output
 from adctoolbox.models import sar_apply_cap_mismatch, sar_convert, sar_reconstruct
 
-N_FFT, TRAIN_BIN, TEST_BIN, TEST_PHASE, AMP_DBFS = 4096, 499, 613, 0.37, -0.5
+N_FFT, TRAIN_BIN, TEST_BIN, TEST_PHASE, AMP_DBFS, FS = 4096, 499, 613, 0.37, -0.5, 100e6
 ADCTOOLBOX_RADIX18_16BIT = [29127, 16182, 8990, 4995, 2775, 1542, 856, 476, 264, 147, 82, 45, 25, 14, 8, 4, 2, 1]
 
 
@@ -53,8 +53,33 @@ class FixedNormals:
         return self.z[:size]
 
 
-def tone(bin_index, phase=0.0):
+def gaussians(count, seed):
+    """The standard normals of src/lib/rng.ts: mulberry32 uniforms through Box-Muller, in 32-bit unsigned arithmetic."""
+    imul = lambda a, b: (a * b) & 0xFFFFFFFF
+    state = seed & 0xFFFFFFFF
+
+    def rnd():
+        nonlocal state
+        state = (state + 0x6D2B79F5) & 0xFFFFFFFF
+        t = imul(state ^ (state >> 15), state | 1)
+        t ^= (t + imul(t ^ (t >> 7), t | 61)) & 0xFFFFFFFF
+        return ((t ^ (t >> 14)) & 0xFFFFFFFF) / 2 ** 32
+
+    out = np.zeros(count)
+    for i in range(0, count, 2):
+        r = math.sqrt(-2 * math.log(rnd() or 1e-12))
+        u2 = rnd()
+        out[i] = r * math.cos(2 * math.pi * u2)
+        if i + 1 < count:
+            out[i + 1] = r * math.sin(2 * math.pi * u2)
+    return out
+
+
+def tone(bin_index, phase=0.0, jitter_ps=0.0):
+    """A coherent sine, sampled at t + dt when the clock jitters (ADCToolbox siggen.apply_jitter)."""
     k = np.arange(N_FFT)
+    if jitter_ps:
+        k = k + gaussians(2 * N_FFT, 7)[:N_FFT] * jitter_ps * 1e-12 * FS
     return 0.5 + 0.5 * 10 ** (AMP_DBFS / 20) * np.sin(2 * math.pi * bin_index * k / N_FFT + phase)
 
 
@@ -64,12 +89,12 @@ def spectrum(trace):
                                 side_bin=0, max_harmonic=5, nf_method=3, create_plot=False)
 
 
-def case(raw, n, sigma):
+def case(raw, n, sigma, jitter_ps=0.0):
     raw = np.array(raw, dtype=float)
     nominal = raw / (raw.sum() + raw[-1])
     actual = sar_apply_cap_mismatch(nominal, sigma=sigma, rng=FixedNormals(z_fixed(len(raw)))) if sigma else nominal
     train = sar_convert(tone(TRAIN_BIN), actual)
-    test = sar_convert(tone(TEST_BIN, TEST_PHASE), actual)
+    test = sar_convert(tone(TEST_BIN, TEST_PHASE, jitter_ps), actual)
     with contextlib.redirect_stdout(io.StringIO()):
         fit = calibrate_weight_sine(train, freq=TRAIN_BIN / N_FFT, nominal_weights=nominal)
     calibrated = np.asarray(scale_calibration_output(fit, target_weights=nominal)["weight"])
@@ -94,3 +119,11 @@ if __name__ == "__main__":
             werr = np.max(np.abs(r["calibrated"] - r["actual"]))
             print(f"{n:2d} {sigma * 100:4.0f}%  {name:9s} | {b['enob']:10.4f} {b['sfdr_dbc']:7.3f} | {a['enob']:9.4f} {a['sfdr_dbc']:7.3f} | "
                   f"{werr:12.4f} | {r['code']:.4f} / {r['code_cal']:.4f}")
+    print()
+    f_in = TEST_BIN / N_FFT * FS
+    print(f"clock jitter at f_in = {f_in / 1e6:.3f} MHz, 12 bits, ideal capacitors")
+    for jitter_ps in (0.0, 2.0, 5.0):
+        r = case(binary_weights(12), 12, 0.0, jitter_ps)
+        theory = -20 * math.log10(2 * math.pi * f_in * jitter_ps * 1e-12) if jitter_ps else math.inf
+        print(f"  {jitter_ps:3.1f} ps: ENOB {r['before']['enob']:7.4f}  SNDR {r['before']['sndr_dbc']:7.3f} dB  "
+              f"(jitter alone allows {theory:.2f} dB)")

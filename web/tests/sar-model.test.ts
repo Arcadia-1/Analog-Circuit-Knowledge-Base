@@ -6,13 +6,17 @@ import {
   capMismatch,
   capture,
   convert,
+  FS,
+  lostInputs,
   margin,
+  N_FFT,
   reconstruct,
   redundantWeights,
   TEST_BIN,
   TEST_PHASE,
   TRAIN_BIN,
 } from '../src/illustrations/sar/model';
+import { gaussians } from '../src/lib/rng';
 
 /** The fixed "standard normals" of python/sar_binary_vs_redundant.py. */
 const zFixed = (m: number) => Float64Array.from({ length: m }, (_, j) => 1.5 * Math.sin(2.3 * j + 0.9));
@@ -45,6 +49,47 @@ describe('SAR ADC model, ported from ADCToolbox', () => {
           expect(reconstruct(bits, w)[0]).toBe(Math.floor(x));
         }
       }
+    }
+  });
+
+  // [jitter in ps, ENOB] from the Python reference, which samples the same tone at t + dt with the same standard normals
+  it.each([
+    [2, 11.4962],
+    [5, 10.5965],
+  ])('loses %i ps of clock jitter worth of ENOB', (jitterPs, enob) => {
+    const w = binaryWeights(12);
+    const clock = gaussians(2 * N_FFT, 7).map((v) => v * jitterPs * 1e-12 * FS);
+    const spectrum = analyzeSpectrum(reconstruct(capture(12, w, null, TEST_BIN, TEST_PHASE, clock.subarray(0, N_FFT)), w), 12);
+    expect(spectrum.enob).toBeCloseTo(enob, 3);
+    // jitter alone holds the converter to SNR = -20 log10(2 pi f_in sigma_t); with quantisation the two powers add
+    const alone = -20 * Math.log10(2 * Math.PI * (TEST_BIN / N_FFT) * FS * jitterPs * 1e-12);
+    const quiet = 6.02 * analyzeSpectrum(reconstruct(capture(12, w, null, TEST_BIN, TEST_PHASE), w), 12).enob + 1.76;
+    expect(6.02 * spectrum.enob + 1.76).toBeCloseTo(-10 * Math.log10(10 ** (-alone / 10) + 10 ** (-quiet / 10)), 0);
+  });
+
+  // [N, arch, chip, percentage of inputs no digital weights recover] at 10 % unit-cap mismatch, from a 0.02 LSB sweep.
+  // The bottom of a radix-1.8 array is plain binary (... 8 4 2 1), so at 16 bits it loses inputs too, just far fewer.
+  it.each([
+    [12, 'binary', 29, 1.1157],
+    [12, 'redundant', 29, 0],
+    [12, 'redundant', 7, 0.0317],
+    [16, 'binary', 7, 3.2424],
+    [16, 'redundant', 7, 1.8215],
+    [16, 'redundant', 29, 0],
+  ] as const)('finds the inputs a %i-bit %s chip cannot resolve', (n, arch, chip, percent) => {
+    const nominal = weightsFor(arch, n);
+    const actual = capMismatch(nominal, 0.1, gaussians(nominal.length, 1000 * chip + (arch === 'binary' ? 0 : 1)));
+    expect(lostInputs(n, actual, 0.02).fraction * 100).toBeCloseTo(percent, 3);
+    // the step the page draws with lands on the same answer and covers it with the bands it returns
+    const { bands, fraction } = lostInputs(n, actual);
+    expect(fraction * 100).toBeCloseTo(percent, 1);
+    expect(bands.reduce((a, [lo, hi]) => a + hi - lo, 0)).toBeCloseTo(fraction, 6);
+    // every band really is lost: the conversion of its midpoint ends more than one LSB away from the input
+    const bits = new Uint8Array(nominal.length);
+    for (const [lo, hi] of bands.slice(0, 4)) {
+      const x = ((lo + hi) / 2) * 2 ** n;
+      convert(x, actual, null, bits);
+      expect(Math.abs(reconstruct(bits, actual)[0] - x)).toBeGreaterThan(1);
     }
   });
 
