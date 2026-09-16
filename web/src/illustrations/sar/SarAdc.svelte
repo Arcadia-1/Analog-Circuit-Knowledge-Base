@@ -68,7 +68,7 @@
   const slots = $derived(nominals[1].length);
   const at = $derived(Math.min(shown, slots));
   const x = $derived(vin * 2 ** n);
-  const ideal = $derived(Math.floor(x));
+  const ideal = $derived(Math.round(x));
   const noise = $derived(gaussians(32, seed).map((v) => v * noiseLsb));
   const conversions = $derived(
     nominals.map((nominal, i) => {
@@ -150,9 +150,10 @@
     <Notes>
       <p><b>ADCToolbox.</b> The conversion, capacitor mismatch, calibration and spectrum analysis are ports of <a href="https://github.com/Arcadia-1/ADCToolbox">ADCToolbox</a> 0.9.1 and agree with it to 0.001 ENOB.</p>
       <p><b>Conversion.</b> Comparison <var>j</var> adds weight <var>w<sub>j</sub></var> to the DAC level kept so far and keeps it when the input is not lower. The code is the sum of the kept nominal weights.</p>
+      <p><b>Terminating capacitor.</b> The switched capacitors add up to 2<sup><var>N</var></sup> − 1 units, so one more unit terminates the array and makes the total 2<sup><var>N</var></sup>: that is what makes one unit worth exactly one LSB. Half of it is switched to the reference, which puts every decision level half an LSB below a code level, so the converter returns the nearest code rather than the one below and its error is ±½ LSB instead of 0 … 1 LSB.</p>
       <p><b>Weights.</b> Both arrays are specified by the same thing, the nominal resolution <var>N</var>: they cover 2<sup><var>N</var></sup> − 1 LSB and their smallest capacitor is one unit. Binary spends one comparison per bit, <var>w<sub>j</sub></var> = 2<sup><var>N</var>−1−<var>j</var></sup>. Redundant takes the fewest comparisons <var>m</var> whose radix 2<sup><var>N</var>/<var>m</var></sup> is still at most 1.8 — 15 for 12 bits, 19 for 16 — and uses that geometric series, with every weight capped at the sum of the weights after it.</p>
       <p><b>What the cap buys.</b> Capping is what leaves each comparison a margin: a comparison that wrongly drops its weight is recovered while the input stays within the later weights plus one LSB, and the cap keeps that margin at one LSB or more everywhere. It binds only at the bottom, where it ends the array 4 2 1 1 instead of 4 2 1 — the extra unit capacitor is the last LSB of redundancy, and with ideal capacitors it is the one comparison that never changes anything.</p>
-      <p><b>What is left to lose.</b> With the margin held all the way down, the only inputs a redundant chip cannot resolve are at the very top, where its capacitors happen to add up short of full scale: a gain error, not a gap, and it shrinks as σ/2<sup><var>N</var>/2</sup>. A binary array has that same shortfall and, on top of it, a gap wherever mismatch let a weight outgrow everything after it.</p>
+      <p><b>What is left to lose.</b> An input counts as lost when its code comes out more than a whole LSB away from it, which no set of digital weights can put right; the sub-LSB spacing errors mismatch leaves everywhere are ordinary DNL and are not counted. With the margin held all the way down, the only inputs a redundant chip loses are at the very top, where its capacitors happen to add up short of full scale: a gain error, not a gap, and it shrinks as σ/2<sup><var>N</var>/2</sup>. A binary array has that same shortfall and, on top of it, a gap wherever mismatch let a weight outgrow everything after it.</p>
       <p><b>Capacitor mismatch.</b> Weight <var>w<sub>j</sub></var> is built from <var>w<sub>j</sub></var>/<var>w</var><sub>min</sub> unit capacitors, each with relative mismatch σ, so its relative error is σ/√units. New chip draws another set of errors.</p>
       <p><b>Comparator noise.</b> Gaussian, drawn anew for every decision. The stepped conversion uses one draw; New noise replaces it.</p>
       <p><b>Calibration.</b> Sine-fit weight calibration: a least-squares fit of the bit columns plus an offset to a unit sine at the known frequency 499/4096 <var>f</var><sub>s</sub> = 12.18 MHz, rescaled to the nominal weight sum. The spectra use the second tone set by Input frequency, so the weights are always tested on data they were not fitted to.</p>

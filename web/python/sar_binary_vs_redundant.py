@@ -91,12 +91,13 @@ def gaussians(count, seed):
     return out
 
 
-def tone(bin_index, phase=0.0, jitter_ps=0.0):
-    """A coherent sine, sampled at t + dt when the clock jitters (ADCToolbox siggen.apply_jitter)."""
+def tone(bin_index, n, phase=0.0, jitter_ps=0.0):
+    """A coherent sine, sampled at t + dt when the clock jitters (ADCToolbox siggen.apply_jitter), offset by the half
+    unit of the terminating capacitor so the decision levels sit half an LSB below the code levels."""
     k = np.arange(N_FFT)
     if jitter_ps:
         k = k + gaussians(2 * N_FFT, 7)[:N_FFT] * jitter_ps * 1e-12 * FS
-    return 0.5 + 0.5 * 10 ** (AMP_DBFS / 20) * np.sin(2 * math.pi * bin_index * k / N_FFT + phase)
+    return 0.5 + 0.5 * 2 ** -n + 0.5 * 10 ** (AMP_DBFS / 20) * np.sin(2 * math.pi * bin_index * k / N_FFT + phase)
 
 
 def spectrum(trace):
@@ -109,14 +110,14 @@ def case(raw, n, sigma, jitter_ps=0.0):
     raw = np.array(raw, dtype=float)
     nominal = raw / (raw.sum() + raw[-1])
     actual = sar_apply_cap_mismatch(nominal, sigma=sigma, rng=FixedNormals(z_fixed(len(raw)))) if sigma else nominal
-    train = sar_convert(tone(TRAIN_BIN), actual)
-    test = sar_convert(tone(TEST_BIN, TEST_PHASE, jitter_ps), actual)
+    train = sar_convert(tone(TRAIN_BIN, n), actual)
+    test = sar_convert(tone(TEST_BIN, n, TEST_PHASE, jitter_ps), actual)
     with contextlib.redirect_stdout(io.StringIO()):
         fit = calibrate_weight_sine(train, freq=TRAIN_BIN / N_FFT, nominal_weights=nominal)
     calibrated = np.asarray(scale_calibration_output(fit, target_weights=nominal)["weight"])
     before = spectrum(sar_reconstruct(test, nominal))
     after = spectrum(test.astype(float) @ calibrated)
-    dc = sar_convert(np.array([0.7434]), actual)[0].astype(float)
+    dc = sar_convert(np.array([0.7434 + 0.5 * 2.0 ** -n]), actual)[0].astype(float)
     return dict(before=before, after=after, calibrated=calibrated * 2 ** n, actual=actual * 2 ** n,
                 code=dc @ nominal * 2 ** n, code_cal=dc @ calibrated * 2 ** n)
 

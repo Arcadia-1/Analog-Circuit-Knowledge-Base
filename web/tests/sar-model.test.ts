@@ -3,7 +3,6 @@ import {
   analyzeSpectrum,
   binaryWeights,
   calibrate,
-  comparisons,
   capMismatch,
   capture,
   convert,
@@ -50,13 +49,13 @@ describe('SAR ADC model, ported from ADCToolbox', () => {
     expect(Array.from(w)).toEqual([4 * (1 + 0.1 / 2), 2 * (1 + 0.1 / Math.SQRT2), 1.1]);
   });
 
-  it('converts every input to floor(x) with ideal capacitors', () => {
+  it('returns the nearest code with ideal capacitors, thanks to the half unit that terminates the array', () => {
     for (const n of [8, 10]) {
       for (const w of [binaryWeights(n), redundantWeights(n)]) {
         const bits = new Uint8Array(w.length);
-        for (let x = 0; x < 2 ** n; x += 0.125) {
+        for (let x = 0; x < 2 ** n - 1; x += 0.125) {
           convert(x, w, null, bits);
-          expect(reconstruct(bits, w)[0]).toBe(Math.floor(x));
+          expect(reconstruct(bits, w)[0]).toBe(Math.round(x));
         }
       }
     }
@@ -64,8 +63,8 @@ describe('SAR ADC model, ported from ADCToolbox', () => {
 
   // [jitter in ps, ENOB] from the Python reference, which samples the same tone at t + dt with the same standard normals
   it.each([
-    [2, 11.4962],
-    [5, 10.5965],
+    [2, 11.4928],
+    [5, 10.6245],
   ])('loses %i ps of clock jitter worth of ENOB', (jitterPs, enob) => {
     const w = binaryWeights(12);
     const clock = gaussians(2 * N_FFT, 7).map((v) => v * jitterPs * 1e-12 * FS);
@@ -81,11 +80,11 @@ describe('SAR ADC model, ported from ADCToolbox', () => {
   // What a redundant array still loses is only the top of the range, where its capacitors happen to add up short of
   // full scale; a binary array loses that too, plus a gap wherever a weight outgrew the ones after it.
   it.each([
-    [12, 'binary', 29, 1.1157],
+    [12, 'binary', 29, 1.1113],
     [12, 'redundant', 29, 0],
-    [12, 'redundant', 7, 0.0303],
-    [16, 'binary', 7, 3.2424],
-    [16, 'redundant', 7, 0.0113],
+    [12, 'redundant', 7, 0.0449],
+    [16, 'binary', 7, 2.7914],
+    [16, 'redundant', 7, 0.012],
     [16, 'redundant', 29, 0],
   ] as const)('finds the inputs a %i-bit %s chip cannot resolve', (n, arch, chip, percent) => {
     const nominal = weightsFor(arch, n);
@@ -109,12 +108,12 @@ describe('SAR ADC model, ported from ADCToolbox', () => {
 
   // [N, sigma, arch, ENOB before, SFDR before, ENOB after, SFDR after, DC code with nominal weights] from the Python reference
   const cases: [number, number, 'binary' | 'redundant', number, number, number, number, number][] = [
-    [12, 0, 'binary', 11.9117, 95.281, 11.8995, 94.926, 3044],
-    [12, 0, 'redundant', 11.9117, 95.281, 11.908, 95.344, 3044],
-    [12, 0.1, 'binary', 8.9193, 61.719, 11.4565, 94.217, 3040],
-    [12, 0.1, 'redundant', 8.8672, 63.593, 11.9432, 98.121, 3041],
-    [16, 0.1, 'binary', 10.927, 73.739, 14.8795, 115.711, 48701],
-    [16, 0.1, 'redundant', 10.8418, 74.946, 16.2658, 123.733, 48709],
+    [12, 0, 'binary', 11.9289, 94.777, 11.9142, 94.036, 3045],
+    [12, 0, 'redundant', 11.9289, 94.777, 11.9247, 94.319, 3045],
+    [12, 0.1, 'binary', 8.9173, 61.796, 11.4426, 94.218, 3040],
+    [12, 0.1, 'redundant', 8.8702, 63.685, 11.9329, 97.409, 3042],
+    [16, 0.1, 'binary', 10.9269, 73.727, 14.8209, 115.921, 48701],
+    [16, 0.1, 'redundant', 10.8404, 74.965, 16.2412, 124.839, 48709],
   ];
   it.each(cases)('matches ADCToolbox for N=%i, sigma=%f, %s', (n, sigma, arch, enobB, sfdrB, enobA, sfdrA, code) => {
     const nominal = weightsFor(arch, n);
