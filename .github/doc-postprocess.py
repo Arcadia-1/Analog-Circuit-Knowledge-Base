@@ -18,6 +18,7 @@ from pathlib import Path
 
 PAGES = {
     "coherent-sampling": ("Coherent sampling", "/adc/coherent-sampling/"),
+    "aliasing-and-nyquist-zones": ("Aliasing and Nyquist zones", "/adc/aliasing-and-nyquist-zones/"),
     "reading-the-error": ("Reading the error", "/adc/reading-the-error/"),
     "inl-and-dnl": ("INL and DNL", "/adc/inl-and-dnl/"),
     "binary-vs-redundant-sar": ("Binary vs redundant SAR", "/adc/binary-vs-redundant-sar/"),
@@ -31,8 +32,8 @@ RUNS = {
     "api/spectrum": EVERY,
     "api/dout": ["binary-vs-redundant-sar"],
     "api/models": ["binary-vs-redundant-sar"],
-    "api/siggen": ["reading-the-error", "binary-vs-redundant-sar"],
-    "api/fundamentals": ["reading-the-error"],
+    "api/siggen": ["aliasing-and-nyquist-zones", "reading-the-error", "binary-vs-redundant-sar"],
+    "api/fundamentals": ["aliasing-and-nyquist-zones", "reading-the-error"],
     "examples/index": EVERY,
     "quickstart": EVERY,
 }
