@@ -27,5 +27,8 @@
   .panel :global(p) { margin: 0 0 8px; }
   .panel :global(p:last-child) { margin: 0; }
   .panel :global(b) { color: var(--ink); font-weight: 500; }
+  .panel :global(code) { font: 11.5px var(--mono); color: var(--ink); background: var(--chip); padding: 0 4px; border-radius: 4px; }
+  .panel :global(a) { color: var(--ink); text-decoration: none; border-bottom: 1px solid var(--rule); }
+  .panel :global(a:hover) { border-bottom-color: var(--ink-3); }
   @media (max-width: 900px) { .panel { left: 0; right: auto; } }
 </style>

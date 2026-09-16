@@ -11,6 +11,7 @@ const count = (n: number) => `${n} illustration${n === 1 ? '' : 's'}`;
     <header>
       <h1>AMS Class</h1>
       <p class="lede">Interactive illustrations of analog and mixed-signal circuits. Each one runs a small behavioural model in the browser, so you can change a parameter and watch the physics respond.</p>
+      <p class="lede sub">The converter pages are an interactive companion to <a href="https://github.com/Arcadia-1/ADCToolbox">ADCToolbox</a>: the same models and the same analysis, ported and checked against it, with the parameters in your hands. Each one names the module and the examples it answers to.</p>
     </header>
     {topics.map((topic) => (
       <section class="topic">
@@ -22,6 +23,7 @@ const count = (n: number) => `${n} illustration${n === 1 ? '' : 's'}`;
               <h3 set:html={item.title.replace(/-N\b/g, '-<var>N</var>')} />
               <p>{item.summary}</p>
               <p class="tags">{item.tags.join(' · ')}</p>
+              {item.toolbox && <p class="from">ADCToolbox · {item.toolbox}</p>}
             </div>
           </a>
         ))}
@@ -50,6 +52,10 @@ const count = (n: number) => `${n} illustration${n === 1 ? '' : 's'}`;
   h3 :global(var) { font-size: 1.08em; }
   .entry p { margin: 6px 0 0; color: var(--ink-2); }
   .entry .tags { font: 12.5px var(--mono); color: var(--ink-3); margin-top: 10px; }
+  .entry .from { font: 12px var(--mono); color: var(--ink-3); opacity: 0.8; margin-top: 3px; }
+  .lede.sub { font-size: 15px; margin-top: 10px; }
+  .lede a { color: var(--ink); text-decoration: none; border-bottom: 1px solid var(--rule); }
+  .lede a:hover { border-bottom-color: var(--ink-3); }
   footer { border-top: 1px solid var(--rule); padding-top: 16px; display: flex; flex-wrap: wrap; gap: 6px 20px; color: var(--ink-3); font-size: 13.5px; }
   footer a, footer :global(.visitors) { color: var(--ink-2); text-decoration: none; border-bottom: 1px solid var(--rule); }
   footer a:hover, footer :global(.visitors:hover) { color: var(--ink); border-bottom-color: var(--ink-3); }
