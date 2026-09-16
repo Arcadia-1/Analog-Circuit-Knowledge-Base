@@ -15,47 +15,6 @@ export interface Topic {
   items: Illustration[];
 }
 
-/** One step of the path through the pages, for a reader who arrived with a spectrum they do not like. */
-export interface Step {
-  when: string;
-  then: string;
-  href: string;
-  title: string;
-}
-
-export const path: Step[] = [
-  {
-    when: 'The spectrum looks terrible and nothing is obviously broken.',
-    then: 'Check the measurement first. A tone a fraction of a bin away from coherent, with no window, reads two effective bits off a perfect converter.',
-    href: '/adc/coherent-sampling/',
-    title: 'Coherent sampling',
-  },
-  {
-    when: 'A spur sits where no harmonic should be.',
-    then: 'It may be one all the same, folded back from above Nyquist. Every frequency lands somewhere between 0 and fs/2; find where the second and third harmonics went, and what keeping one sample in N did to them.',
-    href: '/adc/aliasing-and-nyquist-zones/',
-    title: 'Aliasing and Nyquist zones',
-  },
-  {
-    when: 'The capture is sound, so it really is the converter.',
-    then: 'Subtract the sine you asked for and read the residual four ways. Noise, static curvature, jitter, settling memory and interference each sign their name somewhere different.',
-    href: '/adc/reading-the-error/',
-    title: 'Reading the error',
-  },
-  {
-    when: 'It follows the input value, so it is static.',
-    then: 'Look at where the codes actually sit — DNL, INL, missing codes — and at how much of that a ramp or a sine code-density test can really measure.',
-    href: '/adc/inl-and-dnl/',
-    title: 'INL and DNL',
-  },
-  {
-    when: 'It is a SAR, and the capacitors are to blame.',
-    then: 'Step through one conversion, see what redundancy buys when a comparison goes wrong, and what sine-fit calibration gets back.',
-    href: '/adc/binary-vs-redundant-sar/',
-    title: 'Binary vs redundant SAR',
-  },
-];
-
 /** Parts of the toolbox that have no page yet, named so the gaps are honest ones. */
 export const coming = [
   'oversampling and noise shaping',
