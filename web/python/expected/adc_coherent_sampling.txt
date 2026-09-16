@@ -1,4 +1,5 @@
 12 bits, 4096-point record, tone at 613 cycles, no added noise
+side bins counted as signal: rectangular 0, hann 1, blackmanharris 3, flattop 4
  offset |    rectangular |           hann | blackmanharris |        flattop
         |   ENOB    SFDR |   ENOB    SFDR |   ENOB    SFDR |   ENOB    SFDR
   0.00  | 11.837   93.34 | 11.841   92.11 | 11.850   89.85 | 11.849   87.98
