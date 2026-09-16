@@ -67,7 +67,7 @@
 
 <main class="page">
   <header class="top">
-    <a class="crumb" href="/">AMS Class</a>
+    <a class="crumb" href="/">ADCToolbox</a>
     <h1>Integer-<var>N</var> vs fractional-<var>N</var></h1>
     <p class="sub">One reference, one loop, one VCO. Only the divider differs.</p>
     <div class="pick">

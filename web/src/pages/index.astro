@@ -3,19 +3,37 @@ import Base from '../layouts/Base.astro';
 import Thumb from '../components/Thumb.astro';
 import Visits from '../components/Visits';
 import { topics } from '../data/illustrations';
-
-const count = (n: number) => `${n} illustration${n === 1 ? '' : 's'}`;
 ---
-<Base visits={false} title="AMS Class" description="Interactive illustrations of analog and mixed-signal circuits, each built on a small behavioural model you can drive yourself.">
+<Base
+  visits={false}
+  title="ADCToolbox"
+  description="Analysis for data converters — conversion, static error, calibration and spectra — as a Python library and as pages that run its models in your browser."
+>
   <main class="home">
     <header>
-      <h1>AMS Class</h1>
-      <p class="lede">Interactive illustrations of analog and mixed-signal circuits. Each one runs a small behavioural model in the browser, so you can change a parameter and watch the physics respond.</p>
-      <p class="lede sub">The converter pages are an interactive companion to <a href="https://github.com/Arcadia-1/ADCToolbox">ADCToolbox</a>: the same models and the same analysis, ported and checked against it, with the parameters in your hands. Each one names the module and the examples it answers to.</p>
+      <p class="eyebrow">Analysis for data converters</p>
+      <h1>ADCToolbox</h1>
+      <p class="lede">
+        The conversion itself, the mismatch that spoils it, the calibration that recovers it, and the spectra and
+        histograms you judge all of it by — as a Python library, and as pages that run the same models in your browser.
+      </p>
+      <p class="lede">
+        Every page below is a port of the library, checked against it number for number, with the parameters in your
+        hands. Drag one and watch which plot notices.
+      </p>
+      <div class="start">
+        <code>pip install adctoolbox</code>
+        <a class="cta" href="/doc/">Reference manual</a>
+        <a class="cta" href="https://github.com/Arcadia-1/ADCToolbox">Source</a>
+      </div>
     </header>
+
     {topics.map((topic) => (
       <section class="topic">
-        <div class="topic-head"><h2>{topic.name}</h2><span class="count">{count(topic.items.length)}</span></div>
+        <div class="topic-head">
+          <h2>{topic.name}</h2>
+          {topic.note && <span class="note">{topic.note}</span>}
+        </div>
         {topic.items.map((item) => (
           <a class="entry" href={item.href}>
             <Thumb kind={item.thumb} />
@@ -23,15 +41,18 @@ const count = (n: number) => `${n} illustration${n === 1 ? '' : 's'}`;
               <h3 set:html={item.title.replace(/-N\b/g, '-<var>N</var>')} />
               <p>{item.summary}</p>
               <p class="tags">{item.tags.join(' · ')}</p>
-              {item.toolbox && <p class="from">ADCToolbox · {item.toolbox}</p>}
+              {item.toolbox && <p class="from">{item.toolbox}</p>}
             </div>
           </a>
         ))}
       </section>
     ))}
+
     <footer>
-      <span>AMS Class</span>
-      <a href="https://github.com/Arcadia-1/Analog-Circuit-Knowledge-Base/tree/main/web">Source on GitHub</a>
+      <span>ADCToolbox</span>
+      <a href="/doc/">Manual</a>
+      <a href="https://github.com/Arcadia-1/ADCToolbox">Library</a>
+      <a href="https://github.com/Arcadia-1/Analog-Circuit-Knowledge-Base/tree/main/web">These pages</a>
       <a href="https://tokenzhang.com">tokenzhang.com</a>
       <Visits client:load path="/" counter />
     </footer>
@@ -40,12 +61,17 @@ const count = (n: number) => `${n} illustration${n === 1 ? '' : 's'}`;
 
 <style>
   .home { max-width: 860px; margin: 0 auto; padding-block: 72px 56px; display: grid; gap: 48px; font-size: 15px; line-height: 1.6; }
-  h1 { margin: 0; font-size: 44px; line-height: 1.1; font-weight: 500; letter-spacing: -0.02em; }
-  .lede { margin: 14px 0 0; max-width: 60ch; color: var(--ink-2); font-size: 17px; }
+  .eyebrow { margin: 0 0 6px; font-size: 12px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3); }
+  h1 { margin: 0; font-size: 46px; line-height: 1.1; font-weight: 500; letter-spacing: -0.02em; }
+  .lede { margin: 14px 0 0; max-width: 62ch; color: var(--ink-2); font-size: 16.5px; }
+  .start { margin-top: 22px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
+  .start code { font: 13.5px var(--mono); color: var(--ink); background: var(--plot); border: 1px solid var(--rule); border-radius: 8px; padding: 8px 14px; }
+  .cta { font-size: 13.5px; color: var(--ink-2); text-decoration: none; border-bottom: 1px solid var(--rule); }
+  .cta:hover { color: var(--ink); border-bottom-color: var(--ink-3); }
   .topic { display: grid; gap: 14px; }
-  .topic-head { display: flex; align-items: baseline; justify-content: space-between; border-bottom: 1px solid var(--rule); padding-bottom: 8px; }
+  .topic-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--rule); padding-bottom: 8px; }
   h2 { margin: 0; font-size: 13px; font-weight: 500; letter-spacing: 0.09em; text-transform: uppercase; color: var(--ink-2); }
-  .count { font: 12.5px var(--mono); color: var(--ink-3); white-space: nowrap; }
+  .note { font-size: 12.5px; color: var(--ink-3); text-align: right; }
   .entry { display: grid; grid-template-columns: 188px minmax(0, 1fr); gap: 24px; align-items: center; padding: 18px; margin-inline: -18px; border-radius: 12px; color: inherit; text-decoration: none; transition: background-color 0.15s; }
   .entry:hover { background: var(--plot); }
   h3 { margin: 0; font-size: 21px; font-weight: 500; letter-spacing: -0.01em; }
@@ -53,9 +79,6 @@ const count = (n: number) => `${n} illustration${n === 1 ? '' : 's'}`;
   .entry p { margin: 6px 0 0; color: var(--ink-2); }
   .entry .tags { font: 12.5px var(--mono); color: var(--ink-3); margin-top: 10px; }
   .entry .from { font: 12px var(--mono); color: var(--ink-3); opacity: 0.8; margin-top: 3px; }
-  .lede.sub { font-size: 15px; margin-top: 10px; }
-  .lede a { color: var(--ink); text-decoration: none; border-bottom: 1px solid var(--rule); }
-  .lede a:hover { border-bottom-color: var(--ink-3); }
   footer { border-top: 1px solid var(--rule); padding-top: 16px; display: flex; flex-wrap: wrap; gap: 6px 20px; color: var(--ink-3); font-size: 13.5px; }
   footer a, footer :global(.visitors) { color: var(--ink-2); text-decoration: none; border-bottom: 1px solid var(--rule); }
   footer a:hover, footer :global(.visitors:hover) { color: var(--ink); border-bottom-color: var(--ink-3); }
@@ -64,5 +87,6 @@ const count = (n: number) => `${n} illustration${n === 1 ? '' : 's'}`;
     .home { padding-block: 40px; gap: 36px; }
     h1 { font-size: 34px; }
     .entry { grid-template-columns: 1fr; gap: 14px; }
+    .note { text-align: left; }
   }
 </style>
