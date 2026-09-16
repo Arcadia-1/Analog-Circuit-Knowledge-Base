@@ -3,7 +3,7 @@ export interface Illustration {
   title: string;
   summary: string;
   tags: string[];
-  thumb: 'pll' | 'sar' | 'inl' | 'err';
+  thumb: 'pll' | 'sar' | 'inl' | 'err' | 'win';
   /** The ADCToolbox module and examples this page runs, shown under the card. */
   toolbox?: string;
 }
@@ -25,7 +25,13 @@ export interface Step {
 
 export const path: Step[] = [
   {
-    when: 'Something is wrong with the spectrum.',
+    when: 'The spectrum looks terrible and nothing is obviously broken.',
+    then: 'Check the measurement first. A tone a fraction of a bin away from coherent, with no window, reads two effective bits off a perfect converter.',
+    href: '/adc/coherent-sampling/',
+    title: 'Coherent sampling',
+  },
+  {
+    when: 'The capture is sound, so it really is the converter.',
     then: 'Subtract the sine you asked for and read the residual four ways. Noise, static curvature, jitter, settling memory and interference each sign their name somewhere different.',
     href: '/adc/reading-the-error/',
     title: 'Reading the error',
@@ -46,7 +52,6 @@ export const path: Step[] = [
 
 /** Parts of the toolbox that have no page yet, named so the gaps are honest ones. */
 export const coming = [
-  'coherent sampling, windows and FFT length',
   'aliasing and the Nyquist zones',
   'oversampling and noise shaping',
   'time interleaving',
@@ -56,6 +61,14 @@ export const topics: Topic[] = [
   {
     name: 'Analog-to-digital converters',
     items: [
+      {
+        href: '/adc/coherent-sampling/',
+        title: 'Coherent sampling',
+        summary: 'A perfect converter, measured badly. Move the tone a tenth of a bin off and an unwindowed FFT reads two effective bits; see which window catches it, what its side bins cost, and what a longer record does and does not buy.',
+        tags: ['leakage', 'windows', 'side bins', 'record length', 'SFDR'],
+        thumb: 'win',
+        toolbox: 'spectrum · exp_b02, exp_s06, exp_s08, exp_s09',
+      },
       {
         href: '/adc/reading-the-error/',
         title: 'Reading the error',

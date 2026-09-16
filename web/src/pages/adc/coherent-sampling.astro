@@ -1,0 +1,11 @@
+---
+import Base from '../../layouts/Base.astro';
+import Coherence from '../../illustrations/coherence/Coherence.svelte';
+import '../../styles/illustration.css';
+---
+<Base
+  title="Coherent sampling"
+  description="A perfect converter measured badly: move the tone a fraction of a bin off and watch an unwindowed FFT read 2 ENOB, then see which window catches it and what the side bins cost."
+>
+  <Coherence client:load />
+</Base>

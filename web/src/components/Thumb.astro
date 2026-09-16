@@ -1,6 +1,6 @@
 ---
 /** Small schematic previews for the home page. */
-interface Props { kind: 'pll' | 'sar' | 'inl' | 'err' }
+interface Props { kind: 'pll' | 'sar' | 'inl' | 'err' | 'win' }
 const { kind } = Astro.props;
 const xs = Array.from({ length: 13 }, (_, i) => 6 + i * 14);
 const saw = [-14, -8, -2, 6, 14];
@@ -11,6 +11,8 @@ const wiggle = [0.3, -0.5, 0.2, 0.6, -0.3, 0.1, -0.6, 0.4, 0.2, -0.2, 0.5, -0.4,
 const bow = (x: number) => 34 - 20 * (1 - ((x - 94) / 94) ** 2);
 // an error that rides on the slope of the input: zero at the peaks, worst at the crossings
 const pm = (x: number) => 50 - 26 * Math.sin((2 * Math.PI * x) / 94) * Math.abs(Math.sin((Math.PI * x) / 188));
+// one clean line against a skirt of leakage
+const skirt = (x: number) => 86 - 52 / (1 + ((x - 94) / 7) ** 2) ** 0.55;
 ---
 <svg class="thumb" viewBox="0 0 188 100" aria-hidden="true">
   {kind === 'pll' ? (
@@ -21,6 +23,16 @@ const pm = (x: number) => 50 - 26 * Math.sin((2 * Math.PI * x) / 94) * Math.abs(
       <text x="0" y="56">fractional-N</text>
       <line class="base" x1="0" y1="78" x2="188" y2="78" />
       {xs.map((x, i) => <g class="s2"><line x1={x} y1="78" x2={x} y2={78 + saw[i % 5]} /><circle cx={x} cy={78 + saw[i % 5]} r="2.2" /></g>)}
+    </>
+  ) : kind === 'win' ? (
+    <>
+      <text x="0" y="10">coherent</text>
+      <line class="base" x1="0" y1="34" x2="188" y2="34" />
+      <line class="s1" x1="94" y1="34" x2="94" y2="12" />
+      {xs.map((x) => <line class="s1" x1={x} y1="34" x2={x} y2={x === 90 ? 34 : 32} opacity="0.5" />)}
+      <text x="0" y="60">off by a tenth of a bin</text>
+      <line class="base" x1="0" y1="86" x2="188" y2="86" />
+      <polyline class="s2 link" points={Array.from({ length: 63 }, (_, i) => `${i * 3},${skirt(i * 3)}`).join(' ')} />
     </>
   ) : kind === 'err' ? (
     <>
