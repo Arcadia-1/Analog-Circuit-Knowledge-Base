@@ -1,36 +1,43 @@
 #!/usr/bin/env python3
 """Fold the reference manual into the site after Sphinx has built it.
 
-Two jobs, both of them about the manual no longer being the whole of adctoolbox.tokenzhang.com:
+Three jobs, all of them about the manual no longer being the whole of adctoolbox.tokenzhang.com:
 
 1. Redirects. The manual used to own the root, so anything that ever linked to /quickstart.html or /api/... has to keep
    landing. One Cloudflare Pages rule per entry at the top of the built manual.
 2. A way back to the illustrations. Each module's API page gets a panel naming the pages that run it, because a reader
-   who has just found analyze_error_by_phase is exactly the reader who should see it move. The mapping mirrors the
-   `toolbox` field of web/src/data/illustrations.ts.
+   who has just found analyze_error_by_phase is exactly the reader who should see it move. The mapping follows the
+   functions each page's notes cite.
+3. A way in that holds. The pages' notes link every function they port to its entry in the manual. A link whose anchor
+   Sphinx never produced still opens the page, just not at the function, so nobody would notice; fail the build instead.
 """
 import html
+import re
 import sys
 from pathlib import Path
 
 PAGES = {
+    "coherent-sampling": ("Coherent sampling", "/adc/coherent-sampling/"),
     "reading-the-error": ("Reading the error", "/adc/reading-the-error/"),
     "inl-and-dnl": ("INL and DNL", "/adc/inl-and-dnl/"),
     "binary-vs-redundant-sar": ("Binary vs redundant SAR", "/adc/binary-vs-redundant-sar/"),
 }
+EVERY = list(PAGES)
 # which illustrations run each page of the manual
 RUNS = {
-    "index": ["reading-the-error", "inl-and-dnl", "binary-vs-redundant-sar"],
-    "api/index": ["reading-the-error", "inl-and-dnl", "binary-vs-redundant-sar"],
+    "index": EVERY,
+    "api/index": EVERY,
     "api/aout": ["reading-the-error", "inl-and-dnl"],
-    "api/spectrum": ["reading-the-error", "inl-and-dnl", "binary-vs-redundant-sar"],
+    "api/spectrum": EVERY,
+    "api/dout": ["binary-vs-redundant-sar"],
     "api/models": ["binary-vs-redundant-sar"],
     "api/siggen": ["reading-the-error", "binary-vs-redundant-sar"],
     "api/fundamentals": ["reading-the-error"],
-    "examples/index": ["reading-the-error", "inl-and-dnl", "binary-vs-redundant-sar"],
-    "quickstart": ["reading-the-error", "inl-and-dnl", "binary-vs-redundant-sar"],
+    "examples/index": EVERY,
+    "quickstart": EVERY,
 }
 ANCHOR = '<article class="bd-article">'
+DOC_LINK = re.compile(r'href="/doc/([^"#]*)(?:#([^"]*))?"')
 
 
 def panel(keys: list[str]) -> str:
@@ -41,6 +48,32 @@ def panel(keys: list[str]) -> str:
         f"<p>These pages run this in your browser, with the parameters in your hands: {links}.</p>\n"
         "</div>\n"
     )
+
+
+def landing(doc: Path, path: str) -> Path:
+    """The built file a /doc/ link lands on, whichever of Pages' spellings it uses."""
+    if path == "" or path.endswith("/"):
+        return doc / path / "index.html"
+    file = doc / path
+    return file if file.suffix else file.with_suffix(".html")
+
+
+def check_links(dist: Path, doc: Path) -> None:
+    broken, count = [], 0
+    for page in sorted(dist.rglob("*.html")):
+        if doc in page.parents:
+            continue
+        for path, anchor in sorted(set(DOC_LINK.findall(page.read_text(encoding="utf-8")))):
+            count += 1
+            file = landing(doc, path)
+            where = f"{page.relative_to(dist)}: /doc/{path}"
+            if not file.is_file():
+                broken.append(f"{where} is not in the manual")
+            elif anchor and f'id="{anchor}"' not in file.read_text(encoding="utf-8"):
+                broken.append(f"{where}#{anchor}: the manual has no such anchor")
+    if broken:
+        raise SystemExit("links from the pages into the manual that do not land:\n  " + "\n  ".join(broken))
+    print(f"  all {count} links from the pages into the manual land")
 
 
 def main(dist: Path) -> None:
@@ -67,6 +100,8 @@ def main(dist: Path) -> None:
                 raise SystemExit(f"{f}: no {ANCHOR} to insert after; the theme's markup changed")
             f.write_text(text.replace(ANCHOR, ANCHOR + "\n" + panel(keys), 1), encoding="utf-8")
             print(f"  linked {f.relative_to(dist)} to {len(keys)} page(s)")
+
+    check_links(dist, doc)
 
 
 if __name__ == "__main__":
