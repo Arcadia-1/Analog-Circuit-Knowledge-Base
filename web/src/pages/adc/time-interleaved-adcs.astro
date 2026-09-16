@@ -1,0 +1,11 @@
+---
+import Base from '../../layouts/Base.astro';
+import TimeInterleaving from '../../illustrations/timeinterleave/TimeInterleaving.svelte';
+import '../../styles/illustration.css';
+---
+<Base
+  title="Time-interleaved ADCs"
+  description="Give four sub-ADCs their own offset, gain and sampling skew, see predict_spurs place every spur, and take them out with extract_mismatch_sine and calibrate_foreground's FFT or Farrow delay, until the input passes fs/2M."
+>
+  <TimeInterleaving client:load />
+</Base>

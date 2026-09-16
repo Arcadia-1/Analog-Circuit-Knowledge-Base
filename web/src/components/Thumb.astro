@@ -1,6 +1,6 @@
 ---
 /** Small schematic previews for the home page. */
-interface Props { kind: 'pll' | 'sar' | 'inl' | 'err' | 'win' | 'fold' | 'ntf' }
+interface Props { kind: 'pll' | 'sar' | 'inl' | 'err' | 'win' | 'fold' | 'ntf' | 'ti' }
 const { kind } = Astro.props;
 const xs = Array.from({ length: 13 }, (_, i) => 6 + i * 14);
 const saw = [-14, -8, -2, 6, 14];
@@ -20,6 +20,10 @@ const hit = ((low - level) / (low - high)) * tooth;
 const hits = Array.from({ length: 6 }, (_, z) => (z % 2 ? (z + 1) * tooth - hit : z * tooth + hit));
 // noise shaped out of the band: a floor that climbs with frequency, and the tone standing in the band
 const climb = Array.from({ length: 47 }, (_, i) => `${4 + i * 4},${92 - 60 * ((4 + i * 4) / 188) ** 1.6 + ((i * 7) % 5) * 1.4}`).join(' ');
+// four channels on a 0 … fs/2 axis: offset tones at fs/4 and fs/2, images of the tone at fin + k·fs/4, folded
+const tone = 22, quarter = 92;
+const images = [quarter - tone, quarter + tone, 2 * quarter - tone].map((x, i) => ({ x, top: [58, 50, 66][i] }));
+const offsets = [{ x: quarter, top: 42 }, { x: 2 * quarter, top: 70 }];
 ---
 <svg class="thumb" viewBox="0 0 188 100" aria-hidden="true">
   {kind === 'pll' ? (
@@ -48,6 +52,14 @@ const climb = Array.from({ length: 47 }, (_, i) => `${4 + i * 4},${92 - 60 * ((4
       <line class="base" x1="0" y1="94" x2="188" y2="94" />
       <polyline class="s2 link" points={climb} />
       <line class="s1" x1="22" y1="94" x2="22" y2="24" />
+    </>
+  ) : kind === 'ti' ? (
+    <>
+      <text x="0" y="10">a spur for every mismatch</text>
+      <line class="base" x1="0" y1="94" x2="188" y2="94" />
+      <line class="s1" x1={tone} y1="94" x2={tone} y2="20" />
+      {images.map((m) => <g><line class="s2 link" x1={m.x} y1="94" x2={m.x} y2={m.top} /><circle class="mark" cx={m.x} cy={m.top} r="3.4" /></g>)}
+      {offsets.map((m) => <g><line class="s2 link" x1={m.x} y1="94" x2={m.x} y2={m.top} /><rect class="mark" x={m.x - 3.2} y={m.top - 3.2} width="6.4" height="6.4" /></g>)}
     </>
   ) : kind === 'fold' ? (
     <>
@@ -94,4 +106,5 @@ const climb = Array.from({ length: 47 }, (_, i) => `${4 + i * 4},${92 - 60 * ((4
   .link { fill: none; stroke-width: 1.25; opacity: 0.5; }
   .win { fill: var(--chip); }
   .dash { stroke: var(--ink-3); stroke-dasharray: 3 3; }
+  .mark { fill: var(--ground); stroke: var(--s2); stroke-width: 1.6; }
 </style>
