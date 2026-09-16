@@ -28,15 +28,26 @@ function sum(a: ArrayLike<number>): number {
 
 export const binaryWeights = (n: number): number[] => Array.from({ length: n }, (_, j) => 2 ** (n - 1 - j));
 
-/** Radix-1.8 integer weights summing to 2^N − 1 (largest-remainder rounding); N = 16 gives ADCToolbox's exp_d16 list. */
-export function redundantWeights(n: number, radix = 1.8): number[] {
-  const target = 2 ** n - 1;
-  const m = Math.floor((n * Math.LN2) / Math.log(radix));
-  const c = (target * (radix - 1)) / (radix ** m - 1);
-  const exact = Array.from({ length: m }, (_, j) => c * radix ** (m - 1 - j));
-  const w = exact.map(Math.floor);
-  const order = w.map((_, j) => j).sort((a, b) => exact[b] - w[b] - (exact[a] - w[a]));
-  for (const j of order.slice(0, target - sum(w))) w[j]++;
+/** Largest radix a redundant array is allowed to use; the comparison count follows from it and the resolution. */
+export const RADIX = 1.8;
+
+/** Comparisons a redundant array of n nominal bits needs: the fewest whose radix 2^(n/m) does not exceed RADIX. */
+export const comparisons = (n: number): number => Math.ceil((n * Math.LN2) / Math.log(RADIX));
+
+/**
+ * Weights of a redundant array, from its nominal resolution alone: a geometric series of radix 2^(n/m) — so m
+ * comparisons span exactly n bits and the weights add up to 2^n − 1 — with every weight capped by the sum of the ones
+ * after it, which is what leaves each comparison a margin of at least one LSB. The cap binds at the bottom, so the tail
+ * comes out 4 2 1 1 rather than the plain 4 2 1 that would have no margin left at all.
+ */
+export function redundantWeights(n: number, m = comparisons(n)): number[] {
+  const p = 2 ** (n / m), w = new Array<number>(m);
+  let rest = 0;
+  for (let j = m - 1; j > 0; j--) {
+    w[j] = j === m - 1 ? 1 : Math.min(Math.round((p - 1) * p ** (m - 1 - j)), rest);
+    rest += w[j];
+  }
+  w[0] = 2 ** n - 1 - rest;
   return w;
 }
 
@@ -150,17 +161,29 @@ function solveSpd(G: Float64Array, h: Float64Array, k: number): Float64Array {
  * calibrate_weight_sine at a known frequency (fundamental only), then scale_calibration_output(target_weights = nominal).
  * Least squares fits  Σ_j w_j b_j + offset + a·quadrature = −(unit tone), once with cosine and once with sine as the unit
  * tone, keeps the smaller residual, divides by the fitted tone magnitude √(1 + a²) and rescales to the nominal weight sum.
+ * A bit that never changes over the capture carries no information — the redundant LSB of an ideal array is one — so it is
+ * left out of the fit and comes back as a weight of zero, which is ADCToolbox's patch for the same rank deficiency.
  */
 export function calibrate(bits: Uint8Array, nominal: number[], bin: number): Float64Array {
-  const m = nominal.length, k = m + 2;
+  const m = nominal.length;
+  const live: number[] = [];
+  for (let j = 0; j < m; j++) {
+    for (let i = 1; i < N_FFT; i++) {
+      if (bits[i * m + j] !== bits[j]) {
+        live.push(j);
+        break;
+      }
+    }
+  }
+  const k = live.length + 2;
   const fits = [true, false].map((unitCos) => {
     const G = new Float64Array(k * k), h = new Float64Array(k), row = new Float64Array(k);
     let bb = 0;
     for (let i = 0; i < N_FFT; i++) {
       const ph = (2 * Math.PI * bin * i) / N_FFT, c = Math.cos(ph), s = Math.sin(ph);
-      for (let j = 0; j < m; j++) row[j] = bits[i * m + j];
-      row[m] = 1;
-      row[m + 1] = unitCos ? s : c;
+      for (let p = 0; p < live.length; p++) row[p] = bits[i * m + live[p]];
+      row[live.length] = 1;
+      row[live.length + 1] = unitCos ? s : c;
       const b = unitCos ? -c : -s;
       bb += b * b;
       for (let p = 0; p < k; p++) {
@@ -174,7 +197,9 @@ export function calibrate(bits: Uint8Array, nominal: number[], bin: number): Flo
     for (let p = 0; p < k; p++) xh += x[p] * h[p];
     return { x, residual: bb - xh };
   });
-  const w = (fits[0].residual < fits[1].residual ? fits[0] : fits[1]).x.slice(0, m);
+  const fit = (fits[0].residual < fits[1].residual ? fits[0] : fits[1]).x;
+  const w = new Float64Array(m);
+  live.forEach((j, p) => (w[j] = fit[p]));
   const scale = sum(nominal) / sum(w);
   return w.map((v) => v * scale);
 }

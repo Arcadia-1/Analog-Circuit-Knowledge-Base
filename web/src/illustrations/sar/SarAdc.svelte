@@ -30,12 +30,6 @@
   import ResidueChart from './ResidueChart.svelte';
 
   const NAMES = ['Binary', 'Redundant'];
-  /** Trailing comparisons with no margin: the radix cannot be held all the way down, so the array ends in plain binary. */
-  const zeroTail = (w: number[]) => {
-    let c = 0;
-    while (margin(w, w.length - 1 - c) === 0) c++;
-    return c;
-  };
 
   // defaults show a chip whose binary 4th capacitor is 3.8 LSB too large: inputs near 0.689 V fall into its gap
   let n = $state(12);
@@ -114,10 +108,10 @@
     <div class="line">
       <div class="name-f">
         <div class="name"><span class="key k{i + 1}"></span><span>{NAMES[i]} SAR</span></div>
-        <div class="formula"><var>w</var><sub><var>j</var>+1</sub> <span class="op">{i ? '≈' : '='}</span> <var>w</var><sub><var>j</var></sub> <span class="op">/</span> {i ? '1.8' : 2}</div>
+        <div class="formula"><var>w</var><sub><var>j</var>+1</sub> <span class="op">{i ? '≈' : '='}</span> <var>w</var><sub><var>j</var></sub> <span class="op">/</span> {i ? nf(2 ** (n / nominal.length), 2) : 2}</div>
       </div>
       <span class="meta">
-        {nominal.length} comparisons · {i ? `${margin(nominal, 0)} LSB of margin at the first step, none at the last ${zeroTail(nominal)}` : 'no redundancy'}
+        {nominal.length} comparisons for {n} bits · {i ? `margin from ${margin(nominal, 0)} LSB down to 1` : 'no margin anywhere'}
         {#if gaps[i].fraction > 0}<b class="unreachable">{nf(gaps[i].fraction * 100, 2)}% of inputs unrecoverable</b>{/if}
       </span>
     </div>
@@ -156,8 +150,9 @@
     <Notes>
       <p><b>ADCToolbox.</b> The conversion, capacitor mismatch, calibration and spectrum analysis are ports of <a href="https://github.com/Arcadia-1/ADCToolbox">ADCToolbox</a> 0.9.1 and agree with it to 0.001 ENOB.</p>
       <p><b>Conversion.</b> Comparison <var>j</var> adds weight <var>w<sub>j</sub></var> to the DAC level kept so far and keeps it when the input is not lower. The code is the sum of the kept nominal weights.</p>
-      <p><b>Weights.</b> Binary: <var>w<sub>j</sub></var> = 2<sup><var>N</var>−1−<var>j</var></sup>. Redundant: integers shrinking by a radix of 1.8 that add up to 2<sup><var>N</var></sup> − 1; at 16 bits this is the weight set of the ADCToolbox examples. A comparison that wrongly drops its weight is recovered while the input stays within the later weights plus one LSB.</p>
-      <p><b>Where redundancy ends.</b> The number of comparisons is ⌊<var>N</var> log 2 / log 1.8⌋, so the average radix comes out a little above 1.8 — 1.81 at 12 bits, 1.85 at 16 — and the tail cannot hold the radix at all: it ends 8 4 2 1, plain binary with no margin left. That is exactly where the relative mismatch is largest, σ/√units on the smallest capacitors, so a redundant array still loses inputs there. One more comparison, which ends the array 2 1 1 instead, takes the worst case of 40 sixteen-bit chips from 2.6 % down to 0.07 %.</p>
+      <p><b>Weights.</b> Both arrays are specified by the same thing, the nominal resolution <var>N</var>: they cover 2<sup><var>N</var></sup> − 1 LSB and their smallest capacitor is one unit. Binary spends one comparison per bit, <var>w<sub>j</sub></var> = 2<sup><var>N</var>−1−<var>j</var></sup>. Redundant takes the fewest comparisons <var>m</var> whose radix 2<sup><var>N</var>/<var>m</var></sup> is still at most 1.8 — 15 for 12 bits, 19 for 16 — and uses that geometric series, with every weight capped at the sum of the weights after it.</p>
+      <p><b>What the cap buys.</b> Capping is what leaves each comparison a margin: a comparison that wrongly drops its weight is recovered while the input stays within the later weights plus one LSB, and the cap keeps that margin at one LSB or more everywhere. It binds only at the bottom, where it ends the array 4 2 1 1 instead of 4 2 1 — the extra unit capacitor is the last LSB of redundancy, and with ideal capacitors it is the one comparison that never changes anything.</p>
+      <p><b>What is left to lose.</b> With the margin held all the way down, the only inputs a redundant chip cannot resolve are at the very top, where its capacitors happen to add up short of full scale: a gain error, not a gap, and it shrinks as σ/2<sup><var>N</var>/2</sup>. A binary array has that same shortfall and, on top of it, a gap wherever mismatch let a weight outgrow everything after it.</p>
       <p><b>Capacitor mismatch.</b> Weight <var>w<sub>j</sub></var> is built from <var>w<sub>j</sub></var>/<var>w</var><sub>min</sub> unit capacitors, each with relative mismatch σ, so its relative error is σ/√units. New chip draws another set of errors.</p>
       <p><b>Comparator noise.</b> Gaussian, drawn anew for every decision. The stepped conversion uses one draw; New noise replaces it.</p>
       <p><b>Calibration.</b> Sine-fit weight calibration: a least-squares fit of the bit columns plus an offset to a unit sine at the known frequency 499/4096 <var>f</var><sub>s</sub> = 12.18 MHz, rescaled to the nominal weight sum. The spectra use the second tone set by Input frequency, so the weights are always tested on data they were not fitted to.</p>
