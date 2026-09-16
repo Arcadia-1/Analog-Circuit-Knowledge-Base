@@ -18,6 +18,7 @@ from pathlib import Path
 
 PAGES = {
     "coherent-sampling": ("Coherent sampling", "/adc/coherent-sampling/"),
+    "averaging-and-the-polar-spectrum": ("Averaging and the polar spectrum", "/adc/averaging-and-the-polar-spectrum/"),
     "aliasing-and-nyquist-zones": ("Aliasing and Nyquist zones", "/adc/aliasing-and-nyquist-zones/"),
     "oversampling-and-noise-shaping": ("Oversampling and noise shaping", "/adc/oversampling-and-noise-shaping/"),
     "time-interleaved-adcs": ("Time-interleaved ADCs", "/adc/time-interleaved-adcs/"),
@@ -39,7 +40,8 @@ RUNS = {
     "api/timeinterleave": ["time-interleaved-adcs"],
     "api/siggen": ["aliasing-and-nyquist-zones", "oversampling-and-noise-shaping", "time-interleaved-adcs", "reading-the-error",
                    "binary-vs-redundant-sar"],
-    "api/fundamentals": ["aliasing-and-nyquist-zones", "oversampling-and-noise-shaping", "reading-the-error"],
+    "api/fundamentals": ["averaging-and-the-polar-spectrum", "aliasing-and-nyquist-zones", "oversampling-and-noise-shaping",
+                         "reading-the-error"],
     "examples/index": EVERY,
     "quickstart": EVERY,
 }

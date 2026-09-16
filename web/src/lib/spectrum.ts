@@ -27,9 +27,9 @@ const COSINES: Record<Window, number[]> = {
 /** Side bins ADCToolbox counts as signal for a coherent tone, from _SIDE_BIN_DEFAULTS. */
 export const SIDE_BINS: Record<Window, number> = { rectangular: 0, hann: 1, hamming: 1, blackmanharris: 3, flattop: 4 };
 /** _SIDE_BIN_AUTO_FALLBACKS: the side bins auto detection settles for when the leakage never meets the floor. */
-const AUTO_FALLBACK: Record<Window, number> = { rectangular: 1, hann: 3, hamming: 3, blackmanharris: 5, flattop: 6 };
+export const AUTO_FALLBACK: Record<Window, number> = { rectangular: 1, hann: 3, hamming: 3, blackmanharris: 5, flattop: 6 };
 
-const median = (a: number[]): number => {
+export const median = (a: number[]): number => {
   const s = [...a].sort((x, y) => x - y), m = s.length >> 1;
   return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
 };
@@ -38,7 +38,7 @@ const median = (a: number[]): number => {
  * _locate_fundamental's refinement: a parabola through the log powers of the peak and its neighbours, unless a
  * neighbour lies four decades down, where it is floor or a spur rather than leakage of the peak.
  */
-function fractionalPeak(P: Float64Array, bin: number, inband: number): number {
+export function fractionalPeak(P: Float64Array, bin: number, inband: number): number {
   if (bin <= 0 || bin >= inband - 1) return bin;
   const [m1, y0, p1] = [P[bin - 1], P[bin], P[bin + 1]].map((v) => Math.log10(Math.max(v, 1e-20)));
   if (Math.min(m1, p1) < y0 - 4) return bin;
@@ -51,7 +51,7 @@ function fractionalPeak(P: Float64Array, bin: number, inband: number): number {
  * scaled to the measured peak, against the median of the in-band bins; the signal band stops one bin short of where the
  * leakage on both sides has sunk below that floor.
  */
-function autoSideBin(P: Float64Array, bin: number, inband: number, w: Float64Array, correction: number, kind: Window): number {
+export function autoSideBin(P: Float64Array, bin: number, inband: number, w: Float64Array, correction: number, kind: Window): number {
   const len = w.length, half = len / 2, at = fractionalPeak(P, bin, inband);
   const re = Float64Array.from(w, (v, t) => Math.sin((2 * Math.PI * at * t) / len) * v), im = new Float64Array(len);
   fftAny(re, im);

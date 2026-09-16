@@ -1,6 +1,6 @@
 ---
 /** Small schematic previews for the home page. */
-interface Props { kind: 'pll' | 'sar' | 'inl' | 'err' | 'win' | 'fold' | 'ntf' | 'ti' | 'bits' }
+interface Props { kind: 'pll' | 'sar' | 'inl' | 'err' | 'win' | 'fold' | 'ntf' | 'ti' | 'bits' | 'polar' }
 const { kind } = Astro.props;
 const xs = Array.from({ length: 13 }, (_, i) => 6 + i * 14);
 const saw = [-14, -8, -2, 6, 14];
@@ -26,6 +26,12 @@ const images = [quarter - tone, quarter + tone, 2 * quarter - tone].map((x, i) =
 const offsets = [{ x: quarter, top: 42 }, { x: 2 * quarter, top: 70 }];
 // twelve bits set about half the time, one of them far less
 const usage = [0.2, -0.3, 0.1, 0.5, -0.2, 0.8, 1.4, 1.9, 1.1, -0.6, -6.5, 0.4];
+// a polar spectrum: a cloud of noise around the centre, the tone straight up, two harmonics at their phases
+const cloud = Array.from({ length: 60 }, (_, i) => {
+  const a = i * 2.399, r = 8 + ((i * 37) % 13);
+  return `M${94 + r * Math.sin(a)},${56 - r * Math.cos(a)}h0.01`;
+}).join('');
+const ray = (deg: number, r: number) => [94 + r * Math.sin((deg * Math.PI) / 180), 56 - r * Math.cos((deg * Math.PI) / 180)];
 ---
 <svg class="thumb" viewBox="0 0 188 100" aria-hidden="true">
   {kind === 'pll' ? (
@@ -62,6 +68,16 @@ const usage = [0.2, -0.3, 0.1, 0.5, -0.2, 0.8, 1.4, 1.9, 1.1, -0.6, -6.5, 0.4];
       <line class="s1" x1={tone} y1="94" x2={tone} y2="20" />
       {images.map((m) => <g><line class="s2 link" x1={m.x} y1="94" x2={m.x} y2={m.top} /><circle class="mark" cx={m.x} cy={m.top} r="3.4" /></g>)}
       {offsets.map((m) => <g><line class="s2 link" x1={m.x} y1="94" x2={m.x} y2={m.top} /><rect class="mark" x={m.x - 3.2} y={m.top - 3.2} width="6.4" height="6.4" /></g>)}
+    </>
+  ) : kind === 'polar' ? (
+    <>
+      <text x="0" y="10">phase of every bin</text>
+      <circle class="orbit" cx="94" cy="56" r="40" />
+      <circle class="orbit" cx="94" cy="56" r="22" />
+      <path class="cloud" d={cloud} />
+      <line class="s1" x1="94" y1="56" x2={ray(0, 40)[0]} y2={ray(0, 40)[1]} />
+      <line class="s2" x1="94" y1="56" x2={ray(118, 30)[0]} y2={ray(118, 30)[1]} />
+      <line class="s2" x1="94" y1="56" x2={ray(236, 26)[0]} y2={ray(236, 26)[1]} />
     </>
   ) : kind === 'bits' ? (
     <>
@@ -116,4 +132,6 @@ const usage = [0.2, -0.3, 0.1, 0.5, -0.2, 0.8, 1.4, 1.9, 1.1, -0.6, -6.5, 0.4];
   .win { fill: var(--chip); }
   .dash { stroke: var(--ink-3); stroke-dasharray: 3 3; }
   .mark { fill: var(--ground); stroke: var(--s2); stroke-width: 1.6; }
+  .orbit { fill: none; stroke: var(--rule); }
+  .cloud { stroke: var(--ink-3); stroke-width: 2.2; stroke-linecap: round; opacity: 0.6; }
 </style>
