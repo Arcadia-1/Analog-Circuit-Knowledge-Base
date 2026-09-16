@@ -1,0 +1,11 @@
+---
+import Base from '../../layouts/Base.astro';
+import InlDnl from '../../illustrations/inldnl/InlDnl.svelte';
+import '../../styles/illustration.css';
+---
+<Base
+  title="INL and DNL"
+  description="Static error of an ADC built on ADCToolbox: shape the DNL and INL of a capacitor DAC, then measure them back with a ramp or a sine code-density test and watch the estimate settle."
+>
+  <InlDnl client:load />
+</Base>

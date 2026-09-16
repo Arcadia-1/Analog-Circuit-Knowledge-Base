@@ -3,7 +3,7 @@ export interface Illustration {
   title: string;
   summary: string;
   tags: string[];
-  thumb: 'pll' | 'sar';
+  thumb: 'pll' | 'sar' | 'inl';
 }
 
 export interface Topic {
@@ -33,6 +33,13 @@ export const topics: Topic[] = [
         summary: 'Step through the SAR conversion of ADCToolbox, add unit-capacitor mismatch and comparator noise, and compare the spectra before and after sine-fit calibration.',
         tags: ['capacitor DAC', 'redundancy', 'unit-cap mismatch', 'calibration', 'ENOB'],
         thumb: 'sar',
+      },
+      {
+        href: '/adc/inl-and-dnl/',
+        title: 'INL and DNL',
+        summary: 'Shape the static error of a capacitor DAC, then measure it back the way a lab does: a ramp or a sine code-density test, an endpoint or best-fit reference line, and only so many samples.',
+        tags: ['missing codes', 'code density', 'ramp test', 'reference line', 'harmonics'],
+        thumb: 'inl',
       },
     ],
   },
