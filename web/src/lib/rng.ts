@@ -23,3 +23,9 @@ export function gaussians(n: number, seed: number): Float64Array {
   }
   return out;
 }
+
+/** n uniform samples in [0, 1) from a fixed seed. */
+export function uniforms(n: number, seed: number): Float64Array {
+  const rnd = mulberry32(seed);
+  return Float64Array.from({ length: n }, () => rnd());
+}

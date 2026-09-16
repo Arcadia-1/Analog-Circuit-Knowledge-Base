@@ -23,6 +23,7 @@ PAGES = {
     "time-interleaved-adcs": ("Time-interleaved ADCs", "/adc/time-interleaved-adcs/"),
     "reading-the-error": ("Reading the error", "/adc/reading-the-error/"),
     "inl-and-dnl": ("INL and DNL", "/adc/inl-and-dnl/"),
+    "reading-the-bits": ("Reading the bits", "/adc/reading-the-bits/"),
     "binary-vs-redundant-sar": ("Binary vs redundant SAR", "/adc/binary-vs-redundant-sar/"),
 }
 EVERY = list(PAGES)
@@ -32,7 +33,7 @@ RUNS = {
     "api/index": EVERY,
     "api/aout": ["reading-the-error", "inl-and-dnl"],
     "api/spectrum": EVERY,
-    "api/dout": ["binary-vs-redundant-sar"],
+    "api/dout": ["reading-the-bits", "binary-vs-redundant-sar"],
     "api/models": ["binary-vs-redundant-sar"],
     "api/oversampling": ["oversampling-and-noise-shaping"],
     "api/timeinterleave": ["time-interleaved-adcs"],

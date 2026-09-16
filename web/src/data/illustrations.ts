@@ -3,7 +3,7 @@ export interface Illustration {
   title: string;
   summary: string;
   tags: string[];
-  thumb: 'pll' | 'sar' | 'inl' | 'err' | 'win' | 'fold' | 'ntf' | 'ti';
+  thumb: 'pll' | 'sar' | 'inl' | 'err' | 'win' | 'fold' | 'ntf' | 'ti' | 'bits';
   /** The ADCToolbox module and examples this page runs, shown under the card. */
   toolbox?: string;
 }
@@ -17,7 +17,6 @@ export interface Topic {
 
 /** Parts of the toolbox that have no page yet, named so the gaps are honest ones. */
 export const coming = [
-  'reading the digital output bit by bit',
   'polar spectra and averaging',
   'jitter and dynamic nonlinearity',
   'figures of merit',
@@ -74,6 +73,14 @@ export const topics: Topic[] = [
         tags: ['missing codes', 'code density', 'ramp test', 'reference line', 'harmonics'],
         thumb: 'inl',
         toolbox: 'aout · exp_a32, exp_a33, exp_g05',
+      },
+      {
+        href: '/adc/reading-the-bits/',
+        title: 'Reading the bits',
+        summary: 'Clip the input, shift it, or give a bit a poor contact, and read a SAR converter’s raw output before anything is added up: how often each bit is 1, where each segment of the code sits, what weights a sine fit finds, and what each bit adds.',
+        tags: ['bit activity', 'overflow', 'radix', 'weight calibration', 'ENOB per bit'],
+        thumb: 'bits',
+        toolbox: 'dout, calibration · exp_d11, exp_d12, exp_d13, exp_d14',
       },
       {
         href: '/adc/binary-vs-redundant-sar/',
