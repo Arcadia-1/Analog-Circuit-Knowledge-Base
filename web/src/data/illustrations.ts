@@ -3,7 +3,7 @@ export interface Illustration {
   title: string;
   summary: string;
   tags: string[];
-  thumb: 'pll' | 'sar' | 'inl' | 'err' | 'win' | 'fold' | 'ntf' | 'ti' | 'bits';
+  thumb: 'pll' | 'sar' | 'inl' | 'err' | 'win' | 'fold' | 'ntf' | 'ti' | 'bits' | 'polar';
   /** The ADCToolbox module and examples this page runs, shown under the card. */
   toolbox?: string;
 }
@@ -17,7 +17,6 @@ export interface Topic {
 
 /** Parts of the toolbox that have no page yet, named so the gaps are honest ones. */
 export const coming = [
-  'polar spectra and averaging',
   'jitter and dynamic nonlinearity',
   'figures of merit',
 ];
@@ -33,6 +32,14 @@ export const topics: Topic[] = [
         tags: ['leakage', 'windows', 'side bins', 'record length', 'SFDR'],
         thumb: 'win',
         toolbox: 'spectrum · exp_b02, exp_s06, exp_s08, exp_s09',
+      },
+      {
+        href: '/adc/averaging-and-the-polar-spectrum/',
+        title: 'Averaging and the polar spectrum',
+        summary: 'Capture the same tone a hundred times and average it two ways: as powers, which only smooths the floor, or coherently, which lowers it 10 dB a decade. Then read each harmonic’s phase to tell a static curve from a memory.',
+        tags: ['coherent averaging', 'power averaging', 'polar plot', 'harmonic phase', 'memory effect'],
+        thumb: 'polar',
+        toolbox: 'spectrum · exp_s07, exp_s10, exp_s11, exp_s12',
       },
       {
         href: '/adc/aliasing-and-nyquist-zones/',

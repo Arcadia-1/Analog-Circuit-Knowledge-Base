@@ -1,0 +1,11 @@
+---
+import Base from '../../layouts/Base.astro';
+import PolarAveraging from '../../illustrations/polar/PolarAveraging.svelte';
+import '../../styles/illustration.css';
+---
+<Base
+  title="Averaging and the polar spectrum"
+  description="Average up to a hundred captures of a tone as powers or coherently, watch only the coherent average pull the noise down, and read on a polar spectrum whether a converter's harmonics come from a static curve or from a memory."
+>
+  <PolarAveraging client:load />
+</Base>
