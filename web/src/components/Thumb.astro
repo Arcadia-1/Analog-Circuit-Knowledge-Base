@@ -1,6 +1,6 @@
 ---
 /** Small schematic previews for the home page. */
-interface Props { kind: 'pll' | 'sar' | 'inl' | 'err' | 'win' | 'fold' }
+interface Props { kind: 'pll' | 'sar' | 'inl' | 'err' | 'win' | 'fold' | 'ntf' }
 const { kind } = Astro.props;
 const xs = Array.from({ length: 13 }, (_, i) => 6 + i * 14);
 const saw = [-14, -8, -2, 6, 14];
@@ -18,6 +18,8 @@ const tooth = 31, low = 94, high = 28, level = 76;
 const teeth = Array.from({ length: 7 }, (_, k) => `${k * tooth},${k % 2 ? high : low}`).join(' ');
 const hit = ((low - level) / (low - high)) * tooth;
 const hits = Array.from({ length: 6 }, (_, z) => (z % 2 ? (z + 1) * tooth - hit : z * tooth + hit));
+// noise shaped out of the band: a floor that climbs with frequency, and the tone standing in the band
+const climb = Array.from({ length: 47 }, (_, i) => `${4 + i * 4},${92 - 60 * ((4 + i * 4) / 188) ** 1.6 + ((i * 7) % 5) * 1.4}`).join(' ');
 ---
 <svg class="thumb" viewBox="0 0 188 100" aria-hidden="true">
   {kind === 'pll' ? (
@@ -38,6 +40,14 @@ const hits = Array.from({ length: 6 }, (_, z) => (z % 2 ? (z + 1) * tooth - hit 
       <text x="0" y="60">off by a tenth of a bin</text>
       <line class="base" x1="0" y1="86" x2="188" y2="86" />
       <polyline class="s2 link" points={Array.from({ length: 63 }, (_, i) => `${i * 3},${skirt(i * 3)}`).join(' ')} />
+    </>
+  ) : kind === 'ntf' ? (
+    <>
+      <text x="0" y="10">noise pushed out of the band</text>
+      <rect class="win" x="0" y="18" width="46" height="76" />
+      <line class="base" x1="0" y1="94" x2="188" y2="94" />
+      <polyline class="s2 link" points={climb} />
+      <line class="s1" x1="22" y1="94" x2="22" y2="24" />
     </>
   ) : kind === 'fold' ? (
     <>

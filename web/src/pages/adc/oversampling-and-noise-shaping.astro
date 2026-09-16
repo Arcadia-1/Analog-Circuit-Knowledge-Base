@@ -1,0 +1,11 @@
+---
+import Base from '../../layouts/Base.astro';
+import Oversampling from '../../illustrations/oversampling/Oversampling.svelte';
+import '../../styles/illustration.css';
+---
+<Base
+  title="Oversampling and noise shaping"
+  description="Shape a quantiser's noise to first, second or third order and watch the band's share of it collapse, measured with perfosr against ntfperf's prediction, and pull the band out with ifilter."
+>
+  <Oversampling client:load />
+</Base>
