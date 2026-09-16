@@ -4,12 +4,12 @@
  *
  * Loop: linear phase detector, type-II PI filter (ζ = 1) with two extra poles at 6 × BW, closed-loop −3 dB = BW.
  * Noise: white reference + phase-detector timing noise from a −228 dBc/Hz normalised floor, VCO −120 dBc/Hz at 1 MHz.
- * Divider: fixed N | first-order accumulator | MASH 1-1-1 (24-bit, LSB set) | MASH 1-1-1 + ideal-gain DTC with bow INL.
+ * Divider: fixed N | first-order accumulator | MASH 1-1-1 (24-bit, LSB set), either with an ideal-gain DTC with bow INL.
  */
 import { fft } from '../../lib/fft';
 import { gaussians } from '../../lib/rng';
 
-export type Mode = 'int' | 'acc' | 'sd' | 'dtc';
+export type Mode = 'int' | 'acc' | 'sd';
 
 const W = 24, M = 1 << W, MASK = M - 1;
 const POLE_X = 6;
@@ -79,7 +79,7 @@ export interface Sim {
   qd: Float64Array;
 }
 
-export function simulate(targetHz: number, mode: Mode, inlPs: number, fRef: number, bw: number, cpMismatch = 0): Sim {
+export function simulate(targetHz: number, mode: Mode, dtc: boolean, inlPs: number, fRef: number, bw: number, cpMismatch = 0): Sim {
   const T_REF = 1 / fRef;
   const { gp, beta } = loopFor(fRef, bw);
   let nInt: number, fcw: number;
@@ -89,9 +89,11 @@ export function simulate(targetHz: number, mode: Mode, inlPs: number, fRef: numb
   } else {
     nInt = Math.floor(targetHz / fRef + 1e-12);
     fcw = Math.round((targetHz / fRef - nInt) * M);
-    if ((mode === 'sd' || mode === 'dtc') && fcw) fcw |= 1;
+    if (mode === 'sd' && fcw) fcw |= 1;
   }
   const nAvg = nInt + fcw / M, tOut = T_REF / nAvg;
+  // the phase error the DTC has to cancel: one output period of sawtooth after an accumulator, four after MASH 1-1-1
+  const top = mode === 'acc' ? 0 : 2, span = mode === 'acc' ? 1 : 4;
   const kp = gp / nAvg, ki = (gp * gp) / 4 / nAvg;
   const sigVco = 1e6 * tOut * Math.sqrt(10 ** (L_VCO_1M / 10) / fRef);
   const x = new Float64Array(N_FFT), e = new Float64Array(N_SHOW), ndiv = new Int16Array(N_SHOW), qd = new Float64Array(N_SHOW);
@@ -99,9 +101,9 @@ export function simulate(targetHz: number, mode: Mode, inlPs: number, fRef: numb
   for (let k = 0; k < NTOT; k++) {
     const q = Q / M;
     let delta = 0;
-    if (mode === 'dtc') {
-      const u = (2 - q) / 4;
-      delta = (2 - q) * tOut + inlPs * 1e-12 * 4 * u * (1 - u);
+    if (dtc) {
+      const u = (top - q) / span;
+      delta = (top - q) * tOut + inlPs * 1e-12 * 4 * u * (1 - u);
     }
     const err = xo + q * tOut + delta + SIG_REF * G_REF[k];
     // charge-pump up/down current mismatch: the pump gain differs by sign of the phase error
@@ -113,7 +115,7 @@ export function simulate(targetHz: number, mode: Mode, inlPs: number, fRef: numb
     if (mode === 'acc') {
       const s1 = a1 + fcw;
       y = s1 >> W; a1 = s1 & MASK;
-    } else if (mode === 'sd' || mode === 'dtc') {
+    } else if (mode === 'sd') {
       const s1 = a1 + fcw, c1 = s1 >> W; a1 = s1 & MASK;
       const s2 = a2 + a1, c2 = s2 >> W; a2 = s2 & MASK;
       const s3 = a3 + a2, c3 = s3 >> W; a3 = s3 & MASK;

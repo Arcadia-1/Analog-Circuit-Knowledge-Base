@@ -19,7 +19,8 @@
   let bw = $state(1e6);
   let cp = $state(0.05);
   let mode = $state<Mode>('acc');
-  let inl = $state(0);
+  let dtc = $state(false);
+  let inl = $state(1);
   let hoverCycle = $state<number | null>(null);
   let hoverF = $state<number | null>(null);
 
@@ -32,9 +33,9 @@
 
   // integer-N depends on the channel only, so dragging the target does not re-run it
   const channel = $derived(Math.round(target / fRef));
-  const intSim: Sim = $derived(simulate(channel * fRef, 'int', 0, fRef, bw, cp));
+  const intSim: Sim = $derived(simulate(channel * fRef, 'int', false, 0, fRef, bw, cp));
   const intAn: Analysis = $derived(analyze(intSim));
-  const fracSim: Sim = $derived(simulate(target, mode, inl, fRef, bw, cp));
+  const fracSim: Sim = $derived(simulate(target, mode, dtc, inl, fRef, bw, cp));
   const fracAn: Analysis = $derived(analyze(fracSim));
 
   const edgeScale: EdgeScale = $derived.by(() => {
@@ -46,7 +47,7 @@
         R = Math.max(R, Math.abs(s.e[i]) * 1e12);
       }
     }
-    if (mode === 'dtc') {
+    if (dtc) {
       let m = 0;
       for (let i = 0; i < N_SHOW; i++) m += fracSim.qd[i];
       m /= N_SHOW;
@@ -92,7 +93,8 @@
       <p><b>Assumed noise.</b> Reference and phase detector: white, normalised floor −228 dBc/Hz, so in-band noise is −228 + 10 log <var>f</var><sub>ref</sub> + 20 log <var>N</var> (634 fs rms per edge). VCO: −120 dBc/Hz at 1 MHz. The same noise realisation drives both PLLs.</p>
       <p><b>Loop.</b> Linear phase detector, type-II filter with ζ = 1 and two extra poles at six times the bandwidth. The closed-loop −3 dB bandwidth is set directly, from 100 kHz up to <var>f</var><sub>ref</sub>/12 (at most 5 MHz); the loop stays stable with about 1.5 dB of peaking over that range.</p>
       <p><b>Charge pump.</b> Up and down currents differ by this fraction, so the pump gain depends on the sign of the phase error. An integer divider sees only noise and nothing folds. A fractional divider feeds the pump its shaped quantisation error, which folds into a spur at the fractional offset <var>α</var> · <var>f</var><sub>ref</sub>, visible while that offset is near the loop bandwidth. A DTC removes the error before the pump, so the spur goes with it.</p>
-      <p><b>Divider.</b> Accumulator and MASH 1-1-1 are 24-bit; the ΣΔ word has its LSB set. DTC: ideal gain, a range of four VCO periods, parabolic INL.</p>
+      <p><b>Divider.</b> Accumulator and MASH 1-1-1 are 24-bit; the ΣΔ word has its LSB set, which dithers the sequence. The DTC has ideal gain and parabolic INL, and cancels the phase error the divider has built up — one output period of it after the accumulator, four after the MASH.</p>
+      <p><b>DTC INL.</b> What the DTC cannot cancel is its own INL, and the spectrum of that error is the spectrum of the code it is driven by. After an accumulator the code is a sawtooth that repeats every 1/<var>α</var> reference cycles, so the INL error is periodic and lands in discrete spurs at <var>α</var> · <var>f</var><sub>ref</sub> and its harmonics, rising 20 dB per decade of INL. After a dithered MASH the code is random, so the same INL only raises the noise floor and no spur appears.</p>
     </Notes>
   </header>
 
@@ -130,12 +132,9 @@
           <div class="name"><span class="key k2"></span><span>Fractional-<var>N</var></span></div>
           <div class="formula"><var>f</var><sub>out</sub> <span class="op">=</span> (<var>N</var> <span class="op">+</span> <var>α</var>) <span class="op">·</span> <var>f</var><sub>ref</sub></div>
         </div>
-        <div class="accent2">
-          <Segmented
-            label="Fractional divider control"
-            options={[{ value: 'acc', label: 'Accumulator' }, { value: 'sd', label: 'ΣΔ' }, { value: 'dtc', label: 'ΣΔ + DTC' }]}
-            bind:value={mode}
-          />
+        <div class="accent2 picks">
+          <Segmented label="Fractional divider control" options={[{ value: 'acc', label: 'Accumulator' }, { value: 'sd', label: 'ΣΔ' }]} bind:value={mode} />
+          <Segmented label="Digital-to-time converter" options={[{ value: false, label: 'No DTC' }, { value: true, label: '+ DTC' }]} bind:value={dtc} />
         </div>
       </div>
       <div class="line">
@@ -144,13 +143,13 @@
           <span class="mono">{(fracSim.fOut / 1e9).toFixed(4)} GHz</span>
           <span class="chip">on target</span>
         </div>
-        {#if mode === 'dtc'}
+        {#if dtc}
           <div class="accent2"><Range id="inl" min={0} max={5} step={0.1} output="{inl.toFixed(1)} ps" bind:value={inl}>DTC INL</Range></div>
         {/if}
       </div>
     </div>
     <div class="col1"><BlockDiagram kind="int" label="Integer-N PLL block diagram" /></div>
-    <div class="col2"><BlockDiagram kind={mode} label="Fractional-N PLL block diagram" /></div>
+    <div class="col2"><BlockDiagram kind={mode} {dtc} label="Fractional-N PLL block diagram" /></div>
 
     <div class="chart">
       <div class="cap"><span class="left"><span class="label"><span class="tag">Integer-<var>N</var></span>Phase detector</span><span>feedback edge vs reference edge, per cycle</span></span></div>
@@ -159,9 +158,9 @@
     <div class="chart">
       <div class="cap">
         <span class="left"><span class="label"><span class="tag">Fractional-<var>N</var></span>Phase detector</span><span>feedback edge vs reference edge, per cycle</span></span>
-        {#if mode === 'dtc'}<span><span class="gk"></span>divider edge<span class="gk g2"></span>after DTC</span>{/if}
+        {#if dtc}<span><span class="gk"></span>divider edge<span class="gk g2"></span>after DTC</span>{/if}
       </div>
-      <PhaseDetectorChart sim={fracSim} series={2} scale={edgeScale} ghost={mode === 'dtc'} hover={hoverCycle} onhover={(i) => (hoverCycle = i)} label="Fractional-N phase detector timing" />
+      <PhaseDetectorChart sim={fracSim} series={2} scale={edgeScale} ghost={dtc} hover={hoverCycle} onhover={(i) => (hoverCycle = i)} label="Fractional-N phase detector timing" />
     </div>
     <div class="chart">
       <div class="cap">
@@ -183,6 +182,7 @@
 <style>
   .compare { --rows: auto 78px minmax(0, 1fr) minmax(0, 1.15fr); }
   .accent2 { --range-width: 120px; }
+  .picks { display: flex; flex-wrap: wrap; gap: 8px; }
   .gk { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin: 0 5px 0 10px; background: var(--ghost); }
   .gk.g2 { background: var(--s2); }
 </style>

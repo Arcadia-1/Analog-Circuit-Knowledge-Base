@@ -5,7 +5,7 @@
   }
 </script>
 
-<script lang="ts" generics="T extends string | number">
+<script lang="ts" generics="T extends string | number | boolean">
   let {
     options,
     value = $bindable(),
@@ -16,7 +16,7 @@
 </script>
 
 <div class="seg {size}" class:mono role="group" aria-label={label}>
-  {#each options as o (o.value)}
+  {#each options as o (String(o.value))}
     <button type="button" aria-pressed={o.value === value} onclick={() => (value = o.value)}>{o.label}</button>
   {/each}
 </div>

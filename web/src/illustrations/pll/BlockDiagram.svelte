@@ -2,7 +2,7 @@
   import type { Mode } from './model';
 
   /** One-row PLL block diagram; the fractional parts appear with the divider scheme. */
-  let { kind, label }: { kind: Mode; label: string } = $props();
+  let { kind, dtc = false, label }: { kind: Mode; dtc?: boolean; label: string } = $props();
   const frac = $derived(kind !== 'int');
   const BLOCKS = [{ x: 54, t: 'PFD', w: 50 }, { x: 130, t: 'LF', w: 42 }, { x: 198, t: 'VCO', w: 50 }];
 
@@ -15,14 +15,14 @@
   }
   const arrows = $derived.by((): Arrow[] => {
     const a: Arrow[] = [[28, 16, 54, 16], [104, 16, 130, 16], [172, 16, 198, 16], [248, 16, 330, 16], [282, 16, 282, 40], [79, 52, 79, 28]];
-    if (kind === 'dtc') a.push([244, 52, 200, 52]);
+    if (dtc) a.push([244, 52, 200, 52]);
     if (frac) a.push([356, 52, 320, 52], [440, 52, 404, 52]);
-    if (kind === 'dtc') a.push([175, 73, 175, 64]);
+    if (dtc) a.push([175, 73, 175, 64]);
     return a;
   });
   const lines = $derived.by((): Arrow[] => {
-    const l: Arrow[] = [kind === 'dtc' ? [150, 52, 79, 52] : [244, 52, 79, 52]];
-    if (kind === 'dtc') l.push([380, 64, 380, 73], [380, 73, 175, 73]);
+    const l: Arrow[] = [dtc ? [150, 52, 79, 52] : [244, 52, 79, 52]];
+    if (dtc) l.push([380, 64, 380, 73], [380, 73, 175, 73]);
     return l;
   });
 </script>
@@ -37,7 +37,7 @@
   <circle class="dot" cx="282" cy="16" r="2.4" />
   <rect class="box {frac ? 'b2' : 'b1'}" x="244" y="40" width="76" height="24" rx="4.5" />
   <text class="t" x="282" y="52">÷ <tspan class="v">N</tspan>{#if frac} + <tspan class="v">y</tspan>{/if}</text>
-  {#if kind === 'dtc'}
+  {#if dtc}
     <rect class="box b2" x="150" y="40" width="50" height="24" rx="4.5" />
     <text class="t" x="175" y="52">DTC</text>
     <text class="m small" x="214" y="69">q</text>
