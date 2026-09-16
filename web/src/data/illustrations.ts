@@ -4,6 +4,8 @@ export interface Illustration {
   summary: string;
   tags: string[];
   thumb: 'pll' | 'sar' | 'inl';
+  /** The ADCToolbox module and examples this page is the interactive companion to. */
+  toolbox?: string;
 }
 
 export interface Topic {
@@ -28,18 +30,20 @@ export const topics: Topic[] = [
     name: 'Analog-to-digital converters',
     items: [
       {
-        href: '/adc/binary-vs-redundant-sar/',
-        title: 'Binary vs redundant SAR',
-        summary: 'Step through the SAR conversion of ADCToolbox, add unit-capacitor mismatch and comparator noise, and compare the spectra before and after sine-fit calibration.',
-        tags: ['capacitor DAC', 'redundancy', 'unit-cap mismatch', 'calibration', 'ENOB'],
-        thumb: 'sar',
-      },
-      {
         href: '/adc/inl-and-dnl/',
         title: 'INL and DNL',
         summary: 'Shape the static error of a capacitor DAC, then measure it back the way a lab does: a ramp or a sine code-density test, an endpoint or best-fit reference line, and only so many samples.',
         tags: ['missing codes', 'code density', 'ramp test', 'reference line', 'harmonics'],
         thumb: 'inl',
+        toolbox: '04_debug_analog · exp_a32, exp_a33, exp_g05',
+      },
+      {
+        href: '/adc/binary-vs-redundant-sar/',
+        title: 'Binary vs redundant SAR',
+        summary: 'Step through the SAR conversion of ADCToolbox, add unit-capacitor mismatch and comparator noise, and compare the spectra before and after sine-fit calibration.',
+        tags: ['capacitor DAC', 'redundancy', 'unit-cap mismatch', 'calibration', 'ENOB'],
+        thumb: 'sar',
+        toolbox: '05_debug_digital · exp_d02, exp_d03, exp_d15, exp_g04',
       },
     ],
   },
