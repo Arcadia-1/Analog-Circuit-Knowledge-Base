@@ -3,7 +3,7 @@ export interface Illustration {
   title: string;
   summary: string;
   tags: string[];
-  thumb: 'pll' | 'sar' | 'inl';
+  thumb: 'pll' | 'sar' | 'inl' | 'err';
   /** The ADCToolbox module and examples this page is the interactive companion to. */
   toolbox?: string;
 }
@@ -29,6 +29,14 @@ export const topics: Topic[] = [
   {
     name: 'Analog-to-digital converters',
     items: [
+      {
+        href: '/adc/reading-the-error/',
+        title: 'Reading the error',
+        summary: 'Subtract the sine you asked for and read what is left four ways. Noise, static curvature, clock jitter, settling memory and an interfering tone each sign their name in a different view.',
+        tags: ['sine fit', 'AM / PM', 'error PDF', 'jitter', 'memory effect'],
+        thumb: 'err',
+        toolbox: '04_debug_analog · exp_a01, exp_a02, exp_a03, exp_a21',
+      },
       {
         href: '/adc/inl-and-dnl/',
         title: 'INL and DNL',
