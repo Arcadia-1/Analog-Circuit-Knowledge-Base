@@ -10,10 +10,15 @@
 import { fft } from '../../lib/fft';
 
 export const N_FFT = 4096;
+/** Sampling rate of the modelled converter: 100 MS/s, so input frequency and clock jitter carry familiar units. */
+export const FS = 100e6;
+/** Tone bins of the 4096-point record; odd bins are coherent and keep every harmonic off the fundamental. */
 export const TRAIN_BIN = 499;
 export const TEST_BIN = 613;
 export const TEST_PHASE = 0.37;
 const AMP_DBFS = -0.5;
+/** How far outside the reachable range an input may still land inside its own code, in LSB. */
+const REACH = 0.5;
 
 function sum(a: ArrayLike<number>): number {
   let s = 0;
@@ -37,6 +42,30 @@ export function redundantWeights(n: number, radix = 1.8): number[] {
 
 /** How far (LSB) the input may lie above w_j when comparison j wrongly drops it: later weights plus one LSB, minus w_j. */
 export const margin = (w: number[], j: number): number => sum(w.slice(j + 1)) + w[w.length - 1] - w[j];
+
+/**
+ * Inputs the converter can no longer resolve: a comparison that drops its weight leaves the later weights short of the
+ * input, and no digital weights recover the sample. Sweeps the input range in steps of `step` LSB and returns the lost
+ * ranges as fractions of full scale, with the fraction of full scale they cover.
+ */
+export function lostInputs(n: number, w: ArrayLike<number>, step = 0.25): { bands: [number, number][]; fraction: number } {
+  const m = w.length, full = 2 ** n, reach = w[m - 1] + REACH;
+  const bands: [number, number][] = [];
+  let lost = 0, run = -1;
+  for (let x = step / 2; x < full; x += step) {
+    let dac = 0;
+    for (let j = 0; j < m; j++) if (x >= dac + w[j]) dac += w[j];
+    if (x - dac > reach) {
+      lost++;
+      if (run < 0) run = x - step / 2;
+    } else if (run >= 0) {
+      bands.push([run / full, (x - step / 2) / full]);
+      run = -1;
+    }
+  }
+  if (run >= 0) bands.push([run / full, 1]);
+  return { bands, fraction: (lost * step) / full };
+}
 
 /** sar_apply_cap_mismatch: weight j is w_j / w_min unit capacitors, each with relative sigma σ, so σ_j = σ / √units. */
 export function capMismatch(w: number[], sigma: number, z: ArrayLike<number>): Float64Array {
@@ -62,7 +91,7 @@ export function convert(x: number, w: ArrayLike<number>, noise: ArrayLike<number
   for (let j = 0; j < w.length; j++) {
     const test = dac + w[j];
     const bit = x + (noise ? noise[j] : 0) >= test ? 1 : 0;
-    trace?.push({ test, bit, ideal: x >= test ? 1 : 0, lo: dac - 0.5, hi: dac + rest + 1.5 });
+    trace?.push({ test, bit, ideal: x >= test ? 1 : 0, lo: dac - REACH, hi: dac + rest + w[w.length - 1] + REACH });
     bits[j] = bit;
     rest -= w[j];
     if (bit) dac = test;
@@ -79,12 +108,15 @@ export function reconstruct(bits: Uint8Array, w: ArrayLike<number>): Float64Arra
   });
 }
 
-/** Bits of N_FFT conversions of a coherent −0.5 dBFS sine at `bin`; `noise` holds the comparator noise (LSB) row by row. */
-export function capture(n: number, w: ArrayLike<number>, noise: Float64Array | null, bin: number, phase: number): Uint8Array {
+/**
+ * Bits of N_FFT conversions of a coherent −0.5 dBFS sine at `bin`. `noise` holds the comparator noise (LSB) row by row and
+ * `timing` the sampling-instant error of each sample in sample periods, the way ADCToolbox's siggen applies clock jitter.
+ */
+export function capture(n: number, w: ArrayLike<number>, noise: Float64Array | null, bin: number, phase: number, timing: Float64Array | null = null): Uint8Array {
   const m = w.length, half = 2 ** (n - 1), amp = half * 10 ** (AMP_DBFS / 20);
   const bits = new Uint8Array(N_FFT * m);
   for (let i = 0; i < N_FFT; i++) {
-    const x = half + amp * Math.sin((2 * Math.PI * bin * i) / N_FFT + phase);
+    const x = half + amp * Math.sin((2 * Math.PI * bin * (i + (timing ? timing[i] : 0))) / N_FFT + phase);
     convert(x, w, noise?.subarray(i * m, (i + 1) * m) ?? null, bits.subarray(i * m, (i + 1) * m));
   }
   return bits;

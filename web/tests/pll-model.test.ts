@@ -29,6 +29,21 @@ describe('integer-N vs fractional-N PLL model', () => {
     expect(Math.abs(dtc.jitterFs / intA.jitterFs - 1)).toBeLessThan(0.02);
   });
 
+  // Charge-pump up/down mismatch folds the shaped quantisation noise into a spur at the fractional offset.
+  it('turns charge-pump mismatch into a fractional spur, at a near-integer channel', () => {
+    const near = 5.0005e9, offset = 5e5;
+    expect(analyze(simulate(near, 'sd', 0, fRef, bw, 0)).spurs).toHaveLength(0);
+    const mismatched = analyze(simulate(near, 'sd', 0, fRef, bw, 0.05));
+    expect(mismatched.spurs[0].f).toBeCloseTo(offset, -3);
+    expect(mismatched.spurs[0].dBc).toBeCloseTo(-46.5, 0);
+    expect(mismatched.jitterFs / 2693.8).toBeGreaterThan(0.95);
+    expect(mismatched.jitterFs / 2693.8).toBeLessThan(1.05);
+    // the accumulator spur is set by the ramp, not by the pump; the DTC cancels the ramp, so nothing folds
+    const acc = analyze(simulate(near, 'acc', 0, fRef, bw, 0.05));
+    expect(acc.spurs[0].dBc).toBeCloseTo(-4.7, 0);
+    expect(analyze(simulate(near, 'dtc', 0, fRef, bw, 0.05)).spurs).toHaveLength(0);
+  });
+
   it('locks the fractional loop exactly on target and the integer loop on the nearest channel', () => {
     expect(simulate(target, 'sd', 0, fRef, bw).fOut).toBeCloseTo(target, -2);
     expect(simulate(target, 'int', 0, fRef, bw).fOut).toBe(5e9);

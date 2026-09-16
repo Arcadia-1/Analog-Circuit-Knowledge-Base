@@ -16,6 +16,8 @@
     capMismatch,
     capture,
     convert,
+    FS,
+    lostInputs,
     margin,
     N_FFT,
     reconstruct,
@@ -34,6 +36,8 @@
   let vin = $state(0.6888);
   let sigma = $state(0.1);
   let noiseLsb = $state(0.2);
+  let bin = $state(TEST_BIN);
+  let jitterPs = $state(1);
   let chip = $state(29);
   let seed = $state(1);
   let shown = $state(Infinity);
@@ -44,14 +48,19 @@
   const nominals = $derived([binaryWeights(n), redundantWeights(n)]);
   // the capacitors one chip actually has
   const actuals = $derived(nominals.map((w, i) => capMismatch(w, sigma, gaussians(w.length, 1000 * chip + i))));
+  // inputs no chip of this architecture can resolve any more
+  const gaps = $derived(actuals.map((w) => lostInputs(n, w)));
   // standard normals for the test and training captures, drawn once per resolution and scaled by the noise slider
   const normals = $derived(nominals.map((w, i) => gaussians(2 * N_FFT * w.length, 11 + i)));
+  // one sampling clock for both converters; jitter is a sampling-instant error in sample periods
+  const clock = $derived(jitterPs ? gaussians(2 * N_FFT, 7).map((v) => v * jitterPs * 1e-12 * FS) : null);
   // calibrate on one tone, show the spectra of another; independent of the stepped conversion
   const spectra = $derived(
     nominals.map((nominal, i) => {
       const rows = N_FFT * nominal.length, scaled = noiseLsb ? normals[i].map((v) => v * noiseLsb) : null;
-      const test = capture(n, actuals[i], scaled?.subarray(0, rows) ?? null, TEST_BIN, TEST_PHASE);
-      const calibrated = calibrate(capture(n, actuals[i], scaled?.subarray(rows) ?? null, TRAIN_BIN, 0), nominal, TRAIN_BIN);
+      const test = capture(n, actuals[i], scaled?.subarray(0, rows) ?? null, bin, TEST_PHASE, clock?.subarray(0, N_FFT) ?? null);
+      const train = capture(n, actuals[i], scaled?.subarray(rows) ?? null, TRAIN_BIN, 0, clock?.subarray(N_FFT) ?? null);
+      const calibrated = calibrate(train, nominal, TRAIN_BIN);
       return [analyzeSpectrum(reconstruct(test, nominal), n), analyzeSpectrum(reconstruct(test, calibrated), n)];
     }),
   );
@@ -101,7 +110,10 @@
         <div class="name"><span class="key k{i + 1}"></span><span>{NAMES[i]} SAR</span></div>
         <div class="formula"><var>w</var><sub><var>j</var>+1</sub> <span class="op">{i ? '≈' : '='}</span> <var>w</var><sub><var>j</var></sub> <span class="op">/</span> {i ? '1.8' : 2}</div>
       </div>
-      <span class="meta">{nominal.length} comparisons · {i ? `first step has ${margin(nominal, 0)} LSB of margin` : 'no redundancy'}</span>
+      <span class="meta">
+        {nominal.length} comparisons · {i ? `first step has ${margin(nominal, 0)} LSB of margin` : 'no redundancy'}
+        {#if gaps[i].fraction > 0}<b class="unreachable">{nf(gaps[i].fraction * 100, 2)}% of inputs unrecoverable</b>{/if}
+      </span>
     </div>
     <div class="line">
       <div class="readout">
@@ -141,9 +153,10 @@
       <p><b>Weights.</b> Binary: <var>w<sub>j</sub></var> = 2<sup><var>N</var>−1−<var>j</var></sup>. Redundant: integers shrinking by a radix of 1.8 that add up to 2<sup><var>N</var></sup> − 1; at 16 bits this is the weight set of the ADCToolbox examples. A comparison that wrongly drops its weight is recovered while the input stays within the later weights plus one LSB.</p>
       <p><b>Capacitor mismatch.</b> Weight <var>w<sub>j</sub></var> is built from <var>w<sub>j</sub></var>/<var>w</var><sub>min</sub> unit capacitors, each with relative mismatch σ, so its relative error is σ/√units. New chip draws another set of errors.</p>
       <p><b>Comparator noise.</b> Gaussian, drawn anew for every decision. The stepped conversion uses one draw; New noise replaces it.</p>
-      <p><b>Calibration.</b> Sine-fit weight calibration: a least-squares fit of the bit columns plus an offset to a unit sine at the known frequency 499/4096 <var>f</var><sub>s</sub>, rescaled to the nominal weight sum. The spectra use a second tone at 613/4096 <var>f</var><sub>s</sub>, so the weights are tested on data they were not fitted to.</p>
+      <p><b>Calibration.</b> Sine-fit weight calibration: a least-squares fit of the bit columns plus an offset to a unit sine at the known frequency 499/4096 <var>f</var><sub>s</sub> = 12.18 MHz, rescaled to the nominal weight sum. The spectra use the second tone set by Input frequency, so the weights are always tested on data they were not fitted to.</p>
       <p><b>Spectrum.</b> 4096 conversions of a −0.5 dBFS sine, rectangular window. ENOB = (SNDR − 1.76) / 6.02. The largest spur is labelled with its harmonic order when it is one.</p>
-      <p><b>Input frequency.</b> None of these errors depend on it: every conversion works on a held sample, so another tone frequency only moves the harmonics.</p>
+      <p><b>Sampling.</b> <var>f</var><sub>s</sub> = 100 MS/s. Both tones sit on an odd bin of the 4096-point record, so they are coherent and the FFT needs no window.</p>
+      <p><b>Input frequency and clock jitter.</b> Mismatch and comparator noise act on a held sample and do not care about the input frequency; the sampling instant does. Gaussian jitter σ<sub>t</sub> turns the slope of the input into a voltage error, so it alone limits the converter to SNR = −20 log₁₀(2π<var>f</var><sub>in</sub>σ<sub>t</sub>) — 6 dB per doubling of the input frequency. Applied as ADCToolbox's <code>siggen.apply_jitter</code> does, by sampling the sine at <var>t</var> + Δ<var>t</var>.</p>
     </Notes>
   </header>
 
@@ -159,14 +172,16 @@
         {#if noiseLsb > 0}<button type="button" onclick={() => seed++} title="Draw a new comparator-noise sample for this conversion">New noise</button>{/if}
       </div>
     </div>
-    <InputRuler {vin} {n} codeA={conversions[0].code} codeB={conversions[1].code} onchange={(v) => { vin = v; reset(); }} />
+    <InputRuler {vin} {n} codeA={conversions[0].code} codeB={conversions[1].code} gaps={gaps.map((g) => g.bands)} onchange={(v) => { vin = v; reset(); }} />
   </section>
 
   <section class="compare">
     <div class="imp">
-      <span class="label">Impairments, same for both</span>
+      <span class="label">Stimulus and impairments, same for both</span>
       <Range id="mismatch" min={0} max={0.1} step={0.001} output="{nf(sigma * 100, 1)} %" bind:value={sigma}>Unit-cap mismatch</Range>
       <Range id="noise" min={0} max={1} step={0.05} output="{nf(noiseLsb, 2)} LSB" bind:value={noiseLsb}>Comparator noise</Range>
+      <Range id="fin" min={51} max={2045} step={2} output="{nf((bin / N_FFT) * FS * 1e-6, 2)} MHz" bind:value={bin}>Input frequency</Range>
+      <Range id="jitter" min={0} max={5} step={0.1} output="{nf(jitterPs, 1)} ps" bind:value={jitterPs}>Clock jitter</Range>
       <button type="button" onclick={() => chip++} title="Draw another set of capacitor errors">New chip</button>
     </div>
 
@@ -196,6 +211,8 @@
   .imp .label { color: var(--ink-3); }
   .meta { font-size: 12.5px; color: var(--ink-3); }
   .chip.off { color: var(--bad); box-shadow: inset 0 0 0 1px var(--bad); background: transparent; }
+  .unreachable { font-weight: 500; color: var(--bad); }
+  .unreachable::before { content: '· '; color: var(--ink-3); }
   .transport { display: flex; align-items: center; gap: 6px; }
   button { font: 500 13px/1 var(--sans); color: var(--ink-2); background: var(--plot); border: 1px solid var(--rule); border-radius: 7px; padding: 5px 10px; min-width: 30px; cursor: pointer; }
   button:hover:not(:disabled) { color: var(--ink); border-color: var(--ink-3); }
