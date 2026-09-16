@@ -1,14 +1,12 @@
 {
   "$schema": "../node_modules/wrangler/config-schema.json",
   // First-party analytics for the site (module in ../analytics); the pages themselves stay on Cloudflare Pages.
-  // Both host names are the same site, so both routes reach the same counter.
   "name": "ams-class-analytics",
   "main": "index.ts",
   "compatibility_date": "2026-09-01",
   "workers_dev": false,
   "routes": [
-    { "pattern": "adctoolbox.tokenzhang.com/api/*", "zone_name": "tokenzhang.com" },
-    { "pattern": "ams-class.tokenzhang.com/api/*", "zone_name": "tokenzhang.com" }
+    { "pattern": "adctoolbox.tokenzhang.com/api/*", "zone_name": "tokenzhang.com" }
   ],
   "durable_objects": {
     "bindings": [{ "name": "VISIT_STATS", "class_name": "VisitStatsDurableObject" }]

@@ -1,7 +1,8 @@
-# AMS Class
+# ADCToolbox site
 
-Interactive illustrations of analog and mixed-signal circuits, served at <https://ams-class.tokenzhang.com>. Each page runs a
-small behavioural model in the browser, so every control changes the physics you see.
+The interactive side of [ADCToolbox](https://github.com/Arcadia-1/ADCToolbox), served at <https://adctoolbox.tokenzhang.com> with
+the library's reference manual under `/doc/`. Each page runs a port of the library's models in the browser, so every control
+changes the physics you see.
 
 The site is static [Astro](https://astro.build) with [Svelte 5](https://svelte.dev) islands in strict TypeScript.
 
@@ -32,7 +33,7 @@ Run these in `web/` with Node 22.12 or newer and pnpm 11.
 | `python/` | Python references: the PLL model in NumPy, and SAR numbers computed with ADCToolbox (`pip install adctoolbox==0.9.1`) |
 | `public/` | Favicon and Cloudflare Pages response headers |
 | `analytics/` | Copied analytics module: tracking, dashboard, routes and Durable Object |
-| `worker/` | Analytics Worker that mounts the module on `ams-class.tokenzhang.com/api/*` |
+| `worker/` | Analytics Worker that mounts the module on `adctoolbox.tokenzhang.com/api/*` |
 
 ## Illustrations
 
@@ -67,5 +68,6 @@ to the source except for the page title; update it by copying the folder again. 
 ## Deploy
 
 `.github/workflows/deploy-web.yml` installs, checks and builds the site for every pull request that touches `web/`. On `main` it
-also deploys `dist/` to the Cloudflare Pages project `ams-class`, using the repository secrets `CLOUDFLARE_API_TOKEN` and
+also deploys `dist/` to the Cloudflare Pages project `ams-class` (the site's first name, kept as an internal one; its only
+domain is `adctoolbox.tokenzhang.com`), using the repository secrets `CLOUDFLARE_API_TOKEN` and
 `CLOUDFLARE_ACCOUNT_ID`.

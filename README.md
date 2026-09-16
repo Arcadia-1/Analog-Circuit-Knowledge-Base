@@ -4,7 +4,7 @@ A knowledge repository for analog circuit design fundamentals, focusing on ampli
 
 ## Interactive illustrations
 
-The `web/` folder holds interactive illustrations published at <https://ams-class.tokenzhang.com>: integer-N vs fractional-N PLLs and binary vs redundant SAR ADCs. See [`web/README.md`](web/README.md) for development and deployment.
+The `web/` folder holds the ADCToolbox site, published at <https://adctoolbox.tokenzhang.com>: interactive pages that run [ADCToolbox](https://github.com/Arcadia-1/ADCToolbox)'s models in the browser, with its reference manual under `/doc/`, and a PLL page until it has a home of its own. See [`web/README.md`](web/README.md) for development and deployment.
 
 ## Contents
 
