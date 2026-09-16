@@ -53,7 +53,7 @@
 
 <main class="page">
   <header class="top">
-    <a class="crumb" href="/">AMS Class</a>
+    <a class="crumb" href="/">ADCToolbox</a>
     <h1>INL and DNL</h1>
     <p class="sub">Where the codes really sit, and what a histogram test can see of it.</p>
     <div class="pick">

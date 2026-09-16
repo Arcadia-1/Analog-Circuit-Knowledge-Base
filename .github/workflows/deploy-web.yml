@@ -1,4 +1,4 @@
-name: AMS Class site
+name: ADCToolbox site
 
 on:
   push:
@@ -44,6 +44,29 @@ jobs:
         run: pnpm check
 
       - run: pnpm build
+
+      # The reference manual keeps living in the ADCToolbox repository and its own Sphinx build; it is published here
+      # under /doc/ so the toolbox has one front door, with the illustrations at the root.
+      - name: Check out ADCToolbox for the reference manual
+        uses: actions/checkout@v7
+        with:
+          repository: Arcadia-1/ADCToolbox
+          path: toolbox
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: toolbox/python/pyproject.toml
+
+      - name: Build the reference manual
+        working-directory: .
+        run: |
+          pip install --upgrade pip
+          pip install -e './toolbox/python[docs]'
+          python -m sphinx -b html toolbox/python/docs/source web/dist/doc
+          python -m sphinx -b html -D language=zh_CN toolbox/python/docs/source web/dist/doc/zh_CN
+          touch web/dist/doc/.nojekyll
 
       - name: Deploy to Cloudflare Pages
         if: github.ref == 'refs/heads/main'

@@ -139,7 +139,7 @@
 
 <main class="page">
   <header class="top">
-    <a class="crumb" href="/">AMS Class</a>
+    <a class="crumb" href="/">ADCToolbox</a>
     <h1>Binary vs redundant SAR</h1>
     <p class="sub">One sampled input, one comparator, one capacitor array. Only the weights differ.</p>
     <div class="pick">

@@ -60,7 +60,7 @@
 
 <main class="page">
   <header class="top">
-    <a class="crumb" href="/">AMS Class</a>
+    <a class="crumb" href="/">ADCToolbox</a>
     <h1>Reading the error</h1>
     <p class="sub">Subtract the sine you asked for. What is left tells you which impairment you have.</p>
     <div class="pick">
