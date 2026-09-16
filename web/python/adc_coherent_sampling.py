@@ -14,9 +14,11 @@ import math
 
 import numpy as np
 from adctoolbox import analyze_spectrum
+from adctoolbox.spectrum._window import _SIDE_BIN_DEFAULTS
 
 TONE, AMP_DBFS = 613 / 4096, -1.0
-SIDE_BINS = {"rectangular": 0, "hann": 1, "blackmanharris": 3, "flattop": 4}
+# the table src/lib/spectrum.ts copies as SIDE_BINS; read from the library so a change there shows in the output
+SIDE_BINS = {w: _SIDE_BIN_DEFAULTS[w]["coherent"] for w in ("rectangular", "hann", "blackmanharris", "flattop")}
 
 
 def gaussians(count, seed):
@@ -67,6 +69,7 @@ if __name__ == "__main__":
     n, length, noise = 12, 4096, 0.0
     base = base_cycles(length)
     print(f"{n} bits, {length}-point record, tone at {base} cycles, no added noise")
+    print("side bins counted as signal: " + ", ".join(f"{w} {side}" for w, side in SIDE_BINS.items()))
     print(" offset | " + " | ".join(f"{w:>14s}" for w in SIDE_BINS))
     print("        | " + " | ".join(f"{'ENOB':>6s} {'SFDR':>7s}" for _ in SIDE_BINS))
     for offset in (0.0, 0.1, 0.25, 0.5):

@@ -1,0 +1,17 @@
+ impairment            | fit amp      dc      rmse | error by value  | error by phase: am / pm / base | ENOB   SFDR
+ quantisation only     |  1825.30 2048.00  0.288 | -0.195 ..  0.195 |  0.000  0.055  0.286 | 11.837   93.34
+ thermal noise 2 LSB   |  1825.21 2048.02  2.019 | -0.911 ..  0.786 |  0.242  0.000  2.011 |  9.029   78.81
+ static k2 = 1 %       |  1825.30 2057.13  6.465 | -9.151 ..  9.009 |  0.000  0.033  6.465 |  7.350   46.01
+ static k3 = 1 %       |  1838.98 2048.00  3.244 | -4.648 ..  4.648 |  0.000  0.440  3.229 |  8.355   52.09
+ jitter 2 ps           |  1825.30 2048.00  0.382 | -0.163 ..  0.192 |  0.000  0.352  0.289 | 11.432   94.75
+ memory 0.2 %          |  1827.37 2051.50  0.429 | -0.463 ..  0.463 |  0.000  0.204  0.404 | 11.264   78.57
+ AM tone 1 %           |  1825.27 2047.99  9.121 | -12.656 .. 12.864 | 12.890  0.000  0.332 |  6.853   46.02
+
+the residual on its own: its largest remaining line, and the noise floor under it
+  quantisation only     largest line  -94.34 dBFS, floor  -74.06 dBFS, line over floor -20.28 dB
+  thermal noise 2 LSB   largest line  -79.81 dBFS, floor  -57.15 dBFS, line over floor -22.67 dB
+  static k2 = 1 %       largest line  -47.01 dBFS, floor  -74.06 dBFS, line over floor  27.04 dB
+  static k3 = 1 %       largest line  -53.03 dBFS, floor  -74.14 dBFS, line over floor  21.11 dB
+  jitter 2 ps           largest line  -95.75 dBFS, floor  -71.61 dBFS, line over floor -24.14 dB
+  memory 0.2 %          largest line  -79.56 dBFS, floor  -71.16 dBFS, line over floor  -8.41 dB
+  AM tone 1 %           largest line  -47.02 dBFS, floor  -47.03 dBFS, line over floor   0.00 dB
