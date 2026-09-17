@@ -164,8 +164,9 @@ function dft(re: ArrayLike<number>, im: ArrayLike<number>): Float64Array {
 }
 
 /**
- * predict_spurs: an offset pattern puts a tone at k·fs/m of |O_k|/m, O its m-point DFT; gain and skew together, as
- * the complex gain α = gain·e^{j2π·fin·skew} less its mean, put images at fin + k·fs/m of A·|Â_k|/m. Sorted by frequency.
+ * predict_spurs: an offset pattern puts a tone at k·fs/m, O its m-point DFT, for k = 1 … m/2. O_k and O_{m−k} are one
+ * tone there, so it is 2|O_k|/m, except at fs/2, which is its own mirror and |O_k|/m. Gain and skew together, as the
+ * complex gain α = gain·e^{j2π·fin·skew} less its mean, put images at fin + k·fs/m of A·|Â_k|/m. Sorted by frequency.
  */
 export function predictSpurs(p: Params, fs: number, fullScale = 1): Spur[] {
   const m = p.gain.length;
@@ -176,8 +177,8 @@ export function predictSpurs(p: Params, fs: number, fullScale = 1): Spur[] {
   };
   const spurs: Spur[] = [];
   const O = dft(p.offset, new Float64Array(m));
-  for (let k = 1; k < m; k++) {
-    const amp = O[k] / m;
+  for (let k = 1; k <= m / 2; k++) {
+    const amp = (O[k] / m) * (2 * k === m ? 1 : 2);
     spurs.push({ freq: foldFrequency((k * fs) / m, fs), kind: 'offset', k, amp, ...db(amp) });
   }
   const re = p.gain.map((g, c) => g * Math.cos(2 * Math.PI * p.fin * p.skew[c]));
@@ -266,34 +267,8 @@ export function calibrate(x: Float64Array, m: number, p: Params, fs: number, met
 /** analyze_spectrum on the ±0.5 V range: codes of the same resolution scale it to the full scale the port expects. */
 export const spectrumOf = (x: Float64Array, bits: number): Spectrum => analyzeSpectrum(x.map((v) => v * 2 ** bits), bits);
 
-export interface Tone extends Spur {
-  /** the DFT coefficients predict_spurs listed at this frequency */
-  ks: number[];
-}
-
-/**
- * The tones predict_spurs's list adds up to. It gives each DFT coefficient its own entry, and a real offset pattern
- * always puts two of them, k and m − k, on the same frequency; there they are one tone, as large as both together.
- */
-export function tonesOf(spurs: Spur[]): Tone[] {
-  const tones: Tone[] = [];
-  for (const s of spurs) {
-    const t = tones.find((t) => t.freq === s.freq);
-    if (!t) {
-      tones.push({ ...s, ks: [s.k] });
-      continue;
-    }
-    if (t.amp > 0) {
-      const gain = 20 * Math.log10((t.amp + s.amp) / t.amp);
-      Object.assign(t, { amp: t.amp + s.amp, dbfs: t.dbfs + gain, dbc: t.dbc + gain });
-    } else Object.assign(t, { amp: s.amp, dbfs: s.dbfs, dbc: s.dbc });
-    t.ks.push(s.k);
-  }
-  return tones;
-}
-
-/** The largest tone predict_spurs expects, as an SFDR. */
-export const predictedSfdr = (spurs: Spur[]): number => -Math.max(...tonesOf(spurs).map((s) => s.dbc));
+/** The largest spur predict_spurs expects, as an SFDR. */
+export const predictedSfdr = (spurs: Spur[]): number => -Math.max(...spurs.map((s) => s.dbc));
 
 /** The sub-ADCs' own Nyquist frequency: calibrate_foreground's delays hold only below it. */
 export const channelNyquist = (m: number): number => FS / (2 * m);
@@ -302,10 +277,9 @@ export interface Reading {
   fin: number;
   bin: number;
   truth: Mismatch;
-  /** what extract_mismatch_sine reads from the capture, what predict_spurs makes of it, and the tones that adds up to */
+  /** what extract_mismatch_sine reads from the capture, and what predict_spurs makes of it */
   measured: Params;
   spurs: Spur[];
-  tones: Tone[];
   raw: Spectrum;
   /** the calibrated capture, or the raw one again when calibration is off */
   out: Spectrum;
@@ -319,14 +293,12 @@ export function read(m: number, target: number, mm: Mismatch, bits: number, meth
   const measured = extractMismatch(x, m, FS, fin);
   const raw = spectrumOf(x, bits);
   const y = method === 'off' ? null : calibrate(x, m, measured, FS, method);
-  const spurs = predictSpurs(measured, FS, 0.5);
   return {
     fin,
     bin,
     truth: mm,
     measured,
-    spurs,
-    tones: tonesOf(spurs),
+    spurs: predictSpurs(measured, FS, 0.5),
     raw,
     out: y ? spectrumOf(y, bits) : raw,
     left: y ? extractMismatch(y, m, FS, fin) : null,

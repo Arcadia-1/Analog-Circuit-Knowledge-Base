@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { fft } from '../src/lib/fft';
 import { coherentFrequency } from '../src/lib/frequency';
 import {
   calibrate,
@@ -16,7 +17,6 @@ import {
   predictedSfdr,
   predictSpurs,
   read,
-  tonesOf,
   spectrumOf,
   sweep,
   SWEEP,
@@ -90,8 +90,7 @@ describe('time-interleaved mismatch', () => {
       measured: [[-0.12194, 0.51728, -0.20738, -0.18796], [1.23835, 0.43178, -1.1251, -1.04165], [5.12911, -6.9043, 4.38817, -2.61298]],
       spurs: [
         ['image', 3, 150.146484, -55.5804, -53.6422],
-        ['offset', 1, 250, -57.1237, -55.1856],
-        ['offset', 3, 250, -57.1237, -55.1856],
+        ['offset', 1, 250, -51.1031, -49.165],
         ['image', 1, 349.853516, -57.2821, -55.344],
         ['image', 2, 400.146484, -51.2794, -49.3413],
         ['offset', 2, 500, -68.8363, -66.8982],
@@ -109,8 +108,7 @@ describe('time-interleaved mismatch', () => {
       measured: [[-0.81367, 3.44403, -1.38599, -1.24437], [6.68359, 2.65598, -5.12314, -4.70662], [3.04924, -4.026, 2.72715, -1.75039]],
       spurs: [
         ['image', 3, 233.154297, -40.4823, -38.5442],
-        ['offset', 1, 250, -43.1514, -41.2132],
-        ['offset', 3, 250, -43.1514, -41.2132],
+        ['offset', 1, 250, -37.1308, -35.1926],
         ['image', 1, 266.845703, -40.5068, -38.5686],
         ['image', 2, 483.154297, -41.1083, -39.1701],
         ['offset', 2, 500, -54.8678, -52.9297],
@@ -143,16 +141,13 @@ describe('time-interleaved mismatch', () => {
       measured: [[-0.32185, 0.55968, -0.44124, -0.41341, 0.10881, 0.96186, 0.07377, -0.52762], [3.14403, 0.56648, -4.41647, -4.1523, 2.02501, 1.72162, -2.53797, 3.40116], [7.3946, -10.93217, 6.29145, -4.36939, -7.41314, 13.25267, 2.33162, -6.55563]],
       spurs: [
         ['image', 7, 85.205078, -60.3596, -58.4214],
-        ['offset', 1, 125, -52.199, -50.2608],
-        ['offset', 7, 125, -52.199, -50.2608],
+        ['offset', 1, 125, -46.1784, -44.2402],
         ['image', 1, 164.794922, -58.037, -56.0988],
         ['image', 6, 210.205078, -52.9463, -51.0081],
-        ['offset', 2, 250, -50.104, -48.1658],
-        ['offset', 6, 250, -50.104, -48.1658],
+        ['offset', 2, 250, -44.0834, -42.1452],
         ['image', 2, 289.794922, -51.303, -49.3648],
         ['image', 5, 335.205078, -58.2239, -56.2858],
-        ['offset', 3, 375, -57.2831, -55.345],
-        ['offset', 5, 375, -57.2831, -55.345],
+        ['offset', 3, 375, -51.2625, -49.3244],
         ['image', 3, 414.794922, -62.3073, -60.3691],
         ['image', 4, 460.205078, -58.1592, -56.221],
         ['offset', 4, 500, -61.6123, -59.6741],
@@ -171,8 +166,7 @@ describe('time-interleaved mismatch', () => {
       spurs: [
         ['image', 3, 50.048828, -52.1822, -50.2439],
         ['image', 2, 199.951172, -42.7306, -40.7923],
-        ['offset', 1, 250, -57.1338, -55.1955],
-        ['offset', 3, 250, -57.1338, -55.1955],
+        ['offset', 1, 250, -51.1132, -49.1749],
         ['image', 1, 449.951172, -54.6746, -52.7363],
         ['offset', 2, 500, -68.8478, -66.9095],
       ],
@@ -190,16 +184,13 @@ describe('time-interleaved mismatch', () => {
       spurs: [
         ['image', 4, 50.048828, -43.9444, -42.0062],
         ['image', 5, 74.951172, -36.8869, -34.9487],
-        ['offset', 1, 125, -153.0541, -151.1159],
-        ['offset', 7, 125, -153.0541, -151.1159],
+        ['offset', 1, 125, -147.0335, -145.0953],
         ['image', 3, 175.048828, -37.5341, -35.5959],
         ['image', 6, 199.951172, -46.4902, -44.552],
-        ['offset', 2, 250, -131.0794, -129.1412],
-        ['offset', 6, 250, -131.0794, -129.1412],
+        ['offset', 2, 250, -125.0588, -123.1206],
         ['image', 2, 300.048828, -40.6599, -38.7217],
         ['image', 7, 324.951172, -48.1629, -46.2247],
-        ['offset', 3, 375, -142.3409, -140.4027],
-        ['offset', 5, 375, -142.3409, -140.4027],
+        ['offset', 3, 375, -136.3203, -134.3821],
         ['image', 1, 425.048828, -44.7179, -42.7797],
         ['offset', 4, 500, -140.2773, -138.3391],
       ],
@@ -323,32 +314,34 @@ describe('time-interleaved mismatch', () => {
     after.forEach((y, i) => expectParams(extractMismatch(y, m, FS, fin), c.left[i]));
   });
 
-  it('puts a tone in the spectrum wherever predict_spurs puts spurs, as big as its entries there together', () => {
+  it('puts a tone in the spectrum wherever predict_spurs puts a spur, as big as it says', () => {
     const c = cases[3];
     const { fin } = coherentFrequency(FS, c.target, N);
     const x = capture(fin, mismatch(c.m, c.rms[0] / 100, c.rms[1] / 1e3, c.rms[2] / 1e12), c.bits);
     const s = spectrumOf(x, c.bits);
-    const at = new Map<number, number>();
-    for (const spur of predictSpurs(extractMismatch(x, c.m, FS, fin), FS, 0.5)) at.set(spur.freq, (at.get(spur.freq) ?? 0) + spur.amp);
-    for (const [f, amp] of at) {
-      const bin = Math.round((f / FS) * N);
+    const spurs = predictSpurs(extractMismatch(x, c.m, FS, fin), FS, 0.5);
+    expect(new Set(spurs.map((p) => p.freq)).size).toBe(spurs.length);
+    for (const spur of spurs) {
+      const bin = Math.round((spur.freq / FS) * N);
       // a tone on the last bin is its own mirror, and holds twice the power of a sine as tall
       const measured = s.dbfs[bin] - (bin === N / 2 ? 10 * Math.log10(2) : 0);
-      expect(measured).toBeCloseTo(20 * Math.log10(amp / 0.5), 1);
+      expect(measured).toBeCloseTo(spur.dbfs, 1);
     }
   });
 
-  it('adds up the two entries predict_spurs gives each offset tone', () => {
+  it('lists each offset tone once, as large as the tone the pattern makes', () => {
     for (const c of cases) {
       const { fin } = coherentFrequency(FS, c.target, N);
       const x = capture(fin, mismatch(c.m, c.rms[0] / 100, c.rms[1] / 1e3, c.rms[2] / 1e12), c.bits);
-      const spurs = predictSpurs(extractMismatch(x, c.m, FS, fin), FS, 0.5), tones = tonesOf(spurs);
-      // an image for every k, and an offset tone for k = 1 … m/2
-      expect(tones).toHaveLength(c.m - 1 + c.m / 2);
-      for (const t of tones.filter((t) => t.kind === 'offset')) {
-        const k = t.ks[0], first = spurs.find((s) => s.kind === 'offset' && s.k === k)!;
-        expect(t.ks).toEqual(2 * k === c.m ? [k] : [k, c.m - k]);
-        expect(t.dbfs - first.dbfs).toBeCloseTo(2 * k === c.m ? 0 : 20 * Math.log10(2), 9);
+      const p = extractMismatch(x, c.m, FS, fin);
+      const offsets = predictSpurs(p, FS, 0.5).filter((s) => s.kind === 'offset');
+      expect(offsets.map((s) => s.k)).toEqual(Array.from({ length: c.m / 2 }, (_, i) => i + 1));
+      // the offsets repeated over 64 turns, and the size of each tone in their spectrum
+      const n = 64 * c.m, re = Float64Array.from({ length: n }, (_, i) => p.offset[i % c.m]), im = new Float64Array(n);
+      fft(re, im);
+      for (const s of offsets) {
+        const bin = (s.k * n) / c.m, size = (Math.hypot(re[bin], im[bin]) / n) * (bin === n / 2 ? 1 : 2);
+        expect(s.amp / size).toBeCloseTo(1, 9);
       }
       // with nothing but spurs above the floor, the prediction is the measurement
       if (c.target / 1e6 < 200) expect(Math.abs(c.metrics[6] - c.metrics[0])).toBeLessThan(0.01);
@@ -385,6 +378,8 @@ describe('time-interleaved mismatch', () => {
     expect(fft.raw.sfdr).toBeCloseTo(c.metrics[0], 2);
     expect(fft.out.sfdr).toBeCloseTo(c.metrics[2], 2);
     expect(read(c.m, c.target, mm, c.bits, 'farrow').out.sfdr).toBeCloseTo(c.metrics[4], 2);
+    // an image for every k, an offset tone for k = 1 … m/2
+    expect(fft.spurs).toHaveLength(c.m - 1 + c.m / 2);
   });
 
   it('sweeps the frequency as the reference does', () => {

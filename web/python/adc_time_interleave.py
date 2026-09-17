@@ -92,17 +92,7 @@ def params_text(p):
 
 
 def sfdr_predicted(spurs):
-    """The largest tone in predict_spurs's list. It has an entry per DFT coefficient, and an offset pattern puts two of
-    them, k and M - k, on one frequency, where they are a single tone as large as both together."""
-    amp, dbc = {}, {}
-    for s in spurs:
-        f = s["freq_hz"]
-        if f in amp and amp[f] > 0:
-            dbc[f] += 20 * np.log10((amp[f] + s["amp"]) / amp[f])
-            amp[f] += s["amp"]
-        else:
-            amp[f], dbc[f] = s["amp"], s["dbc"]
-    return -max(dbc.values())
+    return -max(s["dbc"] for s in spurs)
 
 
 SWEEP = [find_coherent_frequency(FS, (i + 0.5) * FS / 80, N)[0] for i in range(40)]
