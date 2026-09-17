@@ -25,8 +25,7 @@ M=4, 12 bits, fin 99.853516 MHz (bin 409); rms gain 0.3 %, offset 1 mV, skew 5 p
   set        gain % -0.12181 +0.51670 -0.20783 -0.18706 | offset mV +1.36067 +0.55574 -0.99939 -0.91702 | skew ps +5.12090 -6.90974 +4.38955 -2.60071
   measured   gain % -0.12194 +0.51728 -0.20738 -0.18796 | offset mV +1.23835 +0.43178 -1.12510 -1.04165 | skew ps +5.12911 -6.90430 +4.38817 -2.61298 | A 0.400003324 V
     gain_skew k=3   150.146484 MHz   -55.5804 dBFS   -53.6422 dBc
-    offset    k=1   250.000000 MHz   -57.1237 dBFS   -55.1856 dBc
-    offset    k=3   250.000000 MHz   -57.1237 dBFS   -55.1856 dBc
+    offset    k=1   250.000000 MHz   -51.1031 dBFS   -49.1650 dBc
     gain_skew k=1   349.853516 MHz   -57.2821 dBFS   -55.3440 dBc
     gain_skew k=2   400.146484 MHz   -51.2794 dBFS   -49.3413 dBc
     offset    k=2   500.000000 MHz   -68.8363 dBFS   -66.8982 dBc
@@ -38,8 +37,7 @@ M=4, 12 bits, fin 16.845703 MHz (bin 69); rms gain 2 %, offset 5 mV, skew 3 ps
   set        gain % -0.81208 +3.44466 -1.38551 -1.24707 | offset mV +6.80337 +2.77871 -4.99697 -4.58511 | skew ps +3.07254 -4.14585 +2.63373 -1.56042
   measured   gain % -0.81367 +3.44403 -1.38599 -1.24437 | offset mV +6.68359 +2.65598 -5.12314 -4.70662 | skew ps +3.04924 -4.02600 +2.72715 -1.75039 | A 0.400001422 V
     gain_skew k=3   233.154297 MHz   -40.4823 dBFS   -38.5442 dBc
-    offset    k=1   250.000000 MHz   -43.1514 dBFS   -41.2132 dBc
-    offset    k=3   250.000000 MHz   -43.1514 dBFS   -41.2132 dBc
+    offset    k=1   250.000000 MHz   -37.1308 dBFS   -35.1926 dBc
     gain_skew k=1   266.845703 MHz   -40.5068 dBFS   -38.5686 dBc
     gain_skew k=2   483.154297 MHz   -41.1083 dBFS   -39.1701 dBc
     offset    k=2   500.000000 MHz   -54.8678 dBFS   -52.9297 dBc
@@ -60,16 +58,13 @@ M=8, 14 bits, fin 39.794922 MHz (bin 163); rms gain 0.5 %, offset 3 mV, skew 8 p
   set        gain % -0.32212 +0.55923 -0.44085 -0.41219 +0.10852 +0.96119 +0.07363 -0.52741 | offset mV +3.17589 +0.59731 -4.38453 -4.12065 +2.05500 +1.75333 -2.50713 +3.43077 | skew ps +7.39712 -10.93770 +6.28253 -4.37069 -7.42254 +13.25025 +2.35008 -6.54905
   measured   gain % -0.32185 +0.55968 -0.44124 -0.41341 +0.10881 +0.96186 +0.07377 -0.52762 | offset mV +3.14403 +0.56648 -4.41647 -4.15230 +2.02501 +1.72162 -2.53797 +3.40116 | skew ps +7.39460 -10.93217 +6.29145 -4.36939 -7.41314 +13.25267 +2.33162 -6.55563 | A 0.400000396 V
     gain_skew k=7    85.205078 MHz   -60.3596 dBFS   -58.4214 dBc
-    offset    k=1   125.000000 MHz   -52.1990 dBFS   -50.2608 dBc
-    offset    k=7   125.000000 MHz   -52.1990 dBFS   -50.2608 dBc
+    offset    k=1   125.000000 MHz   -46.1784 dBFS   -44.2402 dBc
     gain_skew k=1   164.794922 MHz   -58.0370 dBFS   -56.0988 dBc
     gain_skew k=6   210.205078 MHz   -52.9463 dBFS   -51.0081 dBc
-    offset    k=2   250.000000 MHz   -50.1040 dBFS   -48.1658 dBc
-    offset    k=6   250.000000 MHz   -50.1040 dBFS   -48.1658 dBc
+    offset    k=2   250.000000 MHz   -44.0834 dBFS   -42.1452 dBc
     gain_skew k=2   289.794922 MHz   -51.3030 dBFS   -49.3648 dBc
     gain_skew k=5   335.205078 MHz   -58.2239 dBFS   -56.2858 dBc
-    offset    k=3   375.000000 MHz   -57.2831 dBFS   -55.3450 dBc
-    offset    k=5   375.000000 MHz   -57.2831 dBFS   -55.3450 dBc
+    offset    k=3   375.000000 MHz   -51.2625 dBFS   -49.3244 dBc
     gain_skew k=3   414.794922 MHz   -62.3073 dBFS   -60.3691 dBc
     gain_skew k=4   460.205078 MHz   -58.1592 dBFS   -56.2210 dBc
     offset    k=4   500.000000 MHz   -61.6123 dBFS   -59.6741 dBc
@@ -82,8 +77,7 @@ M=4, 12 bits, fin 300.048828 MHz (bin 1229); rms gain 0.3 %, offset 1 mV, skew 5
   measured   gain % -0.12274 +0.51648 -0.20718 -0.18656 | offset mV +1.23596 +0.42868 -1.12605 -1.04094 | skew ps +5.12688 -6.91269 +4.39064 -2.60482 | A 0.399995267 V
     gain_skew k=3    50.048828 MHz   -52.1822 dBFS   -50.2439 dBc
     gain_skew k=2   199.951172 MHz   -42.7306 dBFS   -40.7923 dBc
-    offset    k=1   250.000000 MHz   -57.1338 dBFS   -55.1955 dBc
-    offset    k=3   250.000000 MHz   -57.1338 dBFS   -55.1955 dBc
+    offset    k=1   250.000000 MHz   -51.1132 dBFS   -49.1749 dBc
     gain_skew k=1   449.951172 MHz   -54.6746 dBFS   -52.7363 dBc
     offset    k=2   500.000000 MHz   -68.8478 dBFS   -66.9095 dBc
   SFDR, SNDR dB: off   40.792   39.557 | fft   42.528   42.083 | farrow   42.515   42.071 | predicted SFDR   40.792
@@ -95,16 +89,13 @@ M=8, 16 bits, fin 449.951172 MHz (bin 1843); rms gain 1 %, offset 0 mV, skew 10 
   measured   gain % -0.64437 +1.11849 -0.88182 -0.82436 +0.21707 +1.92252 +0.14733 -1.05487 | offset mV -0.00775 -0.00757 -0.00787 -0.00805 -0.00787 -0.00739 -0.00793 -0.00802 | skew ps +9.24652 -13.67199 +7.85307 -5.46336 -9.27810 +16.56287 +2.93757 -8.18658 | A 0.399999896 V
     gain_skew k=4    50.048828 MHz   -43.9444 dBFS   -42.0062 dBc
     gain_skew k=5    74.951172 MHz   -36.8869 dBFS   -34.9487 dBc
-    offset    k=1   125.000000 MHz  -153.0541 dBFS  -151.1159 dBc
-    offset    k=7   125.000000 MHz  -153.0541 dBFS  -151.1159 dBc
+    offset    k=1   125.000000 MHz  -147.0335 dBFS  -145.0953 dBc
     gain_skew k=3   175.048828 MHz   -37.5341 dBFS   -35.5959 dBc
     gain_skew k=6   199.951172 MHz   -46.4902 dBFS   -44.5520 dBc
-    offset    k=2   250.000000 MHz  -131.0794 dBFS  -129.1412 dBc
-    offset    k=6   250.000000 MHz  -131.0794 dBFS  -129.1412 dBc
+    offset    k=2   250.000000 MHz  -125.0588 dBFS  -123.1206 dBc
     gain_skew k=2   300.048828 MHz   -40.6599 dBFS   -38.7217 dBc
     gain_skew k=7   324.951172 MHz   -48.1629 dBFS   -46.2247 dBc
-    offset    k=3   375.000000 MHz  -142.3409 dBFS  -140.4027 dBc
-    offset    k=5   375.000000 MHz  -142.3409 dBFS  -140.4027 dBc
+    offset    k=3   375.000000 MHz  -136.3203 dBFS  -134.3821 dBc
     gain_skew k=1   425.048828 MHz   -44.7179 dBFS   -42.7797 dBc
     offset    k=4   500.000000 MHz  -140.2773 dBFS  -138.3391 dBc
   SFDR, SNDR dB: off   34.945   30.432 | fft   34.389   30.054 | farrow   34.788   30.453 | predicted SFDR   34.949

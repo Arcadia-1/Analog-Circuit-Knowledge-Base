@@ -4,17 +4,17 @@
   import { freqText, nf } from '../../lib/format';
   import { clamp } from '../../lib/scale';
   import type { Spectrum } from '../../lib/spectrum';
-  import { FS, N, type Tone } from './model';
+  import { FS, N, type Spur } from './model';
 
   /**
-   * The spectrum of the interleaved output, with a mark wherever predict_spurs expects a tone and as high as it
+   * The spectrum of the interleaved output, with a mark wherever predict_spurs expects a spur and as high as it
    * expects it: circles for the images of gain and skew, squares for the offset tones. After calibration the raw
    * spectrum stays behind in grey.
    */
-  let { spectrum, ghost, tones, bits, hover, onhover, label }: {
+  let { spectrum, ghost, spurs, bits, hover, onhover, label }: {
     spectrum: Spectrum;
     ghost: Spectrum | null;
-    tones: Tone[];
+    spurs: Spur[];
     bits: number;
     hover: number | null;
     onhover: (bin: number | null) => void;
@@ -25,9 +25,9 @@
   const ybot = $derived(-20 * Math.ceil((6.02 * bits + 1.76 + 10 * Math.log10(HALF) + 12) / 20));
   const binOf = (f: number) => Math.round((f / FS) * N);
   const spurText = (bin: number) =>
-    tones
+    spurs
       .filter((s) => binOf(s.freq) === bin)
-      .map((s) => `${s.kind === 'offset' ? 'offset' : 'image'} k = ${s.ks.join(', ')}, predicted ${nf(s.dbfs, 1)} dBFS`)
+      .map((s) => `${s.kind === 'offset' ? 'offset' : 'image'} k=${s.k}, predicted ${nf(s.dbfs, 1)} dBFS`)
       .join(' · ');
 
   function trace(s: Spectrum, cols: number, sy: (v: number) => number) {
@@ -50,7 +50,7 @@
     const grid: number[] = [];
     for (let v = ybot; v <= 0; v += 20) grid.push(v);
     const every = Y1 - Y0 < 170 ? 40 : 20;
-    const marks = tones.filter((s) => s.dbfs > ybot).map((s) => ({ x: sx(binOf(s.freq)), y: sy(s.dbfs), offset: s.kind === 'offset' }));
+    const marks = spurs.filter((s) => s.dbfs > ybot).map((s) => ({ x: sx(binOf(s.freq)), y: sy(s.dbfs), offset: s.kind === 'offset' }));
     const ticks = X1 - X0 < 360 ? [0, 250, 500] : [0, 100, 200, 300, 400, 500];
     return { ticks, X1, Y0, Y1, sx, sy, grid, every, marks, d: trace(spectrum, cols, sy), back: ghost ? trace(ghost, cols, sy) : '' };
   }
