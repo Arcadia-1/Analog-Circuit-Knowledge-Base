@@ -1,8 +1,8 @@
 ---
 import Base from '../layouts/Base.astro';
-import Thumb from '../components/Thumb.astro';
+import Entry from '../components/Entry.astro';
 import Visits from '../components/Visits';
-import { coming, topics } from '../data/illustrations';
+import { coming, related, topics } from '../data/illustrations';
 ---
 <Base
   visits={false}
@@ -28,17 +28,7 @@ import { coming, topics } from '../data/illustrations';
           <h2>{topic.name}</h2>
           {topic.note && <span class="note">{topic.note}</span>}
         </div>
-        {topic.items.map((item) => (
-          <a class="entry" href={item.href}>
-            <Thumb kind={item.thumb} />
-            <div>
-              <h3 set:html={item.title.replace(/-N\b/g, '-<var>N</var>')} />
-              <p>{item.summary}</p>
-              <p class="tags">{item.tags.join(' · ')}</p>
-              {item.toolbox && <p class="from">{item.toolbox}</p>}
-            </div>
-          </a>
-        ))}
+        {topic.items.map((item) => <Entry item={item} />)}
       </section>
     ))}
 
@@ -48,6 +38,11 @@ import { coming, topics } from '../data/illustrations';
         The toolbox reaches a good deal further than these pages do — {coming.join(', ')} — and each of its examples is a
         page waiting to happen. Until then they live in the <a href="/doc/examples/index">manual</a>.
       </p>
+    </section>
+
+    <section class="topic">
+      <div class="topic-head"><h2>Other related</h2><span class="note">next door to the toolbox</span></div>
+      {related.items.map((item) => <Entry item={item} />)}
     </section>
 
     <footer>
@@ -76,13 +71,6 @@ import { coming, topics } from '../data/illustrations';
   .topic-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--rule); padding-bottom: 8px; }
   h2 { margin: 0; font-size: 13px; font-weight: 500; letter-spacing: 0.09em; text-transform: uppercase; color: var(--ink-2); }
   .note { font-size: 12.5px; color: var(--ink-3); text-align: right; }
-  .entry { display: grid; grid-template-columns: 188px minmax(0, 1fr); gap: 24px; align-items: center; padding: 18px; margin-inline: -18px; border-radius: 12px; color: inherit; text-decoration: none; transition: background-color 0.15s; }
-  .entry:hover { background: var(--plot); }
-  h3 { margin: 0; font-size: 21px; font-weight: 500; letter-spacing: -0.01em; }
-  h3 :global(var) { font-size: 1.08em; }
-  .entry p { margin: 6px 0 0; color: var(--ink-2); }
-  .entry .tags { font: 12.5px var(--mono); color: var(--ink-3); margin-top: 10px; }
-  .entry .from { font: 12px var(--mono); color: var(--ink-3); opacity: 0.8; margin-top: 3px; }
   footer { border-top: 1px solid var(--rule); padding-top: 16px; display: flex; flex-wrap: wrap; gap: 6px 20px; color: var(--ink-3); font-size: 13.5px; }
   footer a, footer :global(.visitors) { color: var(--ink-2); text-decoration: none; border-bottom: 1px solid var(--rule); }
   footer a:hover, footer :global(.visitors:hover) { color: var(--ink); border-bottom-color: var(--ink-3); }
@@ -90,7 +78,6 @@ import { coming, topics } from '../data/illustrations';
   @media (max-width: 640px) {
     .home { padding-block: 24px 40px; gap: 24px; }
     h1 { font-size: 30px; }
-    .entry { grid-template-columns: 1fr; gap: 14px; }
     .note { text-align: left; }
   }
 </style>
