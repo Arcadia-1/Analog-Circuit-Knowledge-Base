@@ -9,10 +9,9 @@ const { visits = true } = Astro.props;
     <nav aria-label="Footer navigation">
       <a href="/doc/">Manual</a>
       <a href="https://github.com/Arcadia-1/ADCToolbox">GitHub ↗</a>
-      <a href="https://github.com/Arcadia-1/Analog-Circuit-Knowledge-Base/tree/main/web">Website source ↗</a>
+      <a href="https://github.com/Arcadia-1/ADCToolbox/blob/main/LICENSE">MIT License ↗</a>
     </nav>
     <a href="https://tokenzhang.com">© {new Date().getFullYear()} Token Zhang</a>
-    <a href="https://analog-design-bench.tokenzhang.com/">Analog Design Bench ↗</a>
     {visits && <Visits client:load path={Astro.url.pathname} counter />}
   </div>
 </footer>
