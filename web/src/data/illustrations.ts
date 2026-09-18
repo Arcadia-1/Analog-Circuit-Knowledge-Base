@@ -3,9 +3,11 @@ export interface Illustration {
   title: string;
   summary: string;
   tags: string[];
-  thumb: 'pll' | 'sar' | 'inl' | 'err' | 'win' | 'fold' | 'ntf' | 'ti' | 'bits' | 'polar';
+  thumb: 'pll' | 'sar' | 'inl' | 'err' | 'win' | 'fold' | 'ntf' | 'ti' | 'bits' | 'polar' | 'bode';
   /** The ADCToolbox module and examples this page runs, shown under the card. */
   toolbox?: string;
+  /** Whose site this is, for a page that is not on this one; it opens in a tab of its own. */
+  external?: string;
 }
 
 export interface Topic {
@@ -99,17 +101,26 @@ export const topics: Topic[] = [
       },
     ],
   },
-  {
-    name: 'Phase-locked loops',
-    note: 'here until it has a home of its own',
-    items: [
-      {
-        href: '/pll/integer-vs-fractional/',
-        title: 'Integer-N vs fractional-N',
-        summary: 'One reference, one loop, one VCO. Drag the target frequency and see what a fractional divider does to the phase detector, the spectrum and the jitter.',
-        tags: ['accumulator', 'ΣΔ', 'DTC', 'loop bandwidth', 'reference frequency'],
-        thumb: 'pll',
-      },
-    ],
-  },
 ];
+
+/** Pages that are not ADCToolbox: the PLL one until it has a home of its own, and other people's tools. */
+export const related: Topic = {
+  name: 'Other related',
+  items: [
+    {
+      href: '/pll/integer-vs-fractional/',
+      title: 'Integer-N vs fractional-N',
+      summary: 'One reference, one loop, one VCO. Drag the target frequency and see what a fractional divider does to the phase detector, the spectrum and the jitter.',
+      tags: ['accumulator', 'ΣΔ', 'DTC', 'loop bandwidth', 'reference frequency'],
+      thumb: 'pll',
+    },
+    {
+      href: 'https://many-question.github.io/bode-sketch/',
+      title: 'bode-sketch',
+      summary: 'Drag the poles and zeros of a transfer function and watch the Bode asymptotes, the exact curves, the Nyquist contour with its encirclement count, and the impulse and step responses follow. Exports the function to MATLAB.',
+      tags: ['transfer function', 'pole-zero map', 'Bode asymptotes', 'Nyquist stability', 'step response'],
+      thumb: 'bode',
+      external: 'many-question.github.io',
+    },
+  ],
+};

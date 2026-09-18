@@ -1,6 +1,6 @@
 ---
 /** Small schematic previews for the home page. */
-interface Props { kind: 'pll' | 'sar' | 'inl' | 'err' | 'win' | 'fold' | 'ntf' | 'ti' | 'bits' | 'polar' }
+interface Props { kind: 'pll' | 'sar' | 'inl' | 'err' | 'win' | 'fold' | 'ntf' | 'ti' | 'bits' | 'polar' | 'bode' }
 const { kind } = Astro.props;
 const xs = Array.from({ length: 13 }, (_, i) => 6 + i * 14);
 const saw = [-14, -8, -2, 6, 14];
@@ -32,6 +32,11 @@ const cloud = Array.from({ length: 60 }, (_, i) => {
   return `M${94 + r * Math.sin(a)},${56 - r * Math.cos(a)}h0.01`;
 }).join('');
 const ray = (deg: number, r: number) => [94 + r * Math.sin((deg * Math.PI) / 180), 56 - r * Math.cos((deg * Math.PI) / 180)];
+// a first-order roll-off: the straight asymptote, and the curve that rounds its corner
+const corner = 70, decade = 45, perDb = 1.1, flat = 26;
+const dbAt = (x: number) => flat + perDb * 10 * Math.log10(1 + 10 ** ((2 * (x - corner)) / decade));
+const exact = Array.from({ length: 41 }, (_, i) => `${4 + i * 4.6},${dbAt(4 + i * 4.6).toFixed(1)}`).join(' ');
+const asymptote = `4,${flat} ${corner},${flat} 188,${(flat + (perDb * 20 * (188 - corner)) / decade).toFixed(1)}`;
 ---
 <svg class="thumb" viewBox="0 0 188 100" aria-hidden="true">
   {kind === 'pll' ? (
@@ -68,6 +73,14 @@ const ray = (deg: number, r: number) => [94 + r * Math.sin((deg * Math.PI) / 180
       <line class="s1" x1={tone} y1="94" x2={tone} y2="20" />
       {images.map((m) => <g><line class="s2 link" x1={m.x} y1="94" x2={m.x} y2={m.top} /><circle class="mark" cx={m.x} cy={m.top} r="3.4" /></g>)}
       {offsets.map((m) => <g><line class="s2 link" x1={m.x} y1="94" x2={m.x} y2={m.top} /><rect class="mark" x={m.x - 3.2} y={m.top - 3.2} width="6.4" height="6.4" /></g>)}
+    </>
+  ) : kind === 'bode' ? (
+    <>
+      <text x="0" y="10">asymptote, and the curve itself</text>
+      <line class="base" x1="0" y1="92" x2="188" y2="92" />
+      <line class="dash" x1={corner} y1="18" x2={corner} y2="92" />
+      <polyline class="s1" style="fill: none" stroke-dasharray="5 4" points={asymptote} />
+      <polyline class="s2" style="fill: none" points={exact} />
     </>
   ) : kind === 'polar' ? (
     <>
