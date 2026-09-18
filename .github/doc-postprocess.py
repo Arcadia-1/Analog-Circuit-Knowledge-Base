@@ -30,6 +30,7 @@ PAGES = {
     "what-a-conversion-costs": ("What a conversion costs", "/adc/what-a-conversion-costs/"),
     "pulling-the-harmonics-out": ("Pulling the harmonics out", "/adc/pulling-the-harmonics-out/"),
     "how-long-a-record": ("How long a record", "/adc/how-long-a-record/"),
+    "how-much-training": ("How much training a calibration needs", "/adc/how-much-training/"),
 }
 EVERY = list(PAGES)
 # which illustrations run each page of the manual
@@ -38,8 +39,8 @@ RUNS = {
     "api/index": EVERY,
     "api/aout": ["reading-the-error", "inl-and-dnl", "what-sets-the-floor", "pulling-the-harmonics-out"],
     "api/spectrum": EVERY,
-    "api/dout": ["reading-the-bits", "binary-vs-redundant-sar"],
-    "api/models": ["binary-vs-redundant-sar", "how-long-a-record"],
+    "api/dout": ["reading-the-bits", "binary-vs-redundant-sar", "how-much-training"],
+    "api/models": ["binary-vs-redundant-sar", "how-long-a-record", "how-much-training"],
     "api/oversampling": ["oversampling-and-noise-shaping"],
     "api/timeinterleave": ["time-interleaved-adcs"],
     "api/siggen": ["aliasing-and-nyquist-zones", "oversampling-and-noise-shaping", "time-interleaved-adcs", "reading-the-error",

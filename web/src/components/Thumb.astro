@@ -1,6 +1,6 @@
 ---
 /** Small schematic previews for the home page. */
-interface Props { kind: 'pll' | 'sar' | 'inl' | 'err' | 'win' | 'fold' | 'ntf' | 'ti' | 'bits' | 'polar' | 'bode' | 'floor' | 'fom' | 'harm' | 'record' }
+interface Props { kind: 'pll' | 'sar' | 'inl' | 'err' | 'win' | 'fold' | 'ntf' | 'ti' | 'bits' | 'polar' | 'bode' | 'floor' | 'fom' | 'harm' | 'record' | 'train' }
 const { kind } = Astro.props;
 const xs = Array.from({ length: 13 }, (_, i) => 6 + i * 14);
 const saw = [-14, -8, -2, 6, 14];
@@ -37,6 +37,10 @@ const corner = 70, decade = 45, perDb = 1.1, flat = 26;
 const dbAt = (x: number) => flat + perDb * 10 * Math.log10(1 + 10 ** ((2 * (x - corner)) / decade));
 const exact = Array.from({ length: 41 }, (_, i) => `${4 + i * 4.6},${dbAt(4 + i * 4.6).toFixed(1)}`).join(' ');
 // one tone over two noise floors, the raised one with a pair of harmonics standing out of it
+// one curve that rises to meet a target as training grows, and one that starts above it and comes back down
+const target = 34;
+const learns = Array.from({ length: 9 }, (_, i) => `${12 + i * 20},${(target + 46 * 2 ** -(i / 1.4)).toFixed(1)}`).join(' ');
+const overfits = Array.from({ length: 9 }, (_, i) => `${12 + i * 20},${(target - 26 * 2 ** -(i / 1.2)).toFixed(1)}`).join(' ');
 // SFDR climbing with the record length until the harmonic that is really there stops it, over a flat SNDR
 const ceiling = 26, climbs = Array.from({ length: 11 }, (_, i) => {
   const x = 10 + i * 17;
@@ -99,6 +103,16 @@ const asymptote = `4,${flat} ${corner},${flat} 188,${(flat + (perDb * 20 * (188 
       <line class="dash" x1={corner} y1="18" x2={corner} y2="92" />
       <polyline class="s1" style="fill: none" stroke-dasharray="5 4" points={asymptote} />
       <polyline class="s2" style="fill: none" points={exact} />
+    </>
+  ) : kind === 'train' ? (
+    <>
+      <text x="0" y="10">training length</text>
+      <line class="base" x1="0" y1="94" x2="188" y2="94" />
+      <line class="dash" x1="0" y1={target} x2="188" y2={target} />
+      <polyline class="s1 link" style="stroke-width: 2" points={learns} />
+      <polyline class="s2 link" style="stroke-width: 2; stroke-dasharray: 5 4" points={overfits} />
+      <circle class="s1" cx="12" cy={target + 46} r="2.6" />
+      <circle class="s2" cx="12" cy={target - 26} r="2.6" />
     </>
   ) : kind === 'record' ? (
     <>
