@@ -53,17 +53,6 @@ const digitalPath = 'M0 60 ' + Array.from({ length: 32 }, (_, i) => {
         </div>
       </section>
 
-      <section class="library" aria-labelledby="library-title">
-        <div>
-          <h2 id="library-title">From the lesson to your own data</h2>
-          <p>Use the Python library for ADC analysis, calibration and plotting.</p>
-        </div>
-        <div class="library-actions">
-          <code>pip install adctoolbox</code>
-          <a href="/doc/quickstart">Quick start <span aria-hidden="true">↗</span></a>
-        </div>
-      </section>
-
       <section id="related" aria-labelledby="related-title">
         <div class="section-head">
           <h2 id="related-title">More to explore</h2>
@@ -103,12 +92,7 @@ const digitalPath = 'M0 60 ' + Array.from({ length: 32 }, (_, i) => {
   h2 { margin: 0; font-size: 15px; font-weight: 600; letter-spacing: -0.02em; }
   .section-note { color: var(--ink-3); font: 10px/1.6 var(--mono); }
   .lesson-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 32px; }
-  .library { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px 24px; margin: 30px 0 34px; padding: 20px 22px; border: 1px solid var(--rule); background: var(--plot); }
-  .library p { margin: 5px 0 0; color: var(--ink-2); font-size: 12px; }
-  .library-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; }
-  .library code { font: 11px var(--mono); background: var(--chip); border: 1px solid var(--rule); padding: 9px 12px; }
-  .library a { font-size: 12px; color: var(--brand); text-decoration: none; }
-  .library a:hover { text-decoration: underline; text-underline-offset: 4px; }
+  #related { margin-top: 32px; }
   .related-grid :global(.entry) { padding-inline: 0; }
   @media (max-width: 760px) { .signal { width: 180px; margin: 0; padding-inline: 0; } .hero-inner { gap: 24px; } .lesson-grid { column-gap: 22px; } }
   @media (max-width: 600px) {
@@ -119,6 +103,6 @@ const digitalPath = 'M0 60 ' + Array.from({ length: 32 }, (_, i) => {
     .section-head { gap: 12px; }
     .section-note { font-size: 9px; }
     .lesson-grid { grid-template-columns: minmax(0, 1fr); }
-    .library { padding: 18px; margin-block: 26px; }
+    #related { margin-top: 26px; }
   }
 </style>
