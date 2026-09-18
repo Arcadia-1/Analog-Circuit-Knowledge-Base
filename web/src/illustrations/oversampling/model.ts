@@ -47,16 +47,31 @@ const UNIT_ERROR = (() => {
   });
 })();
 
+const UNIT_WHITE = (() => {
+  // A second portable white sequence, normalised to exactly 1 rms before the UI scales it in LSB rms.
+  let state = 0xc0ffee12;
+  const out = Float64Array.from({ length: N }, () => {
+    state = (Math.imul(1_664_525, state) + 1_013_904_223) >>> 0;
+    return (state + 0.5) / 2 ** 32 - 0.5;
+  });
+  let mean = 0, power = 0;
+  for (const v of out) mean += v / N;
+  for (const v of out) power += (v - mean) ** 2 / N;
+  const sigma = Math.sqrt(power);
+  return out.map((v) => (v - mean) / sigma);
+})();
+
 /**
- * A sine plus stationary quantisation noise of variance LSB²/12. Each order takes one circular first difference, so
- * its DFT is exactly multiplied by (1 − z⁻¹) and contains no artificial filter-startup impulse.
+ * A sine plus stationary quantisation noise of variance LSB²/12 and optional independent, unshaped white noise. Each
+ * order takes one circular first difference of the quantisation error, so its DFT is exactly multiplied by
+ * (1 − z⁻¹) and contains no artificial filter-startup impulse.
  */
-export function capture(order: number, bits: number): Float64Array {
+export function capture(order: number, bits: number, whiteNoiseLsb = 0): Float64Array {
   const lsb = 1 / 2 ** bits;
   const sine = Float64Array.from({ length: N }, (_, i) => AMP * Math.sin(2 * Math.PI * TONE.fin * (i / FS)) + 0);
   let error = UNIT_ERROR.map((v) => v * lsb);
   for (let pass = 0; pass < order; pass++) error = error.map((v, i) => v - error[(i + N - 1) % N]);
-  return sine.map((s, i) => s + error[i]);
+  return sine.map((s, i) => s + error[i] + UNIT_WHITE[i] * whiteNoiseLsb * lsb);
 }
 
 /** analyze_spectrum on the ±0.5 V range: codes of the same resolution scale it to the full scale the port expects. */
@@ -91,11 +106,22 @@ export function ntfperf(order: number, osr: number): number {
 export const whiteSnr = (bits: number): number => 10 * Math.log10(AMP ** 2 / 2 / ((1 / 2 ** bits) ** 2 / 12));
 
 /**
- * What analyze_spectrum reads in one bin, dBFS, for white quantisation noise of lsb²/12 through the NTF: on the ±0.5 V
- * range a variance σ² lands 16σ²/N in each bin, and |NTF|² is (2 sin(π·bin/N))^(2·order).
+ * What analyze_spectrum reads in one bin, dBFS, for quantisation noise of lsb²/12 through the NTF plus independent
+ * unshaped white noise: on the ±0.5 V range a variance σ² lands 16σ²/N in each bin.
  */
-export const floorModel = (bits: number, order: number) => (bin: number): number =>
-  10 * Math.log10((16 * (1 / 2 ** bits) ** 2) / 12 / N) + 10 * order * Math.log10((2 * Math.sin((Math.PI * bin) / N)) ** 2);
+export const floorModel = (bits: number, order: number, whiteNoiseLsb = 0) => (bin: number): number => {
+  const lsb = 1 / 2 ** bits;
+  const ntf = (2 * Math.sin((Math.PI * bin) / N)) ** (2 * order);
+  return 10 * Math.log10((16 / N) * (lsb ** 2 / 12 * ntf + (whiteNoiseLsb * lsb) ** 2));
+};
+
+/** Predicted in-band SNR when shaped quantisation noise and unshaped added white noise are independent. */
+export function predictedSnr(bits: number, order: number, osr: number, whiteNoiseLsb = 0): number {
+  const lsb = 1 / 2 ** bits;
+  const shaped = lsb ** 2 / 12 * 10 ** (-ntfperf(order, osr) / 10);
+  const white = (whiteNoiseLsb * lsb) ** 2 * 10 ** (-ntfperf(0, osr) / 10);
+  return 10 * Math.log10((AMP ** 2 / 2) / (shaped + white));
+}
 
 /** Least squares by Householder QR, which keeps the design matrix's conditioning instead of squaring it. */
 function leastSquares(columns: Float64Array[], y: Float64Array): number[] {
@@ -238,14 +264,14 @@ export interface Reading {
   inband: Float64Array;
 }
 
-export function read(order: number, bits: number, osr: number): Reading {
-  const data = capture(order, bits);
+export function read(order: number, bits: number, osr: number, whiteNoiseLsb = 0): Reading {
+  const data = capture(order, bits, whiteNoiseLsb);
   return {
     data,
     band: spectrumOf(data, bits, osr),
     full: spectrumOf(data, bits, 1),
     sweep: perfosr(data, OSRS),
-    theory: OSRS.map((o) => whiteSnr(bits) + ntfperf(order, o)),
+    theory: OSRS.map((o) => predictedSnr(bits, order, o, whiteNoiseLsb)),
     inband: ifilter(data, 0, 0.5 / osr),
   };
 }

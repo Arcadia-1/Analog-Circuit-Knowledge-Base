@@ -27,3 +27,7 @@ order |     OSR 1     OSR 2     OSR 4     OSR 8    OSR 16    OSR 32    OSR 64   
            rms 2.828435e-01 2.828427e-01 6.811519e-04
   order 3:   47.161   70.239 |  144.585  154.243 |   47.167   61.270   81.760  101.987  121.856  126.155  126.208  126.209  126.210
            rms 2.828454e-01 2.828427e-01 1.240200e-03
+
+4-bit, order 2, with 0.20 LSB rms of added unshaped white noise
+  analyze_spectrum: OSR 1 15.877 dB SNDR, 39.109 dB SFDR; OSR 32 42.786 dB SNDR, 56.847 dB SFDR
+  perfosr: 15.846 25.192 32.527 36.202 39.498 42.571 44.759 47.287 51.039

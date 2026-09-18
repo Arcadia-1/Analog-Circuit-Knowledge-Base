@@ -8,6 +8,7 @@ import {
   ntfTaps,
   OSRS,
   perfosr,
+  predictedSnr,
   read,
   rms,
   spectrumOf,
@@ -85,6 +86,27 @@ describe('oversampling and noise shaping', () => {
     }
     // (0.4² / 2) / ((1/16)² / 12)
     expect(whiteSnr(4)).toBeCloseTo(10 * Math.log10(0.08 * 3072), 9);
+  });
+
+  it('adds the requested amount of independent unshaped white noise', () => {
+    const bits = 6, amount = 0.25;
+    const clean = capture(2, bits), noisy = capture(2, bits, amount);
+    expect(rms(noisy.map((v, i) => v - clean[i]))).toBeCloseTo(amount / 2 ** bits, 12);
+  });
+
+  it('includes added white noise in the measured and predicted in-band SNDR', () => {
+    const r = read(2, 4, 32, 0.2);
+    const metrics = [[r.full.sndr, r.full.sfdr], [r.band.sndr, r.band.sfdr]];
+    const expected = [[15.877, 39.109], [42.786, 56.847]];
+    metrics.forEach((actual, i) => actual.forEach((v, j) => expect(v).toBeCloseTo(expected[i][j], 2)));
+    [15.846, 25.192, 32.527, 36.202, 39.498, 42.571, 44.759, 47.287, 51.039]
+      .forEach((v, i) => expect(r.sweep[i]).toBeCloseTo(v, 2));
+    [1, 2, 4, 8, 16, 32].forEach((osr) => {
+      const i = OSRS.indexOf(osr);
+      expect(Math.abs(r.sweep[i] - r.theory[i])).toBeLessThan(1.5);
+    });
+    // Once unshaped white noise dominates, each doubling of OSR buys the usual 3 dB.
+    expect(predictedSnr(10, 3, 64, 0.5) - predictedSnr(10, 3, 32, 0.5)).toBeCloseTo(3.01, 1);
   });
 
   it('draws the dashed floor where the measured noise sits', () => {

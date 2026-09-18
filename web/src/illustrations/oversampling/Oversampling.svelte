@@ -22,14 +22,15 @@
   let order = $state(2);
   let osr = $state(32);
   let bits = $state(4);
+  let whiteNoiseLsb = $state(0);
   let hoverBin = $state<number | null>(null);
   let hoverOsr = $state<number | null>(null);
   let hoverT = $state<number | null>(null);
 
-  const r = $derived(read(order, bits, osr));
+  const r = $derived(read(order, bits, osr, whiteNoiseLsb));
   const at = $derived(OSRS.indexOf(osr));
   const outside = $derived(rms(r.data.map((v, i) => v - r.inband[i])));
-  const theory = $derived(floorModel(bits, order));
+  const theory = $derived(floorModel(bits, order, whiteNoiseLsb));
 </script>
 
 <main class="page">
@@ -46,7 +47,8 @@
       <p><b>Oversampling.</b> A converter sampling at <var>f</var><sub>s</sub> spreads its quantisation noise from 0 to <var>f</var><sub>s</sub>/2. If the signal needs only 0 to <var>f</var><sub>s</sub>/2·OSR, a filter can drop the rest and with it all but 1/OSR of the noise: 3 dB for every doubling of OSR. That is the slope with no shaping.</p>
       <p><b>Noise shaping.</b> The model starts with stationary white quantisation noise of variance LSB²/12 and passes it through NTF(<var>z</var>) = (1 − <var>z</var><sup>−1</sup>)<sup><var>L</var></sup> before adding it to the sine: zero at DC, rising as (2 sin π<var>f</var>)<sup><var>L</var></sup>, a straight line of 20<var>L</var> dB a decade on the log axis. The total noise gets worse, two, six and twenty times for <var>L</var> = 1, 2, 3, but what stays in the band collapses, and each doubling of OSR now buys 6<var>L</var> + 3 dB.</p>
       <p><b>Why the spectrum looks like noise.</b> A clean coherent sine through an undithered low-resolution quantiser produces periodic error and therefore a comb of harmonics. That is real, but it hides the noise-transfer-function slope. This lesson uses the standard linearised, dither-equivalent model and a circular NTF filter, so the record is stationary and the FFT has no false low-frequency floor from filter startup. It explains the expected noise power; a real modulator can add idle tones, overload and stability limits.</p>
-      <p><b>Two ways to count it.</b> <code>perfosr</code> fits the sine, windows the residual and adds up its spectrum to <var>f</var><sub>s</sub>/2·OSR, one OSR after another. <code>ntfperf</code> integrates |NTF|² over the same band on a million-point grid; the dashed lines add that to white quantisation noise of LSB²/12. The solid and dashed curves differ because the record is finite; once the residual becomes extremely small, the numerical sine fit also sets the measured floor.</p>
+      <p><b>Added white noise.</b> The slider adds independent, unshaped wideband noise after the NTF, in rms LSB. Oversampling still removes all but roughly 1/OSR of its power, but noise shaping cannot push it away from DC. Turn it up to see a flat floor take over from the sloped quantisation noise and limit the achievable SNDR.</p>
+      <p><b>Two ways to count it.</b> <code>perfosr</code> fits the sine, windows the residual and adds up its spectrum to <var>f</var><sub>s</sub>/2·OSR, one OSR after another. <code>ntfperf</code> integrates |NTF|² over the same band on a million-point grid; the dashed predictions combine shaped quantisation noise of LSB²/12 with the slider's flat white-noise power. The solid and dashed curves differ because the record is finite; once the residual becomes extremely small, the numerical sine fit also sets the measured floor.</p>
       <p><b>What the band holds.</b> <code>ifilter</code> keeps the FFT bins of the band, and their mirrors, and nothing else. The grey output can look like noise with a sine somewhere in it; the band is the sine, and what the filter left outside has an rms of its own.</p>
       <p><b>A spectrum model, not a loop simulation.</b> Resolution sets the ideal LSB and hence LSB²/12. The page does not claim a particular modulator topology or stability range; use a loop-level model when overload, state swing, DAC levels or idle tones are the question.</p>
     </Notes>
@@ -61,14 +63,15 @@
     <div class="group accent2">
       <span class="label">Quantiser</span>
       <Range id="bits" min={2} max={10} step={1} output="{bits} bits" bind:value={bits}>Resolution</Range>
+      <Range id="white-noise" min={0} max={1} step={0.05} output="{nf(whiteNoiseLsb, 2)} LSB rms" bind:value={whiteNoiseLsb}>White noise</Range>
     </div>
-    <span class="about">{N} samples at 100 MHz · stationary quantisation-noise model · a {freqText(TONE.fin)} tone of 0.4 V on ±0.5 V</span>
+    <span class="about">{N} samples at 100 MHz · stationary quantisation noise + unshaped white noise · a {freqText(TONE.fin)} tone of 0.4 V on ±0.5 V</span>
   </section>
 
   <section class="compare">
     <div class="chart wide">
       <div class="cap">
-        <span class="left"><span class="label">Spectrum</span><span>on a log frequency axis; dashed, the NTF on white quantisation noise</span></span>
+        <span class="left"><span class="label">Spectrum</span><span>on a log frequency axis; dashed, the predicted shaped + white noise floor</span></span>
         <span>in band SNDR <b>{nf(r.band.sndr, 1)} dB</b> · ENOB <b>{nf(r.band.enob, 2)}</b> · whole band {nf(r.full.sndr, 1)} dB</span>
       </div>
       <NoiseSpectrum spectrum={r.band} {theory} hover={hoverBin} onhover={(b) => (hoverBin = b)} label="Output spectrum on a logarithmic frequency axis" />

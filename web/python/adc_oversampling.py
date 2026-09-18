@@ -25,8 +25,8 @@ N, FS, AMP = 2**13, 100e6, 0.4
 OSRS = [1, 2, 4, 8, 16, 32, 64, 128, 256]
 
 
-def capture(order, bits):
-    """A coherent sine plus stationary white quantisation noise through (1 - z^-1)^order."""
+def capture(order, bits, white_noise_lsb=0.0):
+    """A coherent sine plus shaped quantisation noise and optional unshaped white noise."""
     fin, _ = find_coherent_frequency(FS, FS / 640, N)
     sine = AMP * np.sin(2 * np.pi * fin * np.arange(N) / FS)
     state = 0x5EED1234
@@ -37,7 +37,13 @@ def capture(order, bits):
     error = unit_error / 2**bits
     for _ in range(order):
         error = error - np.roll(error, 1)
-    return sine + error
+    state = 0xC0FFEE12
+    unit_white = np.empty(N)
+    for i in range(N):
+        state = (1664525 * state + 1013904223) & 0xFFFFFFFF
+        unit_white[i] = (state + 0.5) / 2**32 - 0.5
+    unit_white = (unit_white - np.mean(unit_white)) / np.std(unit_white)
+    return sine + error + unit_white * white_noise_lsb / 2**bits
 
 
 def ntf(order):
@@ -73,3 +79,11 @@ if __name__ == "__main__":
             print(f"  order {order}: {full[0]:8.3f} {full[1]:8.3f} | {band[0]:8.3f} {band[1]:8.3f} | "
                   + " ".join(f"{s:8.3f}" for s in sweep))
             print(f"           rms {np.std(data):.6e} {np.std(inband):.6e} {np.std(data - inband):.6e}")
+    print()
+    print("4-bit, order 2, with 0.20 LSB rms of added unshaped white noise")
+    data = capture(2, 4, 0.20)
+    full, band = read(data, 1), read(data, 32)
+    _, sweep, _, _ = perfosr(data, osr=np.array(OSRS))
+    print(f"  analyze_spectrum: OSR 1 {full[0]:.3f} dB SNDR, {full[1]:.3f} dB SFDR; "
+          f"OSR 32 {band[0]:.3f} dB SNDR, {band[1]:.3f} dB SFDR")
+    print("  perfosr: " + " ".join(f"{s:.3f}" for s in sweep))
