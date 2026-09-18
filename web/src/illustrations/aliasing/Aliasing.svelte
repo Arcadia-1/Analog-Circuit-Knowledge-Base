@@ -2,7 +2,6 @@
   import SpectrumChart from '../../components/chart/SpectrumChart.svelte';
   import Notes from '../../components/ui/Notes.svelte';
   import Range from '../../components/ui/Range.svelte';
-  import Segmented from '../../components/ui/Segmented.svelte';
   import ValueField from '../../components/ui/ValueField.svelte';
   import { freqText, nf } from '../../lib/format';
   import { residual } from '../../lib/frequency';
@@ -32,6 +31,21 @@
   const marks = $derived(r.landings.slice(1).map((l) => ({ bin: Math.round((l.lands / r.fsOut) * N_FFT), text: `H${l.order}` })));
   const rate = (fs: number) => (fs >= 1e9 ? `${fs / 1e9} GS/s` : `${Math.round(fs / 1e5) / 10} MS/s`);
   const setTarget = (hz: number) => (target = clamp(hz, 1e6, F_MAX - 1e6));
+  let wheelReady = true;
+
+  function stepKeep(direction: -1 | 1) {
+    const next = Math.max(0, Math.min(KEEP.length - 1, KEEP.indexOf(keep) + direction));
+    keep = KEEP[next];
+  }
+
+  function wheelKeep(event: WheelEvent) {
+    if (Math.abs(event.deltaY) < 1) return;
+    event.preventDefault();
+    if (!wheelReady) return;
+    stepKeep(event.deltaY < 0 ? 1 : -1);
+    wheelReady = false;
+    window.setTimeout(() => (wheelReady = true), 140);
+  }
 </script>
 
 <main class="page">
@@ -41,7 +55,13 @@
     <p class="sub">Whatever goes in comes out between 0 and half the sampling rate, and so do its harmonics.</p>
     <div class="pick">
       <span class="label">Output rate</span>
-      <Segmented size="sm" label="Output sample rate after keeping every N-th sample" options={KEEP.map((k) => ({ value: k, label: rate(FS / k) }))} bind:value={keep} />
+      <div class="decimation" role="group" aria-label="Output-rate decimation factor" title="Use the arrows or scroll to change the decimation factor" onwheel={wheelKeep}>
+        <output class="mono" aria-live="polite">÷{keep}</output>
+        <span class="step-buttons">
+          <button type="button" aria-label="Increase decimation factor" disabled={keep === KEEP.at(-1)} onclick={() => stepKeep(1)}>▴</button>
+          <button type="button" aria-label="Decrease decimation factor" disabled={keep === KEEP[0]} onclick={() => stepKeep(-1)}>▾</button>
+        </span>
+      </div>
     </div>
     <Notes>
       <p><b>Ported from ADCToolbox 0.9.1.</b> <code>fundamentals/</code>: <a href="/doc/api/fundamentals#adctoolbox.fold_frequency_to_nyquist"><code>fold_frequency_to_nyquist</code></a>, <a href="/doc/api/fundamentals#adctoolbox.fold_bin_to_nyquist"><code>fold_bin_to_nyquist</code></a>, <a href="/doc/api/fundamentals#adctoolbox.find_coherent_frequency"><code>find_coherent_frequency</code></a>. <code>siggen/nonidealities.py</code>: <a href="/doc/api/siggen#adctoolbox.siggen.ADC_Signal_Generator.apply_static_nonlinearity_hd"><code>apply_static_nonlinearity_hd</code></a>, <a href="/doc/api/siggen#adctoolbox.siggen.ADC_Signal_Generator.apply_thermal_noise"><code>apply_thermal_noise</code></a>, <a href="/doc/api/siggen#adctoolbox.siggen.ADC_Signal_Generator.apply_quantization_noise"><code>apply_quantization_noise</code></a>. <code>spectrum/</code>: <a href="/doc/api/spectrum#adctoolbox.analyze_spectrum"><code>analyze_spectrum</code></a>. This page is the interactive companion to its examples <code>exp_c01</code> and <code>exp_d00</code>; <a href="https://github.com/Arcadia-1/Analog-Circuit-Knowledge-Base/blob/main/web/python/adc_aliasing.py">python/adc_aliasing.py</a> runs <a href="https://github.com/Arcadia-1/ADCToolbox">ADCToolbox</a> on the same samples and every number here matches it.</p>
@@ -105,6 +125,13 @@
   .page { grid-template-rows: auto auto auto minmax(0, 1fr); }
   .tuner { border-top: 1px solid var(--rule); padding-top: 8px; }
   .legend b { font-weight: 500; color: var(--ink); }
+  .decimation { display: inline-flex; align-items: stretch; height: 32px; border: 1px solid var(--rule); border-radius: 7px; background: var(--plot); overflow: hidden; }
+  .decimation output { min-width: 48px; display: grid; place-items: center; padding-inline: 10px; color: var(--ink); font-size: 13px; font-variant-numeric: tabular-nums; }
+  .step-buttons { display: grid; width: 26px; border-left: 1px solid var(--rule); }
+  .step-buttons button { display: grid; place-items: center; min-width: 0; padding: 0; border: 0; background: transparent; color: var(--ink-2); font: 9px/1 var(--sans); cursor: pointer; }
+  .step-buttons button + button { border-top: 1px solid var(--rule); }
+  .step-buttons button:hover:not(:disabled), .step-buttons button:focus-visible { color: var(--brand); background: var(--chip); }
+  .step-buttons button:disabled { color: var(--ghost); cursor: default; opacity: 0.55; }
   .controls { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 34px; }
   .group { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 20px; }
   .group .label { color: var(--ink-3); }
