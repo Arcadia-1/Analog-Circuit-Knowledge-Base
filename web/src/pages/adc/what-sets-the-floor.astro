@@ -1,0 +1,11 @@
+---
+import Base from '../../layouts/Base.astro';
+import WhatSetsTheFloor from '../../illustrations/impairments/WhatSetsTheFloor.svelte';
+import '../../styles/illustration.css';
+---
+<Base
+  title="What sets the floor"
+  description="Thermal noise, resolution, clock jitter, incomplete settling, memory and an interfering tone, one at a time: what each does to the spectrum, what it costs in SNDR and SNR, and the limit it alone would set."
+>
+  <WhatSetsTheFloor client:load />
+</Base>
