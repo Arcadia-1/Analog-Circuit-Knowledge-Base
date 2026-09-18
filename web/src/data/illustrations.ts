@@ -2,7 +2,7 @@ export interface Illustration {
   href: string;
   title: string;
   summary: string;
-  thumb: 'pll' | 'sar' | 'inl' | 'err' | 'win' | 'fold' | 'ntf' | 'ti' | 'bits' | 'polar' | 'bode';
+  thumb: 'pll' | 'sar' | 'inl' | 'err' | 'win' | 'fold' | 'ntf' | 'ti' | 'bits' | 'polar' | 'bode' | 'floor';
   /** Whose site this is, for a page that is not on this one; it opens in a tab of its own. */
   external?: string;
 }
@@ -41,6 +41,12 @@ export const topics: Topic[] = [
         title: 'INL and DNL',
         summary: 'Relate code widths and missing codes to static linearity.',
         thumb: 'inl',
+      },
+      {
+        href: '/adc/what-sets-the-floor/',
+        title: 'What sets the floor',
+        summary: 'Weigh noise, resolution, jitter and distortion against each other.',
+        thumb: 'floor',
       },
       {
         href: '/adc/reading-the-error/',
