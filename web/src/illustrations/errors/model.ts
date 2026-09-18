@@ -12,6 +12,7 @@
  *
  * Units are LSB: full scale is 2^N and the sine sits at mid-scale.
  */
+import { solve } from '../../lib/numeric';
 import { gaussians } from '../../lib/rng';
 import { analyzeSpectrum, N_FFT, type Spectrum } from '../../lib/spectrum';
 
@@ -87,7 +88,8 @@ export interface Fit {
  */
 export function fitSine(y: Float64Array, bin: number, iterations = 0, tolerance = 1e-9): Fit {
   const n = y.length;
-  let freq = bin / N_FFT, a = 0, b = 0, dc = 0;
+  // a bin of this record: fractional bins are allowed, which is how a caller passes a frequency it already knows
+  let freq = bin / n, a = 0, b = 0, dc = 0;
   for (let it = 0; it <= iterations; it++) {
     const w = 2 * Math.PI * freq;
     // the design matrix, a column at a time; the refinement column is scaled by 1 / n to keep the system conditioned
@@ -120,27 +122,6 @@ export function fitSine(y: Float64Array, bin: number, iterations = 0, tolerance 
     sq += error[i] * error[i];
   }
   return { fitted, error, amplitude: Math.hypot(a, b), dc, phase: Math.atan2(-b, a), rmse: Math.sqrt(sq / n), frequency: freq };
-}
-
-/** Gaussian elimination with partial pivoting. */
-function solve(m: number[][], r: number[]): number[] {
-  const k = r.length, a = m.map((row, i) => [...row, r[i]]);
-  for (let i = 0; i < k; i++) {
-    let p = i;
-    for (let j = i + 1; j < k; j++) if (Math.abs(a[j][i]) > Math.abs(a[p][i])) p = j;
-    [a[i], a[p]] = [a[p], a[i]];
-    for (let j = i + 1; j < k; j++) {
-      const f = a[j][i] / a[i][i];
-      for (let c = i; c <= k; c++) a[j][c] -= f * a[i][c];
-    }
-  }
-  const x = new Array<number>(k).fill(0);
-  for (let i = k - 1; i >= 0; i--) {
-    let s = a[i][k];
-    for (let j = i + 1; j < k; j++) s -= a[i][j] * x[j];
-    x[i] = s / a[i][i];
-  }
-  return x;
 }
 
 export interface Bins {

@@ -29,3 +29,24 @@ export function roundEven(v: number): number {
   const r = Math.round(v);
   return Math.abs(v % 1) === 0.5 && r % 2 !== 0 ? r - 1 : r;
 }
+
+/** Gaussian elimination with partial pivoting. */
+export function solve(m: number[][], r: number[]): number[] {
+  const k = r.length, a = m.map((row, i) => [...row, r[i]]);
+  for (let i = 0; i < k; i++) {
+    let p = i;
+    for (let j = i + 1; j < k; j++) if (Math.abs(a[j][i]) > Math.abs(a[p][i])) p = j;
+    [a[i], a[p]] = [a[p], a[i]];
+    for (let j = i + 1; j < k; j++) {
+      const f = a[j][i] / a[i][i];
+      for (let c = i; c <= k; c++) a[j][c] -= f * a[i][c];
+    }
+  }
+  const x = new Array<number>(k).fill(0);
+  for (let i = k - 1; i >= 0; i--) {
+    let s = a[i][k];
+    for (let j = i + 1; j < k; j++) s -= a[i][j] * x[j];
+    x[i] = s / a[i][i];
+  }
+  return x;
+}

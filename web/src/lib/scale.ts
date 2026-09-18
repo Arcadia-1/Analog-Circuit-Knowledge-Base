@@ -15,3 +15,10 @@ export const log10Scale = (f0: number, f1: number, r0: number, r1: number) => {
 /** Symmetric log in base 2 around zero: symlog(r) = sign(r) · log2(1 + |r|). */
 export const symlog = (r: number): number => Math.sign(r) * Math.log2(1 + Math.abs(r));
 export const clamp = (v: number, lo: number, hi: number): number => Math.min(hi, Math.max(lo, v));
+
+/** The next 1, 2 or 5 times a power of ten at or above v: a readable end for an axis. */
+export function niceSpan(v: number): number {
+  if (!(v > 0)) return 1;
+  const power = 10 ** Math.floor(Math.log10(v)), m = v / power;
+  return (m <= 1 ? 1 : m <= 2 ? 2 : m <= 5 ? 5 : 10) * power;
+}
