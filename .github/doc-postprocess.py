@@ -27,6 +27,7 @@ PAGES = {
     "reading-the-bits": ("Reading the bits", "/adc/reading-the-bits/"),
     "binary-vs-redundant-sar": ("Binary vs redundant SAR", "/adc/binary-vs-redundant-sar/"),
     "what-sets-the-floor": ("What sets the floor", "/adc/what-sets-the-floor/"),
+    "what-a-conversion-costs": ("What a conversion costs", "/adc/what-a-conversion-costs/"),
 }
 EVERY = list(PAGES)
 # which illustrations run each page of the manual
@@ -42,7 +43,7 @@ RUNS = {
     "api/siggen": ["aliasing-and-nyquist-zones", "oversampling-and-noise-shaping", "time-interleaved-adcs", "reading-the-error",
                    "binary-vs-redundant-sar", "what-sets-the-floor"],
     "api/fundamentals": ["averaging-and-the-polar-spectrum", "aliasing-and-nyquist-zones", "oversampling-and-noise-shaping",
-                         "reading-the-error", "what-sets-the-floor"],
+                         "reading-the-error", "what-sets-the-floor", "what-a-conversion-costs"],
     "examples/index": EVERY,
     "quickstart": EVERY,
 }

@@ -1,0 +1,100 @@
+[unit round trips]
+  dB -> magnitude -> dB
+    -80.00    0.000100000  -80.0000
+    -40.00    0.010000000  -40.0000
+     -6.02    0.500034535   -6.0200
+      0.00    1.000000000    0.0000
+     20.00   10.000000000   20.0000
+  dB -> power ratio -> dB
+     -3.01       0.500035   -3.0100
+      0.00       1.000000    0.0000
+     10.00      10.000000   10.0000
+     30.00    1000.000000   30.0000
+  volts -> LSB -> volts, on a 1 V range
+    0.000001       0.004096  0.000001000
+    0.001000       4.096000  0.001000000
+    0.250000    1024.000000  0.250000000
+    0.500000    2048.000000  0.500000000
+  frequency -> bin -> frequency, 4096 points at 1 GS/s
+     1.000000      4     0.976562
+    96.923828    397    96.923828
+   250.000000   1024   250.000000
+   499.900000   2048   500.000000
+  SNR -> ENOB -> SNR
+     40.00    6.3522   40.0000
+     61.96   10.0000   61.9600
+     74.00   12.0000   74.0000
+    100.00   16.3189  100.0000
+  dBm -> Vrms -> dBm, and dBm -> mW -> dBm, into 50 ohm
+    -30.00  0.007071068  -30.0000     0.001000  -30.0000
+    -10.00  0.070710678  -10.0000     0.100000  -10.0000
+      0.00  0.223606798    0.0000     1.000000    0.0000
+     13.00  0.998814876   13.0000    19.952623   13.0000
+  sine peak amplitude -> power into 50 ohm, W
+      0.10    0.000100000
+      0.50    0.002500000
+      1.00    0.010000000
+
+[the same converter, written every way a datasheet writes it]
+  audio: 6.144 MS/s, OSR 64, SNDR 100 dB, 3 mW, 2 V range, 24 bits
+    bandwidth      48.0000 kHz, ENOB  16.3189 bits, back to SNDR 100.0000 dB
+    NSD  -146.8124 dBFS/Hz, back to SNR 100.0000 dB
+    noise     7.071068 uV rms =  59.316416 LSB of   0.119209 uV, from amplitudes 100.0000 dB
+    signal   10.0000 dBm =    10.000000 mW into 50 ohm
+    Walden       5.9728 fJ/conv-step, Schreier 172.0412 dB
+  sensor: 1 MS/s, OSR 1, SNDR 60 dB, 0.02 mW, 1 V range, 12 bits
+    bandwidth     500.0000 kHz, ENOB   9.6744 bits, back to SNDR  60.0000 dB
+    NSD  -116.9897 dBFS/Hz, back to SNR  60.0000 dB
+    noise   353.553391 uV rms =   1.448155 LSB of 244.140625 uV, from amplitudes  60.0000 dB
+    signal    3.9794 dBm =     2.500000 mW into 50 ohm
+    Walden      24.4760 fJ/conv-step, Schreier 163.9794 dB
+  radio: 500 MS/s, OSR 1, SNDR 65 dB, 60 mW, 1 V range, 14 bits
+    bandwidth  250000.0000 kHz, ENOB  10.5050 bits, back to SNDR  65.0000 dB
+    NSD  -148.9794 dBFS/Hz, back to SNR  65.0000 dB
+    noise   198.817682 uV rms =   3.257429 LSB of  61.035156 uV, from amplitudes  65.0000 dB
+    signal    3.9794 dBm =     2.500000 mW into 50 ohm
+    Walden      82.5783 fJ/conv-step, Schreier 161.1979 dB
+  scope: 10000 MS/s, OSR 1, SNDR 40 dB, 1500 mW, 0.5 V range, 8 bits
+    bandwidth 5000000.0000 kHz, ENOB   6.3522 bits, back to SNDR  40.0000 dB
+    NSD  -136.9897 dBFS/Hz, back to SNR  40.0000 dB
+    noise  1767.766953 uV rms =   0.905097 LSB of 1953.125000 uV, from amplitudes  40.0000 dB
+    signal   -2.0412 dBm =     0.625000 mW into 50 ohm
+    Walden    1836.1186 fJ/conv-step, Schreier 135.2288 dB
+
+[what a fixed Walden FOM buys: ENOB against sampling rate, at 10 mW]
+  fs MHz, then 10, 100 and 1000 fJ/conv-step
+          1.0   19.9316   16.6096   13.2877
+         10.0   16.6096   13.2877    9.9658
+        100.0   13.2877    9.9658    6.6439
+       1000.0    9.9658    6.6439    3.3219
+      10000.0    6.6439    3.3219    0.0000
+     100000.0    3.3219    0.0000   -3.3219
+
+[what a fixed Schreier FOM buys: SNDR against bandwidth, at 10 mW]
+  BW MHz, then 160, 170, 180 and 190 dB
+       0.1000   90.0000  100.0000  110.0000  120.0000
+       1.0000   80.0000   90.0000  100.0000  110.0000
+      10.0000   70.0000   80.0000   90.0000  100.0000
+     100.0000   60.0000   70.0000   80.0000   90.0000
+    1000.0000   50.0000   60.0000   70.0000   80.0000
+   10000.0000   40.0000   50.0000   60.0000   70.0000
+
+[the two walls]
+  aperture jitter: fin MHz, then the SNR 10, 50, 100 and 500 fs allow
+          1.0  144.0364  130.0570  124.0364  110.0570
+         10.0  124.0364  110.0570  104.0364   90.0570
+        100.0  104.0364   90.0570   84.0364   70.0570
+       1000.0   84.0364   70.0570   64.0364   50.0570
+       5000.0   70.0570   56.0776   50.0570   36.0776
+  the gain oversampling adds, which amplitudes_to_snr has built in: OSR, then dB
+            1    0.0000
+            2    3.0103
+            8    9.0309
+           64   18.0618
+          256   24.0824
+  kT/C on a 1 V range: C pF, then the SNR it allows, and its ENOB
+         0.01   54.7991    8.8105
+         0.10   64.7991   10.4716
+         1.00   74.7991   12.1327
+        10.00   84.7991   13.7939
+       100.00   94.7991   15.4550
