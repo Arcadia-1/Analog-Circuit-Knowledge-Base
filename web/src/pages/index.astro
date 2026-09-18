@@ -37,11 +37,7 @@ const digitalPath = 'M0 60 ' + Array.from({ length: 32 }, (_, i) => {
     </section>
 
     <div class="content">
-      <section id="lessons" aria-labelledby="lessons-title">
-        <div class="section-head">
-          <h2 id="lessons-title">Explore the lessons</h2>
-          <span class="section-note">{String(lessons.length).padStart(2, '0')} interactive lessons</span>
-        </div>
+      <section id="lessons" aria-label="Interactive lessons">
         <div class="lesson-grid">
           {lessons.map((item) => <Entry item={item} />)}
         </div>
