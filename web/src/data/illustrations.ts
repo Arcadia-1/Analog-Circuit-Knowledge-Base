@@ -2,7 +2,7 @@ export interface Illustration {
   href: string;
   title: string;
   summary: string;
-  thumb: 'pll' | 'sar' | 'inl' | 'err' | 'win' | 'fold' | 'ntf' | 'ti' | 'bits' | 'polar' | 'bode' | 'floor' | 'fom' | 'harm' | 'record';
+  thumb: 'pll' | 'sar' | 'inl' | 'err' | 'win' | 'fold' | 'ntf' | 'ti' | 'bits' | 'polar' | 'bode' | 'floor' | 'fom' | 'harm' | 'record' | 'train';
   /** Whose site this is, for a page that is not on this one; it opens in a tab of its own. */
   external?: string;
 }
@@ -41,6 +41,12 @@ export const topics: Topic[] = [
         title: 'Binary vs redundant SAR',
         summary: 'Explore SAR decisions, redundancy and weight calibration.',
         thumb: 'sar',
+      },
+      {
+        href: '/adc/how-much-training/',
+        title: 'How much training a calibration needs',
+        summary: 'Watch weight calibration overfit a short record, then generalise.',
+        thumb: 'train',
       },
       {
         href: '/adc/inl-and-dnl/',

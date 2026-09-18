@@ -6,7 +6,7 @@
   import Tip from './Tip.svelte';
 
   /** Output spectrum in dBFS; each pixel column spans the min … max of the bins it covers. */
-  let { spectrum, n, series, hover, onhover, label, fs, marks = [] }: {
+  let { spectrum, n, series, hover, onhover, label, fs, marks = [], behind }: {
     spectrum: Spectrum;
     n: number;
     series: 1 | 2;
@@ -17,6 +17,8 @@
     fs?: number;
     /** bins to name, such as where harmonics landed; a mark on the spur replaces the spur's own label */
     marks?: { bin: number; text: string }[];
+    /** a second spectrum of the same record to draw faded underneath, such as the same capture before a correction */
+    behind?: Spectrum;
   } = $props();
 
   const X0 = 46;
@@ -33,15 +35,20 @@
     const sx = (bin: number) => X0 + (bin / BINS) * (X1 - X0);
     const sy = (v: number) => Y0 + (clamp(v, ybot, 0) / ybot) * (Y1 - Y0);
     const cols = Math.max(1, Math.round(X1 - X0));
-    const lo = new Float64Array(cols).fill(Infinity), hi = new Float64Array(cols).fill(-Infinity);
-    for (let k = 1; k <= BINS; k++) {
-      const c = Math.min(cols - 1, Math.floor(((k - 0.5) / BINS) * cols));
-      const v = spectrum.dbfs[k];
-      if (v < lo[c]) lo[c] = v;
-      if (v > hi[c]) hi[c] = v;
-    }
-    let d = '';
-    for (let c = 0; c < cols; c++) if (hi[c] > -Infinity) d += `M${X0 + c + 0.5},${sy(hi[c])}V${Math.max(sy(lo[c]), sy(hi[c]) + 1)}`;
+    // one column of pixels spans the min … max of the bins it covers
+    const columns = (of: Spectrum) => {
+      const lo = new Float64Array(cols).fill(Infinity), hi = new Float64Array(cols).fill(-Infinity);
+      for (let k = 1; k <= BINS; k++) {
+        const c = Math.min(cols - 1, Math.floor(((k - 0.5) / BINS) * cols));
+        const v = of.dbfs[k];
+        if (v < lo[c]) lo[c] = v;
+        if (v > hi[c]) hi[c] = v;
+      }
+      let path = '';
+      for (let c = 0; c < cols; c++) if (hi[c] > -Infinity) path += `M${X0 + c + 0.5},${sy(hi[c])}V${Math.max(sy(lo[c]), sy(hi[c]) + 1)}`;
+      return path;
+    };
+    const d = columns(spectrum), was = behind ? columns(behind) : '';
     const grid: number[] = [];
     const every = Y1 - Y0 < 170 ? 40 : 20;
     for (let v = ybot; v <= 0; v += 20) grid.push(v);
@@ -55,7 +62,7 @@
       if (i && m.x - named[i - 1].x < 28 && Math.abs(m.y - named[i - 1].y) < 14) m.y = named[i - 1].y - 14;
     });
     const tick = (f: number) => (fs ? (f === 0.5 ? `${mhz(f * points)} MHz` : mhz(f * points)) : f === 0.5 ? '0.5 fs' : `${f}`);
-    return { X1, Y0, Y1, sx, sy, d, grid, every, ticks, tick, spurX, right, spurText, named };
+    return { X1, Y0, Y1, sx, sy, d, was, grid, every, ticks, tick, spurX, right, spurText, named };
   }
 
   function move(px: number, W: number) {
@@ -76,6 +83,7 @@
       <text class="tx" x={g.sx(f * points)} y={height - 5} text-anchor={f === 0 ? 'start' : f === 0.5 ? 'end' : 'middle'}>{g.tick(f)}</text>
     {/each}
     <text class="tx2 halo" x={X0 + 6} y={g.Y0 + 12}>dBFS</text>
+    {#if g.was}<path class="was" stroke-width="1" d={g.was} />{/if}
     <path class="c{series}" stroke-width="1" d={g.d} />
     <circle class="f{series} ring" cx={g.sx(spectrum.signal)} cy={g.sy(spectrum.dbfs[spectrum.signal])} r="4.5" />
     {#if !marks.some((m) => m.bin === spectrum.spur)}
@@ -96,3 +104,8 @@
     {/if}
   {/snippet}
 </Plot>
+
+<style>
+  /* the same capture before whatever the page is showing the effect of */
+  .was { stroke: var(--ink-3); fill: none; opacity: 0.4; }
+</style>
