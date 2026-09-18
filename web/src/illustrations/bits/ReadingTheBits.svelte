@@ -52,7 +52,7 @@
 
 <main class="page">
   <header class="top">
-    <a class="crumb" href="/">ADCToolbox</a>
+    <a class="crumb" href="/#lessons">← All lessons</a>
     <h1>Reading the bits</h1>
     <p class="sub">A SAR converter's raw output, read four ways before anything is added up.</p>
     <div class="pick">

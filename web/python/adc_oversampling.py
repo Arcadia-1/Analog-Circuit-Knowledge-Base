@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
-"""Reference numbers for the oversampling page, computed with ADCToolbox.
+"""Reference numbers for the oversampling page, analysed with ADCToolbox.
 
-    pip install adctoolbox==0.9.1
+    python -m pip install -r python/requirements.txt
     python3 python/adc_oversampling.py
 
-The page ports these ADCToolbox functions to TypeScript, and tests/oversampling-model.test.ts checks the port against
-the numbers printed here:
-  siggen/nonidealities   apply_noise_shaping, apply_quantization_noise
+The page builds a stationary linearised quantisation-noise record, ports these ADCToolbox functions to TypeScript, and
+tests/oversampling-model.test.ts checks the port against the numbers printed here:
   spectrum/              analyze_spectrum with an OSR
   oversampling/          ntfperf, perfosr (sweep_performance_vs_osr and fit_sine_4param), ifilter
 following the examples exp_o01 (a noise-shaped spectrum), exp_o02 (ifilter) and exp_o03 (ntfperf and perfosr).
+
+The seeded noise has variance LSB²/12. Circular first differences apply (1-z^-1)^order without the filter-startup
+impulse that a zero-state finite record would spread over every FFT bin.
 """
 import contextlib
 import io
@@ -18,19 +20,24 @@ import warnings
 import numpy as np
 from scipy import signal
 from adctoolbox import analyze_spectrum, find_coherent_frequency, ifilter, ntfperf, perfosr
-from adctoolbox.siggen import ADC_Signal_Generator
 
 N, FS, AMP = 2**13, 100e6, 0.4
 OSRS = [1, 2, 4, 8, 16, 32, 64, 128, 256]
 
 
 def capture(order, bits):
-    """exp_o01's converter at exp_o03's tone: plain quantisation, or quantisation shaped by (1 - z^-1)^order."""
+    """A coherent sine plus stationary white quantisation noise through (1 - z^-1)^order."""
     fin, _ = find_coherent_frequency(FS, FS / 640, N)
-    gen = ADC_Signal_Generator(N=N, Fs=FS, Fin=fin, A=AMP, DC=0.0)
-    if order == 0:
-        return gen.apply_quantization_noise(n_bits=bits, quant_range=(-0.5, 0.5))
-    return gen.apply_noise_shaping(n_bits=bits, quant_range=(-0.5, 0.5), order=order)
+    sine = AMP * np.sin(2 * np.pi * fin * np.arange(N) / FS)
+    state = 0x5EED1234
+    unit_error = np.empty(N)
+    for i in range(N):
+        state = (1664525 * state + 1013904223) & 0xFFFFFFFF
+        unit_error[i] = (state + 0.5) / 2**32 - 0.5
+    error = unit_error / 2**bits
+    for _ in range(order):
+        error = error - np.roll(error, 1)
+    return sine + error
 
 
 def ntf(order):

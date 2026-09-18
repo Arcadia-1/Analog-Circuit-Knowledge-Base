@@ -29,7 +29,8 @@
   .sm button { padding: 5px 10px; font-size: 12.5px; }
   .mono button { font-family: var(--mono); }
   @media (max-width: 900px) {
-    .seg { display: flex; width: 100%; }
-    button { flex: 1 1 0; padding-inline: 6px; }
+    .seg { display: flex; flex-wrap: wrap; width: 100%; max-width: 100%; }
+    button { flex: 1 1 auto; }
+    button, .sm button { padding-inline: 6px; }
   }
 </style>

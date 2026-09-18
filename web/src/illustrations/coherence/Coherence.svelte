@@ -43,7 +43,7 @@
 
 <main class="page">
   <header class="top">
-    <a class="crumb" href="/">ADCToolbox</a>
+    <a class="crumb" href="/#lessons">← All lessons</a>
     <h1>Coherent sampling</h1>
     <p class="sub">A perfect converter, measured badly. The tone is a fraction of a bin off, and that is all it takes.</p>
     <div class="pick">

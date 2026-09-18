@@ -26,6 +26,7 @@ concurrency:
 
 jobs:
   site:
+    needs: toolbox-drift
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -89,8 +90,8 @@ jobs:
         run: pnpm exec wrangler pages deploy dist --project-name ams-class --branch main --commit-message "GitHub Actions ${GITHUB_SHA}"
 
   # The pages' tests pin the numbers ADCToolbox printed when each page was written, so they cannot notice the library
-  # changing a ported function. Rerun those scripts against its main as it is now. A separate job, so that a page left
-  # behind is reported without holding back the deploy.
+  # changing a ported function. Rerun all references, including PLL, against its main as it is now.
+  # Publishing depends on this job so a numerical mismatch cannot silently reach the tutorial site.
   toolbox-drift:
     runs-on: ubuntu-latest
     timeout-minutes: 10

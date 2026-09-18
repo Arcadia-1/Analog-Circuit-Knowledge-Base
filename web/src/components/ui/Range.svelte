@@ -31,6 +31,6 @@
   output { min-width: 7ch; font-size: 13px; color: var(--ink); }
   @media (max-width: 900px) {
     .range { width: 100%; }
-    input { flex: 1 1 auto; width: auto; }
+    input { flex: 1 1 auto; width: auto; min-width: 0; }
   }
 </style>

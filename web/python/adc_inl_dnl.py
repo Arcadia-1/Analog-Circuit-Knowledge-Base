@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Reference numbers for the INL and DNL page, computed with ADCToolbox.
 
-    pip install adctoolbox==0.9.1
+    python -m pip install -r python/requirements.txt
     python3 python/adc_inl_dnl.py
 
 The page ports these ADCToolbox functions to TypeScript, and tests/inldnl-model.test.ts checks the port against the

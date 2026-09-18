@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Reference numbers for the coherent-sampling page, computed with ADCToolbox.
 
-    pip install adctoolbox==0.9.1
+    python -m pip install -r python/requirements.txt
     python3 python/adc_coherent_sampling.py
 
 The page uses the same spectrum port as the other converter pages (src/lib/spectrum.ts, from

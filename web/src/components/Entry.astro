@@ -2,31 +2,37 @@
 import Thumb from './Thumb.astro';
 import type { Illustration } from '../data/illustrations';
 
-/** One card on the home page: the thumbnail, what the page is about, and where it comes from. */
+/** A compact lesson link with its own visual preview, title and one sentence. */
 interface Props { item: Illustration }
 const { item } = Astro.props;
 const away = Boolean(item.external);
 ---
 <a class="entry" href={item.href} target={away ? '_blank' : undefined} rel={away ? 'noopener noreferrer' : undefined}>
-  <Thumb kind={item.thumb} />
-  <div>
-    <h3 set:html={item.title.replace(/-N\b/g, '-<var>N</var>')} />
+  <div class="preview"><Thumb kind={item.thumb} /></div>
+  <div class="description">
+    <div class="heading">
+      <h3 set:html={item.title.replace(/-N\b/g, '-<var>N</var>')} />
+      <span class="arrow" aria-hidden="true">↗</span>
+    </div>
     <p>{item.summary}</p>
-    <p class="tags">{item.tags.join(' · ')}</p>
-    {item.toolbox && <p class="from">{item.toolbox}</p>}
-    {item.external && <p class="from">{item.external} ↗</p>}
   </div>
+  {away && <span class="sr-only"> (opens in a new tab)</span>}
 </a>
 
 <style>
-  .entry { display: grid; grid-template-columns: 188px minmax(0, 1fr); gap: 24px; align-items: center; padding: 18px; margin-inline: -18px; border-radius: 12px; color: inherit; text-decoration: none; transition: background-color 0.15s; }
+  .entry { display: grid; grid-template-columns: 164px minmax(0, 1fr); align-items: center; gap: 20px; min-width: 0; padding: 18px 12px; border-bottom: 1px solid var(--rule); color: inherit; text-decoration: none; transition: background-color 0.15s; }
   .entry:hover { background: var(--plot); }
-  h3 { margin: 0; font-size: 21px; font-weight: 500; letter-spacing: -0.01em; }
+  .preview, .description { min-width: 0; }
+  .preview :global(.thumb) { width: 100%; }
+  .heading { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+  h3 { margin: 0; font-size: 18px; line-height: 1.35; font-weight: 600; letter-spacing: -0.025em; }
   h3 :global(var) { font-size: 1.08em; }
-  .entry p { margin: 6px 0 0; color: var(--ink-2); }
-  .entry .tags { font: 12.5px var(--mono); color: var(--ink-3); margin-top: 10px; }
-  .entry .from { font: 12px var(--mono); color: var(--ink-3); opacity: 0.8; margin-top: 3px; }
-  @media (max-width: 640px) {
-    .entry { grid-template-columns: 1fr; gap: 14px; }
-  }
+  .entry p { margin: 6px 0 0; color: var(--ink-2); font-size: 13px; line-height: 1.6; text-wrap: pretty; }
+  .arrow { flex: none; color: var(--ink-3); font-size: 16px; transition: color 0.15s, transform 0.15s; }
+  .entry:hover .arrow, .entry:focus-visible .arrow { color: var(--brand); transform: translate(2px, -2px); }
+  .entry:hover h3 { color: var(--brand); }
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  @media (min-width: 601px) and (max-width: 1000px) { .entry { grid-template-columns: minmax(0, 1fr); align-content: start; gap: 16px; } .preview { width: 164px; } }
+  @media (max-width: 600px) { .entry { grid-template-columns: 128px minmax(0, 1fr); padding: 18px 0; gap: 18px; } h3 { font-size: 17px; } }
+  @media (max-width: 360px) { .entry { grid-template-columns: 108px minmax(0, 1fr); gap: 14px; } .heading { gap: 6px; } }
 </style>

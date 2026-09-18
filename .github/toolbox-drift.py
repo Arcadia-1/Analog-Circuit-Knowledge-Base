@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Check that the pages still agree with the ADCToolbox they were ported from.
+"""Check every lesson against its executable Python reference.
 
 Every page's model is a TypeScript port whose tests pin the numbers web/python/*.py printed when the page was written.
 Those tests cannot see the library move on: change a ported function in ADCToolbox and they stay green while the page
-quietly stops matching it. So rerun every script that imports adctoolbox against the library as installed and compare
+quietly stops matching it. So rerun every ADC script against the library as installed, plus the NumPy PLL reference, and compare
 what it prints with the copy kept in web/python/expected/. A decimal may differ by one count in its last printed digit,
 which is rounding on another platform rather than a change; everything else has to match.
 
@@ -46,7 +46,7 @@ def agrees(expected: str, actual: str) -> bool:
 
 def main(update: bool) -> None:
     drifted = []
-    for script in sorted(p for p in SCRIPTS.glob("*.py") if "adctoolbox" in p.read_text(encoding="utf-8")):
+    for script in sorted(SCRIPTS.glob("*.py")):
         actual = run(script)
         kept = EXPECTED / f"{script.stem}.txt"
         if update:
@@ -58,11 +58,11 @@ def main(update: bool) -> None:
         elif not agrees(kept.read_text(encoding="utf-8"), actual):
             diff = difflib.unified_diff(
                 kept.read_text(encoding="utf-8").splitlines(), actual.splitlines(),
-                f"expected/{kept.name}", "ADCToolbox now", lineterm="",
+                f"expected/{kept.name}", "Python reference now", lineterm="",
             )
-            drifted.append(f"{script.name} no longer matches ADCToolbox:\n" + "\n".join(diff))
+            drifted.append(f"{script.name} no longer matches its Python reference:\n" + "\n".join(diff))
         else:
-            print(f"  {script.name} still matches ADCToolbox")
+            print(f"  {script.name} matches its Python reference")
     if drifted:
         raise SystemExit("\n\n".join(drifted))
 

@@ -1,14 +1,21 @@
 /**
  * Oversampling and noise shaping: sample faster than the band needs and only the band's share of the quantisation
  * noise counts; shape that noise and even less of it stays there.
- * Ported from ADCToolbox 0.9.1 (github.com/Arcadia-1/ADCToolbox):
- *   siggen/nonidealities   apply_noise_shaping, over apply_quantization_noise
+ * Analysed with ADCToolbox (github.com/Arcadia-1/ADCToolbox):
  *   spectrum/              analyze_spectrum with an OSR, through src/lib/spectrum.ts
  *   oversampling/ntfperf   ntf_analyzer on MATLAB's million-point grid
  *   oversampling/perfosr   sweep_performance_vs_osr, with fundamentals/fit_sine_4param
  *   oversampling/ifilter   spectrum/extract_freq_components
  * following its examples exp_o01, exp_o02 and exp_o03.
- * python/adc_oversampling.py calls ADCToolbox on the same samples; tests/oversampling-model.test.ts compares the two.
+ *
+ * The displayed record uses the standard stationary linearised quantisation-noise model: a seeded white error with
+ * variance LSB²/12, passed through the NTF with periodic boundary conditions. The periodic boundary is important for
+ * an FFT lesson: it avoids inventing the broadband impulse produced when a finite FIR is started from zero. A clean
+ * coherent sine quantised without dither has deterministic harmonic lines instead of a noise floor, while
+ * apply_noise_shaping deliberately preserves those exact errors; that is useful for API testing but obscures the NTF
+ * slope this lesson is meant to explain.
+ *
+ * python/adc_oversampling.py builds the same stationary record and calls ADCToolbox on it; the tests compare the two.
  *
  * Volts on a ±0.5 V range, as exp_o01 has them: 8192 samples at 100 MHz.
  */
@@ -31,23 +38,25 @@ export function ntfTaps(order: number): number[] {
   return taps;
 }
 
+const UNIT_ERROR = (() => {
+  // Portable LCG: python/adc_oversampling.py uses the same unsigned 32-bit recurrence and therefore the same record.
+  let state = 0x5eed1234;
+  return Float64Array.from({ length: N }, () => {
+    state = (Math.imul(1_664_525, state) + 1_013_904_223) >>> 0;
+    return (state + 0.5) / 2 ** 32 - 0.5;
+  });
+})();
+
 /**
- * exp_o01's converter: a sine through a bits-bit quantiser that floors and clips, as apply_quantization_noise does.
- * For order > 0 this is apply_noise_shaping: the quantisation error, filtered by the NTF from rest, added back to the
- * sine. The filter sums from its oldest tap, as scipy's lfilter does.
+ * A sine plus stationary quantisation noise of variance LSB²/12. Each order takes one circular first difference, so
+ * its DFT is exactly multiplied by (1 − z⁻¹) and contains no artificial filter-startup impulse.
  */
 export function capture(order: number, bits: number): Float64Array {
-  const lsb = 1 / 2 ** bits, top = 2 ** bits - 1;
+  const lsb = 1 / 2 ** bits;
   const sine = Float64Array.from({ length: N }, (_, i) => AMP * Math.sin(2 * Math.PI * TONE.fin * (i / FS)) + 0);
-  const quantised = sine.map((s) => Math.min(top, Math.max(0, Math.floor((s - -0.5) / lsb))) * lsb + -0.5);
-  if (!order) return quantised;
-  const error = quantised.map((q, i) => q - sine[i]);
-  const taps = ntfTaps(order);
-  return sine.map((s, i) => {
-    let shaped = 0;
-    for (let k = taps.length - 1; k >= 0; k--) if (i >= k) shaped += error[i - k] * taps[k];
-    return s + shaped;
-  });
+  let error = UNIT_ERROR.map((v) => v * lsb);
+  for (let pass = 0; pass < order; pass++) error = error.map((v, i) => v - error[(i + N - 1) % N]);
+  return sine.map((s, i) => s + error[i]);
 }
 
 /** analyze_spectrum on the ±0.5 V range: codes of the same resolution scale it to the full scale the port expects. */

@@ -63,7 +63,7 @@
 
 <main class="page">
   <header class="top">
-    <a class="crumb" href="/">ADCToolbox</a>
+    <a class="crumb" href="/#lessons">← All lessons</a>
     <h1>Averaging and the polar spectrum</h1>
     <p class="sub">Average a tone as powers or as aligned phasors, and read the phase of every harmonic.</p>
     <div class="pick">

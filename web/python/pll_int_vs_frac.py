@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 """Reference implementation of the integer-N vs fractional-N comparison model (the web page mirrors it).
 
+Run from web/:
+    python -m pip install -r python/requirements.txt
+    python python/pll_int_vs_frac.py
+
 Reference-rate time-domain PLL: reference 25 / 40 / 100 MHz (default 40), type-II PI loop (zeta = 1) with two extra
 poles at 6x BW, closed-loop -3 dB bandwidth 1 MHz, linear phase detector, VCO around 5 GHz.
 Noise: white reference/PFD timing noise from a normalised floor of -228 dBc/Hz (634 fs rms per edge);
@@ -108,16 +112,15 @@ if __name__ == "__main__":
     fs = np.logspace(4, np.log10(5e7), 400); H = closed_loop_mag(fs, gp, beta)
     print(f"loop: g_p = {gp:.5f}, beta = {beta:.4f}, max |pole| = {np.max(np.abs(roots)):.5f}, peaking = {20*np.log10(H.max()):.2f} dB, "
           f"|H(1 MHz)| = {20*np.log10(closed_loop_mag(1e6, gp, beta)):.2f} dB, |H(5 MHz)| = {20*np.log10(closed_loop_mag(5e6, gp, beta)):.2f} dB")
-    import time
     for mode, dtc, inl in (("int", False, 0), ("acc", False, 0), ("sd", False, 0), ("sd", True, 0), ("sd", True, 1.0)):
-        t0 = time.time(); r = simulate(5.005e9, mode, dtc, inl); a = analyze(r)
+        r = simulate(5.005e9, mode, dtc, inl); a = analyze(r)
         band = (a["f"] > 2e5) & (a["f"] < 6e5); hump = a["L"][(a["f"] > 5e6) & (a["f"] < 1e7)]
         top = ", ".join(f"{s[1]:.1f} dBc @ {s[0]/1e6:.3f} MHz" for s in a["spurs"][:3]) or "none"
         print(f"{mode:3s}{'+dtc' if dtc else '    '} INL {inl:3.1f} ps: N_avg {r['n_avg']:.6f} f_out {r['f_out']/1e9:.6f} GHz | jitter {a['jitter_fs']:8.1f} fs | "
               f"L(200-600k) {np.median(a['L'][band]):7.1f} dBc/Hz | L(5-10 MHz) med {np.median(hump):7.1f} | e range [{r['e'].min()*1e12:7.1f}, {r['e'].max()*1e12:7.1f}] ps | "
-              f"ndiv {r['ndiv'].min()}..{r['ndiv'].max()} | spurs: {top}   ({time.time()-t0:.1f}s)")
+              f"ndiv {r['ndiv'].min()}..{r['ndiv'].max()} | spurs: {top}")
     r = simulate(5.005e9, "acc", noise=False); a = analyze(r)
-    print("acc, noise off: " + ", ".join(f"{s[1]:.2f} dBc @ {s[0]/1e6:.3f} MHz" for s in a["spurs"][:4]))
+    print("acc, noise off: " + ", ".join(f"{s[1]:.2f} dBc @ {s[0]/1e6:.3f} MHz" for s in a["spurs"][:3]))
     Hs = closed_loop_mag(5e6, gp, beta); print(f"linear prediction for the 5 MHz fundamental: 20log10(2|H|/2) = {20*np.log10(Hs):.2f} dBc")
     print()
     print("charge-pump mismatch at a near-integer channel (5.0005 GHz, 0.5 MHz offset):")

@@ -1,6 +1,6 @@
 # ADCToolbox site
 
-The interactive side of [ADCToolbox](https://github.com/Arcadia-1/ADCToolbox), served at <https://adctoolbox.tokenzhang.com> with
+The tutorial companion to [ADCToolbox](https://github.com/Arcadia-1/ADCToolbox), served at <https://adctoolbox.tokenzhang.com> with
 the library's reference manual under `/doc/`. Each page runs a port of the library's models in the browser, so every control
 changes the physics you see.
 
@@ -25,12 +25,12 @@ Run these in `web/` with Node 22.12 or newer and pnpm 11.
 |---|---|
 | `src/pages/` | Home, 404 and one `.astro` route per illustration |
 | `src/illustrations/<topic>/` | One illustration: `model.ts` with the simulation as pure functions, plus its Svelte components |
-| `src/components/` | Shared controls in `ui/`, chart primitives in `chart/`, home page thumbnails |
+| `src/components/` | Shared controls in `ui/`, chart primitives in `chart/`, compact lesson links and the shared navigation/footer |
 | `src/lib/` | Number formatting, seeded random numbers, FFT, scales |
 | `src/styles/` | Design tokens and chart classes in `global.css`, the shared illustration page layout in `illustration.css` |
 | `src/data/illustrations.ts` | Topics and entries on the home page |
 | `tests/` | Vitest checks of each TypeScript model against numbers from its Python reference |
-| `python/` | Python references: the PLL model in NumPy, and SAR numbers computed with ADCToolbox (`pip install adctoolbox==0.9.1`) |
+| `python/` | Executable Python references for all ten lessons: nine ADC models using ADCToolbox and one PLL model using NumPy |
 | `public/` | Favicon and Cloudflare Pages response headers |
 | `analytics/` | Copied analytics module: tracking, dashboard, routes and Durable Object |
 | `worker/` | Analytics Worker that mounts the module on `adctoolbox.tokenzhang.com/api/*` |
@@ -59,7 +59,7 @@ Run these in `web/` with Node 22.12 or newer and pnpm 11.
 tracking hook, the dashboard page and styles, the world-map data, the HTTP routes and the Durable Object. It is identical
 to the source except for the page title; update it by copying the folder again. The host wires it in three places:
 
-- `src/components/Visits.tsx` calls `useVisitStats` on every page through `Base.astro` and shows the totals in the home
+- `src/components/Visits.tsx` calls `useVisitStats` on every page through `Base.astro` and shows the totals in every shared
   page footer.
 - `src/pages/analytics.astro` mounts the dashboard at `/analytics/` with the mono font, theme class and reset it expects.
 - `worker/index.ts` registers the routes on Hono and exports the Durable Object. The Worker is routed on `/api/*` in
@@ -71,3 +71,51 @@ to the source except for the page title; update it by copying the folder again. 
 also deploys `dist/` to the Cloudflare Pages project `ams-class` (the site's first name, kept as an internal one; its only
 domain is `adctoolbox.tokenzhang.com`), using the repository secrets `CLOUDFLARE_API_TOKEN` and
 `CLOUDFLARE_ACCOUNT_ID`.
+
+## Editorial and visual direction
+
+Keep **ADC Toolbox** as the site brand. ADC tutorials are the main curriculum; PLL and Bode plots sit under
+“More to explore”. The manual remains the reference for the Python API and longer examples.
+
+The catalog follows a learning order: sampling, conversion, error analysis, calibration, then advanced architectures.
+Each entry has its own schematic preview, a title and a single short sentence. Keep the preview visible at every screen
+size so readers can recognize the experiment at a glance; model provenance and example names belong inside the lesson notes.
+Use two columns on desktop, one on narrow screens, and preserve row-major keyboard and reading order.
+
+The shared header and footer, restrained borders, system sans font, Google Sans Code labels and green accent follow
+Analog Design Bench. Plot series use separate blue/amber colors. The theme follows the system until the reader makes
+an explicit choice; that choice is stored locally.
+
+## Numerical verification
+
+For reproducible reference results, install the verified library revision from the repository root:
+
+```sh
+python -m pip install -r web/python/requirements.txt
+```
+
+The pin includes the time-interleaved ADC offset-spur correction, which is not in the PyPI 0.9.1 release.
+Then verify every example:
+
+```sh
+MPLBACKEND=Agg python .github/toolbox-drift.py
+```
+
+CI also runs this check against ADCToolbox main to detect upstream changes.
+
+This executes every script in `web/python/` and compares its output with `web/python/expected/`. The PLL script uses
+a fixed random seed and leaves execution timing out of the output. Vitest separately checks the browser models
+against Python reference values and physical invariants. The deployment waits for both checks to pass.
+
+Only refresh expected output after investigating a difference and updating the corresponding browser model and tests.
+
+## Keep the visitor counter
+
+The shared footer must always show cumulative visitors and page views, with a link to `/analytics/`. Render the
+counter before hydration; use “—” while totals are unavailable, and display real zero counts as zero. Never remove
+the counter as part of a visual redesign.
+
+`Visits.tsx` reads `/api/stats` without recording a visit, so the totals can still appear when the tracking request
+is skipped or fails. The existing `/api/hit` hook records at most one visit per navigation. Preserve the existing
+Worker name, Durable Object binding and object name, schema version and cookies documented in `analytics/README.md`
+to keep the historical counts. A static local preview without the analytics Worker shows the placeholder.

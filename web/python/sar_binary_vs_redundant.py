@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Reference numbers for the binary vs redundant SAR ADC page, computed with ADCToolbox.
 
-    pip install adctoolbox==0.9.1
+    python -m pip install -r python/requirements.txt
     python3 python/sar_binary_vs_redundant.py
 
 The page ports these ADCToolbox functions to TypeScript, and tests/sar-model.test.ts checks the port against the

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Reference numbers for the time-interleaving page, computed with ADCToolbox.
 
-    pip install adctoolbox==0.9.1
+    python -m pip install -r python/requirements.txt
     python3 python/adc_time_interleave.py
 
 The page ports these ADCToolbox functions to TypeScript, and tests/timeinterleave-model.test.ts checks the port against

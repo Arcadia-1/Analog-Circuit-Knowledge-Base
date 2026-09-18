@@ -1,5 +1,5 @@
 /* Shared shell of the full-screen illustration pages: top bar, input row, two-column comparison. */
-.page { max-width: 1480px; margin: 0 auto; height: 100dvh; min-height: 680px; padding-block: 16px 12px; display: grid; grid-template-rows: auto auto minmax(0, 1fr); gap: 12px; }
+.page { max-width: 1480px; margin: 0 auto; height: calc(100dvh - 49px); min-height: 680px; padding: 20px 24px 16px; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto minmax(0, 1fr); gap: 12px; }
 .top { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 18px; }
 .top h1 { font-size: 24px; line-height: 1.2; font-weight: 500; letter-spacing: -0.01em; margin: 0; }
 .top h1 var { font-weight: 500; font-size: 1.08em; }
@@ -52,7 +52,7 @@
   .chart { height: 240px; }
 }
 @media (max-width: 900px) {
-  .page { height: auto; min-height: 0; padding-block: 20px 28px; gap: 16px; }
+  .page { height: auto; min-height: 0; padding: 20px 20px 28px; gap: 16px; }
   .pick { margin-left: 0; }
   .legend { white-space: normal; }
   .tuner { grid-template-columns: 1fr; gap: 6px; }

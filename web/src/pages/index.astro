@@ -1,83 +1,124 @@
 ---
 import Base from '../layouts/Base.astro';
 import Entry from '../components/Entry.astro';
-import Visits from '../components/Visits';
-import { coming, related, topics } from '../data/illustrations';
+import { related, topics } from '../data/illustrations';
+const lessons = topics.flatMap((topic) => topic.items);
+// One full sine period, with a sampled and quantized version of the same signal.
+const sineY = (phase: number) => 60 - 40 * Math.sin(2 * Math.PI * phase);
+const analogPath = Array.from({ length: 161 }, (_, i) =>
+  `${i === 0 ? 'M' : 'L'}${(310 * i / 160).toFixed(2)} ${sineY(i / 160).toFixed(2)}`,
+).join(' ');
+const digitalPath = 'M0 60 ' + Array.from({ length: 32 }, (_, i) => {
+  const sample = i + 1;
+  const y = 60 + 8 * Math.round((sineY(sample / 32) - 60) / 8);
+  return `H${(310 * sample / 32).toFixed(2)}V${y}`;
+}).join(' ');
 ---
 <Base
-  visits={false}
-  title="ADCToolbox"
-  description="Analysis for data converters — conversion, static error, calibration and spectra — as a Python library and as pages that run its models in your browser."
+  title="ADC Toolbox"
+  description="Learn how analog-to-digital converters work with interactive lessons on sampling, SAR conversion, calibration, spectra and noise. Explore in your browser, then go further with the ADCToolbox Python library."
 >
-  <main class="home">
-    <header>
-      <div>
-        <h1>ADCToolbox</h1>
-        <p class="lede">The Python library's models, running in your browser.</p>
-      </div>
-      <div class="start">
-        <code>pip install adctoolbox</code>
-        <a class="cta" href="/doc/">Manual</a>
-        <a class="cta" href="https://github.com/Arcadia-1/ADCToolbox">Source</a>
-      </div>
-    </header>
-
-    {topics.map((topic) => (
-      <section class="topic">
-        <div class="topic-head">
-          <h2>{topic.name}</h2>
-          {topic.note && <span class="note">{topic.note}</span>}
+  <main>
+    <section class="hero" aria-labelledby="site-title">
+      <div class="hero-inner">
+        <div class="intro">
+          <p class="eyebrow"><span class="status-dot"></span> ADC TUTORIALS & EXPERIMENTS</p>
+          <h1 id="site-title">ADC Toolbox</h1>
+          <p class="lede">Learn how data converters work.<br />Change a parameter. See what happens to the signal.</p>
+          <div class="hero-links">
+            <a href="https://github.com/Arcadia-1/ADCToolbox">Explore on GitHub <span aria-hidden="true">↗</span></a>
+            <span class="separator" aria-hidden="true"></span>
+            <a href="/doc/">Read the manual <span aria-hidden="true">↗</span></a>
+          </div>
         </div>
-        {topic.items.map((item) => <Entry item={item} />)}
+        <div class="signal" aria-hidden="true">
+          <svg viewBox="0 0 310 120" fill="none">
+            <path class="signal-grid" d="M0 30h310M0 60h310M0 90h310M30 0v120M80 0v120M130 0v120M180 0v120M230 0v120M280 0v120" />
+            <path class="analog" d={analogPath} />
+            <path class="digital" d={digitalPath} />
+          </svg>
+          <p><span>ANALOG IN</span><span class="signal-out">DIGITAL OUT</span></p>
+        </div>
+      </div>
+    </section>
+
+    <div class="content">
+      <section id="lessons" aria-labelledby="lessons-title">
+        <div class="section-head">
+          <h2 id="lessons-title">Explore the lessons</h2>
+          <span class="section-note">{String(lessons.length).padStart(2, '0')} interactive lessons</span>
+        </div>
+        <div class="lesson-grid">
+          {lessons.map((item) => <Entry item={item} />)}
+        </div>
       </section>
-    ))}
 
-    <section class="topic">
-      <div class="topic-head"><h2>Still only in the library</h2><span class="note">every example is a page waiting to happen</span></div>
-      <p class="rest">
-        The toolbox reaches a good deal further than these pages do — {coming.join(', ')} — and each of its examples is a
-        page waiting to happen. Until then they live in the <a href="/doc/examples/index">manual</a>.
-      </p>
-    </section>
+      <section class="library" aria-labelledby="library-title">
+        <div>
+          <h2 id="library-title">From the lesson to your own data</h2>
+          <p>Use the Python library for ADC analysis, calibration and plotting.</p>
+        </div>
+        <div class="library-actions">
+          <code>pip install adctoolbox</code>
+          <a href="/doc/quickstart">Quick start <span aria-hidden="true">↗</span></a>
+        </div>
+      </section>
 
-    <section class="topic">
-      <div class="topic-head"><h2>Other related</h2><span class="note">next door to the toolbox</span></div>
-      {related.items.map((item) => <Entry item={item} />)}
-    </section>
-
-    <footer>
-      <span>ADCToolbox</span>
-      <a href="/doc/">Manual</a>
-      <a href="https://github.com/Arcadia-1/ADCToolbox">Library</a>
-      <a href="https://github.com/Arcadia-1/Analog-Circuit-Knowledge-Base/tree/main/web">These pages</a>
-      <a href="https://tokenzhang.com">tokenzhang.com</a>
-      <Visits client:load path="/" counter />
-    </footer>
+      <section id="related" aria-labelledby="related-title">
+        <div class="section-head">
+          <h2 id="related-title">More to explore</h2>
+          <span class="section-note">PLL & feedback systems</span>
+        </div>
+        <div class="lesson-grid related-grid">
+          {related.items.map((item) => <Entry item={item} />)}
+        </div>
+      </section>
+    </div>
   </main>
 </Base>
 
 <style>
-  .home { max-width: 860px; margin: 0 auto; padding-block: 36px 56px; display: grid; gap: 30px; font-size: 15px; line-height: 1.6; }
-  header { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 24px; }
-  h1 { margin: 0; font-size: 34px; line-height: 1.1; font-weight: 500; letter-spacing: -0.02em; }
-  .lede { margin: 6px 0 0; color: var(--ink-2); }
-  .start { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
-  .start code { font: 13.5px var(--mono); color: var(--ink); background: var(--plot); border: 1px solid var(--rule); border-radius: 8px; padding: 8px 14px; }
-  .cta { font-size: 13.5px; color: var(--ink-2); text-decoration: none; border-bottom: 1px solid var(--rule); }
-  .cta:hover { color: var(--ink); border-bottom-color: var(--ink-3); }
-  .topic { display: grid; gap: 14px; }
-  .rest { margin: 0; color: var(--ink-2); max-width: 66ch; }
-  .rest a { color: var(--ink); text-decoration: none; border-bottom: 1px solid var(--rule); }
-  .topic-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--rule); padding-bottom: 8px; }
-  h2 { margin: 0; font-size: 13px; font-weight: 500; letter-spacing: 0.09em; text-transform: uppercase; color: var(--ink-2); }
-  .note { font-size: 12.5px; color: var(--ink-3); text-align: right; }
-  footer { border-top: 1px solid var(--rule); padding-top: 16px; display: flex; flex-wrap: wrap; gap: 6px 20px; color: var(--ink-3); font-size: 13.5px; }
-  footer a, footer :global(.visitors) { color: var(--ink-2); text-decoration: none; border-bottom: 1px solid var(--rule); }
-  footer a:hover, footer :global(.visitors:hover) { color: var(--ink); border-bottom-color: var(--ink-3); }
-  footer :global(.visitors) { margin-left: auto; font: 12.5px var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
-  @media (max-width: 640px) {
-    .home { padding-block: 24px 40px; gap: 24px; }
-    h1 { font-size: 30px; }
-    .note { text-align: left; }
+  .hero { position: relative; overflow: hidden; border-bottom: 1px solid var(--rule-soft); }
+  .hero::before { content: ''; position: absolute; inset: 0; pointer-events: none; background-image: linear-gradient(var(--rule-soft) 1px, transparent 1px), linear-gradient(90deg, var(--rule-soft) 1px, transparent 1px); background-size: 32px 32px; mask-image: linear-gradient(90deg, transparent 20%, #000 100%); opacity: 0.45; }
+  .hero-inner { position: relative; max-width: 1152px; margin: auto; padding: 26px 32px 24px; display: flex; justify-content: space-between; align-items: center; gap: 48px; }
+  .eyebrow { margin: 0 0 12px; display: flex; align-items: center; gap: 8px; color: var(--ink-2); font: 10px/1.5 var(--mono); letter-spacing: 0.1em; }
+  .status-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--brand); }
+  h1 { margin: 0; font-size: clamp(34px, 4vw, 46px); line-height: 1.1; font-weight: 650; letter-spacing: -0.045em; }
+  .lede { margin: 12px 0 0; color: var(--ink-2); font-size: 15px; line-height: 1.6; }
+  .hero-links { display: flex; align-items: center; gap: 16px; margin-top: 16px; font-size: 12px; }
+  .hero-links a { color: var(--ink); text-decoration: none; }
+  .hero-links a:first-child { color: var(--brand); }
+  .hero-links a:hover { text-decoration: underline; text-underline-offset: 4px; }
+  .hero-links span:not(.separator) { margin-left: 4px; }
+  .separator { height: 12px; border-left: 1px solid var(--rule); }
+  .signal { box-sizing: border-box; width: 280px; margin-right: 16px; padding-inline: 15px; opacity: 0.85; }
+  .signal svg { display: block; width: 100%; }
+  .signal-grid { stroke: var(--rule); stroke-width: 0.6; }
+  .analog { stroke: var(--ink-3); stroke-width: 1.3; stroke-dasharray: 3 4; opacity: 0.6; }
+  .digital { stroke: var(--brand); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .signal p { display: flex; justify-content: space-between; margin: 12px 0 0; color: var(--ink-3); font: 9px var(--mono); letter-spacing: 0.08em; }
+  .signal-out { color: var(--brand); }
+  .content { max-width: 1152px; margin: auto; padding: 24px 32px 40px; }
+  .section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding-bottom: 13px; border-bottom: 1px solid var(--rule); }
+  h2 { margin: 0; font-size: 15px; font-weight: 600; letter-spacing: -0.02em; }
+  .section-note { color: var(--ink-3); font: 10px/1.6 var(--mono); }
+  .lesson-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 32px; }
+  .library { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px 24px; margin: 30px 0 34px; padding: 20px 22px; border: 1px solid var(--rule); background: var(--plot); }
+  .library p { margin: 5px 0 0; color: var(--ink-2); font-size: 12px; }
+  .library-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; }
+  .library code { font: 11px var(--mono); background: var(--chip); border: 1px solid var(--rule); padding: 9px 12px; }
+  .library a { font-size: 12px; color: var(--brand); text-decoration: none; }
+  .library a:hover { text-decoration: underline; text-underline-offset: 4px; }
+  .related-grid :global(.entry) { padding-inline: 0; }
+  @media (max-width: 760px) { .signal { width: 180px; margin: 0; padding-inline: 0; } .hero-inner { gap: 24px; } .lesson-grid { column-gap: 22px; } }
+  @media (max-width: 600px) {
+    .hero-inner { padding: 28px 20px; }
+    .signal { display: none; }
+    .lede { font-size: 14px; }
+    .content { padding: 24px 20px 32px; }
+    .section-head { gap: 12px; }
+    .section-note { font-size: 9px; }
+    .lesson-grid { grid-template-columns: minmax(0, 1fr); }
+    .library { padding: 18px; margin-block: 26px; }
   }
 </style>

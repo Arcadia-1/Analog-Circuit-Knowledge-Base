@@ -2,10 +2,7 @@ export interface Illustration {
   href: string;
   title: string;
   summary: string;
-  tags: string[];
   thumb: 'pll' | 'sar' | 'inl' | 'err' | 'win' | 'fold' | 'ntf' | 'ti' | 'bits' | 'polar' | 'bode';
-  /** The ADCToolbox module and examples this page runs, shown under the card. */
-  toolbox?: string;
   /** Whose site this is, for a page that is not on this one; it opens in a tab of its own. */
   external?: string;
 }
@@ -17,87 +14,63 @@ export interface Topic {
   items: Illustration[];
 }
 
-/** Parts of the toolbox that have no page yet, named so the gaps are honest ones. */
-export const coming = [
-  'jitter and dynamic nonlinearity',
-  'figures of merit',
-];
-
 export const topics: Topic[] = [
   {
     name: 'Analog-to-digital converters',
     items: [
       {
-        href: '/adc/coherent-sampling/',
-        title: 'Coherent sampling',
-        summary: 'A perfect converter, measured badly. Move the tone a tenth of a bin off and an unwindowed FFT reads two effective bits; see which window catches it, what its side bins cost, and what a longer record does and does not buy.',
-        tags: ['leakage', 'windows', 'side bins', 'record length', 'SFDR'],
-        thumb: 'win',
-        toolbox: 'spectrum · exp_b02, exp_s06, exp_s08, exp_s09',
-      },
-      {
-        href: '/adc/averaging-and-the-polar-spectrum/',
-        title: 'Averaging and the polar spectrum',
-        summary: 'Capture the same tone a hundred times and average it two ways: as powers, which only smooths the floor, or coherently, which lowers it 10 dB a decade. Then read each harmonic’s phase to tell a static curve from a memory.',
-        tags: ['coherent averaging', 'power averaging', 'polar plot', 'harmonic phase', 'memory effect'],
-        thumb: 'polar',
-        toolbox: 'spectrum · exp_s07, exp_s10, exp_s11, exp_s12',
-      },
-      {
         href: '/adc/aliasing-and-nyquist-zones/',
         title: 'Aliasing and Nyquist zones',
-        summary: 'Sweep a tone across six Nyquist zones and it lands between 0 and fs/2 every time, backwards in every other zone. See where its harmonics fold, and what keeping only one sample in N does to all of them.',
-        tags: ['Nyquist zones', 'undersampling', 'spectral inversion', 'harmonic folding', 'decimation'],
+        summary: 'See where tones and harmonics land after sampling.',
         thumb: 'fold',
-        toolbox: 'fundamentals, siggen · exp_c01, exp_d00',
       },
       {
-        href: '/adc/oversampling-and-noise-shaping/',
-        title: 'Oversampling and noise shaping',
-        summary: 'Shape a quantiser’s noise to first, second or third order and watch the band’s share of it collapse while the total grows. Measure it with perfosr, predict it with ntfperf, and pull the band out with ifilter.',
-        tags: ['OSR', 'noise shaping', 'NTF', 'in-band SNDR', 'ideal filter'],
-        thumb: 'ntf',
-        toolbox: 'oversampling, siggen · exp_o01, exp_o02, exp_o03',
-      },
-      {
-        href: '/adc/time-interleaved-adcs/',
-        title: 'Time-interleaved ADCs',
-        summary: 'Four converters take turns, each with its own offset, gain and sampling skew. See where predict_spurs puts every spur, measure the mismatch from one sine, and calibrate it out, until the input crosses fs/2M.',
-        tags: ['offset spurs', 'image spurs', 'timing skew', 'fractional delay', 'foreground calibration'],
-        thumb: 'ti',
-        toolbox: 'timeinterleave · exp_ti01',
-      },
-      {
-        href: '/adc/reading-the-error/',
-        title: 'Reading the error',
-        summary: 'Subtract the sine you asked for and read what is left four ways. Noise, static curvature, clock jitter, settling memory and an interfering tone each sign their name in a different view.',
-        tags: ['sine fit', 'AM / PM', 'error PDF', 'jitter', 'memory effect'],
-        thumb: 'err',
-        toolbox: 'aout · exp_a01, exp_a02, exp_a03, exp_a21, exp_a22',
-      },
-      {
-        href: '/adc/inl-and-dnl/',
-        title: 'INL and DNL',
-        summary: 'Shape the static error of a capacitor DAC, then measure it back the way a lab does: a ramp or a sine code-density test, an endpoint or best-fit reference line, and only so many samples.',
-        tags: ['missing codes', 'code density', 'ramp test', 'reference line', 'harmonics'],
-        thumb: 'inl',
-        toolbox: 'aout · exp_a32, exp_a33, exp_g05',
-      },
-      {
-        href: '/adc/reading-the-bits/',
-        title: 'Reading the bits',
-        summary: 'Clip the input, shift it, or give a bit a poor contact, and read a SAR converter’s raw output before anything is added up: how often each bit is 1, where each segment of the code sits, what weights a sine fit finds, and what each bit adds.',
-        tags: ['bit activity', 'overflow', 'radix', 'weight calibration', 'ENOB per bit'],
-        thumb: 'bits',
-        toolbox: 'dout, calibration · exp_d11, exp_d12, exp_d13, exp_d14',
+        href: '/adc/coherent-sampling/',
+        title: 'Coherent sampling',
+        summary: 'Measure spectral leakage and choose the right FFT window.',
+        thumb: 'win',
       },
       {
         href: '/adc/binary-vs-redundant-sar/',
         title: 'Binary vs redundant SAR',
-        summary: 'Step through the SAR conversion of ADCToolbox, add unit-capacitor mismatch and comparator noise, and compare the spectra before and after sine-fit calibration.',
-        tags: ['capacitor DAC', 'redundancy', 'unit-cap mismatch', 'calibration', 'ENOB'],
+        summary: 'Explore SAR decisions, redundancy and weight calibration.',
         thumb: 'sar',
-        toolbox: 'models, calibration · exp_d02, exp_d03, exp_d15, exp_g04',
+      },
+      {
+        href: '/adc/inl-and-dnl/',
+        title: 'INL and DNL',
+        summary: 'Relate code widths and missing codes to static linearity.',
+        thumb: 'inl',
+      },
+      {
+        href: '/adc/reading-the-error/',
+        title: 'Reading the error',
+        summary: 'Separate noise, distortion and jitter in the residual.',
+        thumb: 'err',
+      },
+      {
+        href: '/adc/reading-the-bits/',
+        title: 'Reading the bits',
+        summary: 'Read bit activity and recover the weights of a SAR ADC.',
+        thumb: 'bits',
+      },
+      {
+        href: '/adc/oversampling-and-noise-shaping/',
+        title: 'Oversampling and noise shaping',
+        summary: 'Trade bandwidth for resolution and shape in-band noise.',
+        thumb: 'ntf',
+      },
+      {
+        href: '/adc/averaging-and-the-polar-spectrum/',
+        title: 'Averaging and the polar spectrum',
+        summary: 'Average repeated captures and inspect harmonic phase.',
+        thumb: 'polar',
+      },
+      {
+        href: '/adc/time-interleaved-adcs/',
+        title: 'Time-interleaved ADCs',
+        summary: 'Find and correct offset, gain and timing mismatch.',
+        thumb: 'ti',
       },
     ],
   },
@@ -105,20 +78,18 @@ export const topics: Topic[] = [
 
 /** Pages that are not ADCToolbox: the PLL one until it has a home of its own, and other people's tools. */
 export const related: Topic = {
-  name: 'Other related',
+  name: 'More to explore',
   items: [
     {
       href: '/pll/integer-vs-fractional/',
       title: 'Integer-N vs fractional-N',
-      summary: 'One reference, one loop, one VCO. Drag the target frequency and see what a fractional divider does to the phase detector, the spectrum and the jitter.',
-      tags: ['accumulator', 'ΣΔ', 'DTC', 'loop bandwidth', 'reference frequency'],
+      summary: 'Compare PLL dividers and their effects on phase noise, spurs and jitter.',
       thumb: 'pll',
     },
     {
       href: 'https://many-question.github.io/bode-sketch/',
-      title: 'bode-sketch',
-      summary: 'Drag the poles and zeros of a transfer function and watch the Bode asymptotes, the exact curves, the Nyquist contour with its encirclement count, and the impulse and step responses follow. Exports the function to MATLAB.',
-      tags: ['transfer function', 'pole-zero map', 'Bode asymptotes', 'Nyquist stability', 'step response'],
+      title: 'Bode plots & stability',
+      summary: 'Move poles and zeros to explore Bode plots, stability and transient response.',
       thumb: 'bode',
       external: 'many-question.github.io',
     },

@@ -36,19 +36,19 @@
 
 <main class="page">
   <header class="top">
-    <a class="crumb" href="/">ADCToolbox</a>
+    <a class="crumb" href="/#lessons">← All lessons</a>
     <h1>Aliasing and Nyquist zones</h1>
     <p class="sub">Whatever goes in comes out between 0 and half the sampling rate, and so do its harmonics.</p>
     <div class="pick">
-      <span class="label">Keep</span>
-      <Segmented size="sm" label="Keep every N-th sample" options={KEEP.map((k) => ({ value: k, label: k === 1 ? 'every sample' : `1 in ${k}` }))} bind:value={keep} />
+      <span class="label">Output rate</span>
+      <Segmented size="sm" label="Output sample rate after keeping every N-th sample" options={KEEP.map((k) => ({ value: k, label: rate(FS / k) }))} bind:value={keep} />
     </div>
     <Notes>
       <p><b>Ported from ADCToolbox 0.9.1.</b> <code>fundamentals/</code>: <a href="/doc/api/fundamentals#adctoolbox.fold_frequency_to_nyquist"><code>fold_frequency_to_nyquist</code></a>, <a href="/doc/api/fundamentals#adctoolbox.fold_bin_to_nyquist"><code>fold_bin_to_nyquist</code></a>, <a href="/doc/api/fundamentals#adctoolbox.find_coherent_frequency"><code>find_coherent_frequency</code></a>. <code>siggen/nonidealities.py</code>: <a href="/doc/api/siggen#adctoolbox.siggen.ADC_Signal_Generator.apply_static_nonlinearity_hd"><code>apply_static_nonlinearity_hd</code></a>, <a href="/doc/api/siggen#adctoolbox.siggen.ADC_Signal_Generator.apply_thermal_noise"><code>apply_thermal_noise</code></a>, <a href="/doc/api/siggen#adctoolbox.siggen.ADC_Signal_Generator.apply_quantization_noise"><code>apply_quantization_noise</code></a>. <code>spectrum/</code>: <a href="/doc/api/spectrum#adctoolbox.analyze_spectrum"><code>analyze_spectrum</code></a>. This page is the interactive companion to its examples <code>exp_c01</code> and <code>exp_d00</code>; <a href="https://github.com/Arcadia-1/Analog-Circuit-Knowledge-Base/blob/main/web/python/adc_aliasing.py">python/adc_aliasing.py</a> runs <a href="https://github.com/Arcadia-1/ADCToolbox">ADCToolbox</a> on the same samples and every number here matches it.</p>
       <p><b>The fold.</b> A sampler at <var>f</var><sub>s</sub> cannot tell <var>f</var> from <var>f</var> plus any multiple of <var>f</var><sub>s</sub>, nor a tone at −<var>f</var> from one at <var>f</var>, so every input lands at |<var>f</var> − <var>f</var><sub>s</sub>·round(<var>f</var> / <var>f</var><sub>s</sub>)|, somewhere from 0 to <var>f</var><sub>s</sub>/2. The Nyquist zones are the half-rate steps of the input. In the odd ones the landing follows the input up; in the shaded even ones it runs the other way, and a whole band sampled there arrives with its spectrum turned over.</p>
       <p><b>The samples cannot tell.</b> The dots are all the record holds, and the blue line is the one sine below <var>f</var><sub>s</sub>/2 that passes through every one of them; the grey input is only one of the tones that do. That is why a converter needs an anti-alias filter in front, and why a band in a higher zone can be sampled on purpose, as long as the filter passes that zone and no other.</p>
       <p><b>Harmonics fold too.</b> The converter's own distortion puts H2 and H3 at 2<var>f</var> and 3<var>f</var>, and they land where those land. The fold commutes with the multiplication, so the <var>h</var>-th harmonic lands where <var>h</var> times the tone's landing does: from the first zone alone you can say where every spur will be. The odd number of cycles, coprime with the record, that <code>find_coherent_frequency</code> picks keeps them off the tone and off each other.</p>
-      <p><b>Keeping one sample in <var>N</var></b>, with no filter first, as a monitor or debug port does in <code>exp_d00</code>, is a second sampler at <var>f</var><sub>s</sub>/<var>N</var>: the zones are <var>N</var> times narrower and everything above <var>f</var><sub>s</sub>/2<var>N</var> folds again. The spurs move but keep their height in dBc, and the noise keeps its power, so ENOB stays where it was while the floor in each bin rises by 10·log<sub>10</sub> <var>N</var>.</p>
+      <p><b>Lowering the output sample rate</b> means keeping only one sample in every <var>N</var>, with no filter first, as a monitor or debug port does in <code>exp_d00</code>. It is a second sampler at <var>f</var><sub>s</sub>/<var>N</var>: the zones are <var>N</var> times narrower and everything above <var>f</var><sub>s</sub>/2<var>N</var> folds again. The spurs move but keep their height in dBc, and the noise keeps its power, so ENOB stays where it was while the floor in each bin rises by 10·log<sub>10</sub> <var>N</var>.</p>
       <p><b>The record.</b> {N_FFT} kept samples, so {N_FFT} × <var>N</var> at the converter, a 12-bit quantiser on a 0 … 1 V range with 0.3 LSB of thermal noise ahead of it, as in <code>exp_d00</code>. The tone sits on the odd bin coprime with that length nearest the frequency you ask for, which is why the value snaps as you drag.</p>
     </Notes>
   </header>
@@ -111,6 +111,10 @@
   .about { font-size: 12.5px; color: var(--ink-3); }
   .compare { --rows: minmax(0, 0.9fr) minmax(0, 1fr); }
   .wide { grid-column: 1 / -1; }
+  @media (min-width: 901px) {
+    .tuner { grid-template-columns: 316px minmax(0, 1fr); }
+    .tuner-left { min-width: 0; }
+  }
   @media (max-width: 900px) {
     .wide { grid-column: auto; }
   }

@@ -1,11 +1,12 @@
 ---
-import Visits from '../components/Visits';
+import SiteHeader from '../components/SiteHeader.astro';
+import SiteFooter from '../components/SiteFooter.astro';
 import '../styles/global.css';
 
 interface Props {
   title: string;
   description: string;
-  /** false when the page records its own visit, e.g. with a footer counter */
+  /** Disable analytics for pages that should not record a visit. */
   visits?: boolean;
 }
 const { title, description, visits = true } = Astro.props;
@@ -16,21 +17,32 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{title}</title>
+    <title>{title === 'ADC Toolbox' ? `${title} · ADC tutorials & experiments` : `${title} · ADC Toolbox`}</title>
     <meta name="description" content={description} />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="canonical" href={canonical} />
     <link rel="sitemap" href="/sitemap-index.xml" />
     <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="ADCToolbox" />
+    <meta property="og:site_name" content="ADC Toolbox" />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonical} />
-    <meta name="theme-color" content="#f6f7f9" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#0e1116" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#f6f8fa" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0a0d13" media="(prefers-color-scheme: dark)" />
+    <script is:inline>
+      let theme;
+      try { theme = localStorage.getItem('theme'); } catch {}
+      if (theme === 'light' || (theme !== 'dark' && matchMedia('(prefers-color-scheme: light)').matches)) {
+        document.documentElement.classList.add('light');
+      }
+    </script>
   </head>
   <body>
-    <slot />
-    {visits && <Visits client:idle path={Astro.url.pathname} />}
+    <a class="skip-link" href="#main-content">Skip to content</a>
+    <SiteHeader />
+    <div id="main-content" tabindex="-1">
+      <slot />
+    </div>
+    <SiteFooter {visits} />
   </body>
 </html>

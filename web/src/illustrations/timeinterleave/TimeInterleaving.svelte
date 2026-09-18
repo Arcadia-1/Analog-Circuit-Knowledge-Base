@@ -56,7 +56,7 @@
 
 <main class="page">
   <header class="top">
-    <a class="crumb" href="/">ADCToolbox</a>
+    <a class="crumb" href="/#lessons">← All lessons</a>
     <h1>Time-interleaved ADCs</h1>
     <p class="sub">Slower converters taking turns: whatever differs between them becomes a spur, and one sine can measure it away.</p>
     <div class="pick">
