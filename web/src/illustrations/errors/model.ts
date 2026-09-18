@@ -76,58 +76,71 @@ export interface Fit {
   /** phase of the fitted A cos(wt) + B sin(wt), as ADCToolbox reports it */
   phase: number;
   rmse: number;
+  /** where the fit ended up, in cycles per sample: a refinement step moves it off the bin it started on */
+  frequency: number;
 }
 
-/** fit_sine_4param at a known frequency: least squares for A cos(wt) + B sin(wt) + C, which is a 3 × 3 normal system. */
-export function fitSine(y: Float64Array, bin: number): Fit {
-  const w = (2 * Math.PI * bin) / N_FFT;
-  let cc = 0, ss = 0, cs = 0, c1 = 0, s1 = 0, yc = 0, ys = 0, y1 = 0;
-  for (let i = 0; i < y.length; i++) {
-    const c = Math.cos(w * i), s = Math.sin(w * i);
-    cc += c * c;
-    ss += s * s;
-    cs += c * s;
-    c1 += c;
-    s1 += s;
-    yc += y[i] * c;
-    ys += y[i] * s;
-    y1 += y[i];
+/**
+ * fit_sine_4param: least squares for A cos(wt) + B sin(wt) + C, a 3 × 3 normal system at the frequency it is given.
+ * With `iterations` above 0 it then refines the frequency itself, as the library's 4-parameter fit does: a fourth
+ * column for t · d/dw of the fit turns the residual left by a slightly wrong frequency into a correction to it.
+ */
+export function fitSine(y: Float64Array, bin: number, iterations = 0, tolerance = 1e-9): Fit {
+  const n = y.length;
+  let freq = bin / N_FFT, a = 0, b = 0, dc = 0;
+  for (let it = 0; it <= iterations; it++) {
+    const w = 2 * Math.PI * freq;
+    // the design matrix, a column at a time; the refinement column is scaled by 1 / n to keep the system conditioned
+    const cols: ((i: number) => number)[] = [(i) => Math.cos(w * i), (i) => Math.sin(w * i), () => 1];
+    if (it > 0) cols.push((i) => (i / n) * (-a * Math.sin(w * i) + b * Math.cos(w * i)));
+    const k = cols.length;
+    const m = Array.from({ length: k }, () => new Array<number>(k).fill(0)), r = new Array<number>(k).fill(0);
+    for (let i = 0; i < n; i++) {
+      const v = cols.map((f) => f(i));
+      for (let p = 0; p < k; p++) {
+        for (let q = p; q < k; q++) m[p][q] += v[p] * v[q];
+        r[p] += v[p] * y[i];
+      }
+    }
+    for (let p = 0; p < k; p++) for (let q = 0; q < p; q++) m[p][q] = m[q][p];
+    const coeffs = solve(m, r);
+    [a, b, dc] = coeffs;
+    if (k > 3) {
+      const delta = coeffs[3] / n / (2 * Math.PI);
+      freq = Math.min(0.5 - 1e-10, Math.max(1e-10, freq + delta));
+      if (Math.abs(delta) < tolerance) break;
+    }
   }
-  const m = [
-    [cc, cs, c1],
-    [cs, ss, s1],
-    [c1, s1, y.length],
-  ];
-  const [a, b, dc] = solve3(m, [yc, ys, y1]);
-  const fitted = new Float64Array(y.length), error = new Float64Array(y.length);
+  const w = 2 * Math.PI * freq;
+  const fitted = new Float64Array(n), error = new Float64Array(n);
   let sq = 0;
-  for (let i = 0; i < y.length; i++) {
+  for (let i = 0; i < n; i++) {
     fitted[i] = a * Math.cos(w * i) + b * Math.sin(w * i) + dc;
     error[i] = y[i] - fitted[i];
     sq += error[i] * error[i];
   }
-  return { fitted, error, amplitude: Math.hypot(a, b), dc, phase: Math.atan2(-b, a), rmse: Math.sqrt(sq / y.length) };
+  return { fitted, error, amplitude: Math.hypot(a, b), dc, phase: Math.atan2(-b, a), rmse: Math.sqrt(sq / n), frequency: freq };
 }
 
-/** Gaussian elimination on a 3 × 3 system. */
-function solve3(m: number[][], r: number[]): [number, number, number] {
-  const a = m.map((row, i) => [...row, r[i]]);
-  for (let i = 0; i < 3; i++) {
+/** Gaussian elimination with partial pivoting. */
+function solve(m: number[][], r: number[]): number[] {
+  const k = r.length, a = m.map((row, i) => [...row, r[i]]);
+  for (let i = 0; i < k; i++) {
     let p = i;
-    for (let k = i + 1; k < 3; k++) if (Math.abs(a[k][i]) > Math.abs(a[p][i])) p = k;
+    for (let j = i + 1; j < k; j++) if (Math.abs(a[j][i]) > Math.abs(a[p][i])) p = j;
     [a[i], a[p]] = [a[p], a[i]];
-    for (let k = i + 1; k < 3; k++) {
-      const f = a[k][i] / a[i][i];
-      for (let j = i; j < 4; j++) a[k][j] -= f * a[i][j];
+    for (let j = i + 1; j < k; j++) {
+      const f = a[j][i] / a[i][i];
+      for (let c = i; c <= k; c++) a[j][c] -= f * a[i][c];
     }
   }
-  const x = [0, 0, 0];
-  for (let i = 2; i >= 0; i--) {
-    let s = a[i][3];
-    for (let j = i + 1; j < 3; j++) s -= a[i][j] * x[j];
+  const x = new Array<number>(k).fill(0);
+  for (let i = k - 1; i >= 0; i--) {
+    let s = a[i][k];
+    for (let j = i + 1; j < k; j++) s -= a[i][j] * x[j];
     x[i] = s / a[i][i];
   }
-  return x as [number, number, number];
+  return x;
 }
 
 export interface Bins {
