@@ -2,7 +2,7 @@ export interface Illustration {
   href: string;
   title: string;
   summary: string;
-  thumb: 'pll' | 'sar' | 'inl' | 'err' | 'win' | 'fold' | 'ntf' | 'ti' | 'bits' | 'polar' | 'bode' | 'floor';
+  thumb: 'pll' | 'sar' | 'inl' | 'err' | 'win' | 'fold' | 'ntf' | 'ti' | 'bits' | 'polar' | 'bode' | 'floor' | 'fom';
   /** Whose site this is, for a page that is not on this one; it opens in a tab of its own. */
   external?: string;
 }
@@ -59,6 +59,12 @@ export const topics: Topic[] = [
         title: 'Reading the bits',
         summary: 'Read bit activity and recover the weights of a SAR ADC.',
         thumb: 'bits',
+      },
+      {
+        href: '/adc/what-a-conversion-costs/',
+        title: 'What a conversion costs',
+        summary: 'Weigh figures of merit, physical walls and the units a datasheet uses.',
+        thumb: 'fom',
       },
       {
         href: '/adc/oversampling-and-noise-shaping/',

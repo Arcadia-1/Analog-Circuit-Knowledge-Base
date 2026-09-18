@@ -5,7 +5,8 @@
  *   siggen/nonidealities   apply_jitter, apply_incomplete_sampling, apply_memory_effect, apply_am_tone,
  *                          apply_quantization_noise, and apply_thermal_noise's sum
  *   aout/                  analyze_error_by_phase, over fit_sine_4param, through ../errors/model.ts
- *   fundamentals/          find_coherent_frequency, amplitudes_to_snr, calculate_jitter_limit
+ *   fundamentals/          find_coherent_frequency, and amplitudes_to_snr and calculate_jitter_limit through
+ *                          src/lib/units.ts
  *   spectrum/              analyze_spectrum, through src/lib/spectrum.ts
  * following its examples exp_g01, exp_g03, exp_g04, exp_a04, exp_g06 and exp_g07.
  * python/adc_impairments.py calls ADCToolbox on the same samples; tests/impairments-model.test.ts compares the two.
@@ -15,6 +16,7 @@
 import { coherentFrequency } from '../../lib/frequency';
 import { gaussians } from '../../lib/rng';
 import { analyzeSpectrum, N_FFT, type Spectrum } from '../../lib/spectrum';
+import { amplitudesToSnr, jitterLimit } from '../../lib/units';
 import { byPhase, fitSine, type Phase } from '../errors/model';
 
 export const N = N_FFT;
@@ -114,20 +116,14 @@ export function snrFrom(s: Spectrum): number {
   return 10 * Math.log10(signal / noise);
 }
 
-/** amplitudes_to_snr: a sine of amplitude A against noise of this rms. */
-export const snrOf = (amp: number, rms: number): number => 20 * Math.log10(amp / Math.SQRT2 / rms);
-
-/** calculate_jitter_limit: −20·log10(2π·fin·τ). */
-export const jitterLimit = (fin: number, jitter: number): number => -20 * Math.log10(2 * Math.PI * fin * jitter);
-
 /**
  * The SNR each impairment alone would allow: thermal noise and a quantiser's own noise through amplitudes_to_snr, a
  * clock through calculate_jitter_limit. Settling, memory and an interferer distort rather than add noise, and have no
  * such number.
  */
 export function limitOf(kind: Kind, strength: number, fin = TONE.fin): number | null {
-  if (kind === 'thermal') return snrOf(AMP, strength);
-  if (kind === 'quantiser') return snrOf(AMP, 1 / 2 ** Math.round(strength) / Math.sqrt(12));
+  if (kind === 'thermal') return amplitudesToSnr(AMP, strength);
+  if (kind === 'quantiser') return amplitudesToSnr(AMP, 1 / 2 ** Math.round(strength) / Math.sqrt(12));
   if (kind === 'jitter') return jitterLimit(fin, strength);
   return null;
 }

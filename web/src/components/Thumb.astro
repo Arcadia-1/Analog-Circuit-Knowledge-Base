@@ -1,6 +1,6 @@
 ---
 /** Small schematic previews for the home page. */
-interface Props { kind: 'pll' | 'sar' | 'inl' | 'err' | 'win' | 'fold' | 'ntf' | 'ti' | 'bits' | 'polar' | 'bode' | 'floor' }
+interface Props { kind: 'pll' | 'sar' | 'inl' | 'err' | 'win' | 'fold' | 'ntf' | 'ti' | 'bits' | 'polar' | 'bode' | 'floor' | 'fom' }
 const { kind } = Astro.props;
 const xs = Array.from({ length: 13 }, (_, i) => 6 + i * 14);
 const saw = [-14, -8, -2, 6, 14];
@@ -37,6 +37,8 @@ const corner = 70, decade = 45, perDb = 1.1, flat = 26;
 const dbAt = (x: number) => flat + perDb * 10 * Math.log10(1 + 10 ** ((2 * (x - corner)) / decade));
 const exact = Array.from({ length: 41 }, (_, i) => `${4 + i * 4.6},${dbAt(4 + i * 4.6).toFixed(1)}`).join(' ');
 // one tone over two noise floors, the raised one with a pair of harmonics standing out of it
+// lines of constant energy per conversion step, and one part sitting under them
+const fom = (at: number) => `4,${at} 188,${at + 52}`;
 const jag = (base: number, seed: number) => Array.from({ length: 47 }, (_, i) => `${4 + i * 4},${base - ((i * seed) % 5) * 1.1}`).join(' ');
 const asymptote = `4,${flat} ${corner},${flat} 188,${(flat + (perDb * 20 * (188 - corner)) / decade).toFixed(1)}`;
 ---
@@ -92,6 +94,14 @@ const asymptote = `4,${flat} ${corner},${flat} 188,${(flat + (perDb * 20 * (188 
       <polyline class="s2 link" points={jag(70, 11)} />
       {[80, 120].map((x) => <line class="s2" x1={x} y1="70" x2={x} y2="50" />)}
       <line class="s1" x1="40" y1="94" x2="40" y2="16" />
+    </>
+  ) : kind === 'fom' ? (
+    <>
+      <text x="0" y="10">energy per step</text>
+      <line class="base" x1="0" y1="94" x2="188" y2="94" />
+      {[18, 40, 62].map((y) => <polyline class="s1 link" points={fom(y)} />)}
+      <line class="dash" x1="120" y1="12" x2="120" y2="94" />
+      <circle class="mark" cx="120" cy="64" r="4.6" />
     </>
   ) : kind === 'polar' ? (
     <>
