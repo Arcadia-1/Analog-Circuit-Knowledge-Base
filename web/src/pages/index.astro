@@ -21,15 +21,9 @@ const digitalPath = 'M0 60 ' + Array.from({ length: 32 }, (_, i) => {
   <main>
     <section class="hero" aria-labelledby="site-title">
       <div class="hero-inner">
-        <div class="intro">
-          <p class="eyebrow"><span class="status-dot"></span> ADC TUTORIALS & EXPERIMENTS</p>
+        <div class="title-row">
           <h1 id="site-title">ADC Toolbox</h1>
-          <p class="lede">Learn how data converters work.<br />Change a parameter. See what happens to the signal.</p>
-          <div class="hero-links">
-            <a href="https://github.com/Arcadia-1/ADCToolbox">Explore on GitHub <span aria-hidden="true">↗</span></a>
-            <span class="separator" aria-hidden="true"></span>
-            <a href="/doc/">Read the manual <span aria-hidden="true">↗</span></a>
-          </div>
+          <span>Interactive Playground</span>
         </div>
         <div class="signal" aria-hidden="true">
           <svg viewBox="0 0 310 120" fill="none">
@@ -70,16 +64,9 @@ const digitalPath = 'M0 60 ' + Array.from({ length: 32 }, (_, i) => {
   .hero { position: relative; overflow: hidden; border-bottom: 1px solid var(--rule-soft); }
   .hero::before { content: ''; position: absolute; inset: 0; pointer-events: none; background-image: linear-gradient(var(--rule-soft) 1px, transparent 1px), linear-gradient(90deg, var(--rule-soft) 1px, transparent 1px); background-size: 32px 32px; mask-image: linear-gradient(90deg, transparent 20%, #000 100%); opacity: 0.45; }
   .hero-inner { position: relative; max-width: 1152px; margin: auto; padding: 26px 32px 24px; display: flex; justify-content: space-between; align-items: center; gap: 48px; }
-  .eyebrow { margin: 0 0 12px; display: flex; align-items: center; gap: 8px; color: var(--ink-2); font: 10px/1.5 var(--mono); letter-spacing: 0.1em; }
-  .status-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--brand); }
+  .title-row { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px 18px; }
   h1 { margin: 0; font-size: clamp(34px, 4vw, 46px); line-height: 1.1; font-weight: 650; letter-spacing: -0.045em; }
-  .lede { margin: 12px 0 0; color: var(--ink-2); font-size: 15px; line-height: 1.6; }
-  .hero-links { display: flex; align-items: center; gap: 16px; margin-top: 16px; font-size: 12px; }
-  .hero-links a { color: var(--ink); text-decoration: none; }
-  .hero-links a:first-child { color: var(--brand); }
-  .hero-links a:hover { text-decoration: underline; text-underline-offset: 4px; }
-  .hero-links span:not(.separator) { margin-left: 4px; }
-  .separator { height: 12px; border-left: 1px solid var(--rule); }
+  .title-row span { color: var(--ink-2); font-size: 15px; font-weight: 500; letter-spacing: -0.015em; white-space: nowrap; }
   .signal { box-sizing: border-box; width: 280px; margin-right: 16px; padding-inline: 15px; opacity: 0.85; }
   .signal svg { display: block; width: 100%; }
   .signal-grid { stroke: var(--rule); stroke-width: 0.6; }
@@ -98,7 +85,6 @@ const digitalPath = 'M0 60 ' + Array.from({ length: 32 }, (_, i) => {
   @media (max-width: 600px) {
     .hero-inner { padding: 28px 20px; }
     .signal { display: none; }
-    .lede { font-size: 14px; }
     .content { padding: 24px 20px 32px; }
     .section-head { gap: 12px; }
     .section-note { font-size: 9px; }
