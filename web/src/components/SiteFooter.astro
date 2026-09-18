@@ -5,34 +5,27 @@ const { visits = true } = Astro.props;
 ---
 <footer class="site-footer">
   <div class="footer-inner">
-    <div class="footer-top">
-      <div><a class="brand" href="/">ADC Toolbox</a><p>Understand the converter. Explore the signal.</p></div>
-      <nav aria-label="Footer navigation">
-        <a href="/doc/">Manual</a>
-        <a href="https://github.com/Arcadia-1/ADCToolbox">GitHub ↗</a>
-        <a href="https://github.com/Arcadia-1/Analog-Circuit-Knowledge-Base/tree/main/web">Website source ↗</a>
-      </nav>
-    </div>
-    <div class="footer-bottom">
-      <a href="https://tokenzhang.com">© {new Date().getFullYear()} Token Zhang</a>
-      <a href="https://analog-design-bench.tokenzhang.com/">Analog Design Bench ↗</a>
-      {visits && <Visits client:load path={Astro.url.pathname} counter />}
-    </div>
+    <a class="brand" href="/">ADC Toolbox</a>
+    <nav aria-label="Footer navigation">
+      <a href="/doc/">Manual</a>
+      <a href="https://github.com/Arcadia-1/ADCToolbox">GitHub ↗</a>
+      <a href="https://github.com/Arcadia-1/Analog-Circuit-Knowledge-Base/tree/main/web">Website source ↗</a>
+    </nav>
+    <a href="https://tokenzhang.com">© {new Date().getFullYear()} Token Zhang</a>
+    <a href="https://analog-design-bench.tokenzhang.com/">Analog Design Bench ↗</a>
+    {visits && <Visits client:load path={Astro.url.pathname} counter />}
   </div>
 </footer>
 
 <style>
   .site-footer { border-top: 1px solid var(--rule-soft); margin-top: auto; }
-  .footer-inner { max-width: 1152px; margin: auto; padding: 28px 32px 24px; font-size: 12px; color: var(--ink-2); }
-  .footer-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; }
-  a { text-decoration: none; }
+  .footer-inner { max-width: 1152px; margin: auto; padding: 16px 32px; display: flex; align-items: center; gap: 24px; font-size: 12px; color: var(--ink-2); }
+  a { text-decoration: none; white-space: nowrap; }
   a:hover { color: var(--ink); }
-  .brand { font-size: 14px; font-weight: 600; color: var(--ink); }
-  p { margin: 6px 0 0; }
-  nav { display: flex; flex-wrap: wrap; gap: 10px 22px; }
-  nav a { padding-block: 6px; }
-  .footer-bottom { display: flex; flex-wrap: wrap; gap: 12px 24px; margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--rule-soft); }
-  .footer-bottom :global(.visitors) { margin-left: auto; text-decoration: none; font: 11px/1.6 var(--mono); white-space: nowrap; }
-  .footer-bottom :global(.visitors strong) { color: var(--ink); font-weight: 500; font-variant-numeric: tabular-nums; }
-  @media (max-width: 600px) { .footer-inner { padding-inline: 20px; } .footer-top { flex-direction: column; gap: 14px; } .footer-bottom { gap: 12px 18px; } .footer-bottom :global(.visitors) { margin-left: 0; } }
+  .brand { flex: none; font-size: 14px; font-weight: 600; color: var(--ink); }
+  nav { margin-left: auto; display: flex; align-items: center; gap: 22px; }
+  .footer-inner :global(.visitors) { text-decoration: none; font: 11px/1.6 var(--mono); white-space: nowrap; }
+  .footer-inner :global(.visitors strong) { color: var(--ink); font-weight: 500; font-variant-numeric: tabular-nums; }
+  @media (max-width: 900px) { .footer-inner { flex-wrap: wrap; gap: 10px 18px; } nav { margin-left: 0; } .footer-inner :global(.visitors) { margin-left: auto; } }
+  @media (max-width: 600px) { .footer-inner { padding-inline: 20px; } nav { width: 100%; order: -1; } }
 </style>
