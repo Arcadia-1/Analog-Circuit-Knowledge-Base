@@ -1,7 +1,7 @@
 <script lang="ts">
   import { freqText, nf } from '../../lib/format';
   import { clamp } from '../../lib/scale';
-  import { N_FFT, type Spectrum } from '../../lib/spectrum';
+  import type { Spectrum } from '../../lib/spectrum';
   import Plot from './Plot.svelte';
   import Tip from './Tip.svelte';
 
@@ -19,11 +19,14 @@
     marks?: { bin: number; text: string }[];
   } = $props();
 
-  const X0 = 46, BINS = N_FFT / 2;
+  const X0 = 46;
+  // the record this spectrum came from, which is not always the site's usual one
+  const BINS = $derived(spectrum.dbfs.length - 1);
+  const points = $derived(2 * BINS);
   const ybot = $derived(-20 * Math.ceil((6.02 * n + 1.76 + 10 * Math.log10(BINS) + 12) / 20));
   const order = (bin: number) => spectrum.harmonics.indexOf(bin) + 2;
-  const mhz = (bin: number) => `${Math.round(((bin / N_FFT) * (fs ?? 0)) / 1e5) / 10}`;
-  const at = (bin: number) => (fs ? freqText((bin / N_FFT) * fs) : `${(bin / N_FFT).toFixed(3)} fs`);
+  const mhz = (bin: number) => `${Math.round(((bin / points) * (fs ?? 0)) / 1e5) / 10}`;
+  const at = (bin: number) => (fs ? freqText((bin / points) * fs) : `${(bin / points).toFixed(3)} fs`);
 
   function geo(W: number, H: number) {
     const X1 = W - 6, Y0 = 6, Y1 = H - 20;
@@ -51,7 +54,7 @@
     named.forEach((m, i) => {
       if (i && m.x - named[i - 1].x < 28 && Math.abs(m.y - named[i - 1].y) < 14) m.y = named[i - 1].y - 14;
     });
-    const tick = (f: number) => (fs ? (f === 0.5 ? `${mhz(f * N_FFT)} MHz` : mhz(f * N_FFT)) : f === 0.5 ? '0.5 fs' : `${f}`);
+    const tick = (f: number) => (fs ? (f === 0.5 ? `${mhz(f * points)} MHz` : mhz(f * points)) : f === 0.5 ? '0.5 fs' : `${f}`);
     return { X1, Y0, Y1, sx, sy, d, grid, every, ticks, tick, spurX, right, spurText, named };
   }
 
@@ -69,8 +72,8 @@
       {#if (v - ybot) % g.every === 0}<text class="tx" x="40" y={g.sy(v)} text-anchor="end" dominant-baseline="central">{nf(v, 0)}</text>{/if}
     {/each}
     {#each g.ticks as f (f)}
-      <line class="gr" x1={g.sx(f * N_FFT)} y1={g.Y0} x2={g.sx(f * N_FFT)} y2={g.Y1} />
-      <text class="tx" x={g.sx(f * N_FFT)} y={height - 5} text-anchor={f === 0 ? 'start' : f === 0.5 ? 'end' : 'middle'}>{g.tick(f)}</text>
+      <line class="gr" x1={g.sx(f * points)} y1={g.Y0} x2={g.sx(f * points)} y2={g.Y1} />
+      <text class="tx" x={g.sx(f * points)} y={height - 5} text-anchor={f === 0 ? 'start' : f === 0.5 ? 'end' : 'middle'}>{g.tick(f)}</text>
     {/each}
     <text class="tx2 halo" x={X0 + 6} y={g.Y0 + 12}>dBFS</text>
     <path class="c{series}" stroke-width="1" d={g.d} />
