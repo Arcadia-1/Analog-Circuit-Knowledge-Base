@@ -28,22 +28,24 @@ PAGES = {
     "binary-vs-redundant-sar": ("Binary vs redundant SAR", "/adc/binary-vs-redundant-sar/"),
     "what-sets-the-floor": ("What sets the floor", "/adc/what-sets-the-floor/"),
     "what-a-conversion-costs": ("What a conversion costs", "/adc/what-a-conversion-costs/"),
+    "pulling-the-harmonics-out": ("Pulling the harmonics out", "/adc/pulling-the-harmonics-out/"),
 }
 EVERY = list(PAGES)
 # which illustrations run each page of the manual
 RUNS = {
     "index": EVERY,
     "api/index": EVERY,
-    "api/aout": ["reading-the-error", "inl-and-dnl", "what-sets-the-floor"],
+    "api/aout": ["reading-the-error", "inl-and-dnl", "what-sets-the-floor", "pulling-the-harmonics-out"],
     "api/spectrum": EVERY,
     "api/dout": ["reading-the-bits", "binary-vs-redundant-sar"],
     "api/models": ["binary-vs-redundant-sar"],
     "api/oversampling": ["oversampling-and-noise-shaping"],
     "api/timeinterleave": ["time-interleaved-adcs"],
     "api/siggen": ["aliasing-and-nyquist-zones", "oversampling-and-noise-shaping", "time-interleaved-adcs", "reading-the-error",
-                   "binary-vs-redundant-sar", "what-sets-the-floor"],
+                   "binary-vs-redundant-sar", "what-sets-the-floor", "pulling-the-harmonics-out"],
     "api/fundamentals": ["averaging-and-the-polar-spectrum", "aliasing-and-nyquist-zones", "oversampling-and-noise-shaping",
-                         "reading-the-error", "what-sets-the-floor", "what-a-conversion-costs"],
+                         "reading-the-error", "what-sets-the-floor", "what-a-conversion-costs",
+                         "pulling-the-harmonics-out"],
     "examples/index": EVERY,
     "quickstart": EVERY,
 }

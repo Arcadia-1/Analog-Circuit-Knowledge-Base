@@ -2,7 +2,7 @@ export interface Illustration {
   href: string;
   title: string;
   summary: string;
-  thumb: 'pll' | 'sar' | 'inl' | 'err' | 'win' | 'fold' | 'ntf' | 'ti' | 'bits' | 'polar' | 'bode' | 'floor' | 'fom';
+  thumb: 'pll' | 'sar' | 'inl' | 'err' | 'win' | 'fold' | 'ntf' | 'ti' | 'bits' | 'polar' | 'bode' | 'floor' | 'fom' | 'harm';
   /** Whose site this is, for a page that is not on this one; it opens in a tab of its own. */
   external?: string;
 }
@@ -53,6 +53,12 @@ export const topics: Topic[] = [
         title: 'Reading the error',
         summary: 'Separate noise, distortion and jitter in the residual.',
         thumb: 'err',
+      },
+      {
+        href: '/adc/pulling-the-harmonics-out/',
+        title: 'Pulling the harmonics out',
+        summary: 'Measure distortion three ways and see whether they agree.',
+        thumb: 'harm',
       },
       {
         href: '/adc/reading-the-bits/',
