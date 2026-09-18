@@ -1,0 +1,11 @@
+---
+import Base from '../../layouts/Base.astro';
+import HowLongARecord from '../../illustrations/record/HowLongARecord.svelte';
+import '../../styles/illustration.css';
+---
+<Base
+  title="How long a record"
+  description="How many samples an ADC measurement needs: SNDR's spread narrows with length while SFDR climbs until the real harmonic stops it, and short records near Nyquist swing by ten decibels depending on whether the length is even or odd."
+>
+  <HowLongARecord client:load />
+</Base>

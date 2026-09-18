@@ -29,6 +29,7 @@ PAGES = {
     "what-sets-the-floor": ("What sets the floor", "/adc/what-sets-the-floor/"),
     "what-a-conversion-costs": ("What a conversion costs", "/adc/what-a-conversion-costs/"),
     "pulling-the-harmonics-out": ("Pulling the harmonics out", "/adc/pulling-the-harmonics-out/"),
+    "how-long-a-record": ("How long a record", "/adc/how-long-a-record/"),
 }
 EVERY = list(PAGES)
 # which illustrations run each page of the manual
@@ -38,14 +39,14 @@ RUNS = {
     "api/aout": ["reading-the-error", "inl-and-dnl", "what-sets-the-floor", "pulling-the-harmonics-out"],
     "api/spectrum": EVERY,
     "api/dout": ["reading-the-bits", "binary-vs-redundant-sar"],
-    "api/models": ["binary-vs-redundant-sar"],
+    "api/models": ["binary-vs-redundant-sar", "how-long-a-record"],
     "api/oversampling": ["oversampling-and-noise-shaping"],
     "api/timeinterleave": ["time-interleaved-adcs"],
     "api/siggen": ["aliasing-and-nyquist-zones", "oversampling-and-noise-shaping", "time-interleaved-adcs", "reading-the-error",
                    "binary-vs-redundant-sar", "what-sets-the-floor", "pulling-the-harmonics-out"],
     "api/fundamentals": ["averaging-and-the-polar-spectrum", "aliasing-and-nyquist-zones", "oversampling-and-noise-shaping",
                          "reading-the-error", "what-sets-the-floor", "what-a-conversion-costs",
-                         "pulling-the-harmonics-out"],
+                         "pulling-the-harmonics-out", "how-long-a-record"],
     "examples/index": EVERY,
     "quickstart": EVERY,
 }

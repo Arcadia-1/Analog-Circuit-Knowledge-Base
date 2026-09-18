@@ -2,7 +2,7 @@ export interface Illustration {
   href: string;
   title: string;
   summary: string;
-  thumb: 'pll' | 'sar' | 'inl' | 'err' | 'win' | 'fold' | 'ntf' | 'ti' | 'bits' | 'polar' | 'bode' | 'floor' | 'fom' | 'harm';
+  thumb: 'pll' | 'sar' | 'inl' | 'err' | 'win' | 'fold' | 'ntf' | 'ti' | 'bits' | 'polar' | 'bode' | 'floor' | 'fom' | 'harm' | 'record';
   /** Whose site this is, for a page that is not on this one; it opens in a tab of its own. */
   external?: string;
 }
@@ -29,6 +29,12 @@ export const topics: Topic[] = [
         title: 'Coherent sampling',
         summary: 'Measure spectral leakage and choose the right FFT window.',
         thumb: 'win',
+      },
+      {
+        href: '/adc/how-long-a-record/',
+        title: 'How long a record',
+        summary: 'See how many samples a measurement needs before it settles.',
+        thumb: 'record',
       },
       {
         href: '/adc/binary-vs-redundant-sar/',
