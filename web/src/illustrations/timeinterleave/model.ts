@@ -75,7 +75,7 @@ export interface CaptureOptions {
   jitter?: number;
   /** Independent source harmonics in dBc. Values at or below −100 dBc are disabled. */
   harmonics?: Partial<HarmonicLevels>;
-  /** Keep every Dth converter sample, without an anti-alias filter. */
+  /** Keep every Dth converter sample, without an anti-alias filter. The output spectrum still uses N samples. */
   decimation?: number;
 }
 
@@ -105,17 +105,13 @@ export function bandwidthResponse(relativeError: number, frequency: number, fs: 
   };
 }
 
-/**
- * exp_ti01's capture: sample n comes from sub-ADC n mod m, which samples its skew late and scales and shifts what it
- * sees. Then 0.3 LSB of thermal noise and the quantiser, which floors and clips on ±0.5 V as apply_quantization_noise
- * does.
- */
-export function capture(fin: number, mm: Mismatch, bits: number, len = N, options: CaptureOptions = {}): Float64Array {
+/** The same memoryless converter sampled at ADC indices 0, stride, 2·stride, … . */
+function captureAtStride(fin: number, mm: Mismatch, bits: number, len: number, options: CaptureOptions, stride: number): Float64Array {
   const fs = options.fs ?? FS, jitter = options.jitter ?? 0, harmonics = options.harmonics ?? {};
   const m = mm.gain.length, T = 1 / fs, lsb = 1 / 2 ** bits, top = 2 ** bits - 1;
   const z = gaussians(len, NOISE_SEED), clock = jitter ? gaussians(len, JITTER_SEED) : null;
   return Float64Array.from({ length: len }, (_, n) => {
-    const c = n % m, t = n * T + mm.skew[c] + (clock?.[n] ?? 0) * jitter;
+    const sample = n * stride, c = sample % m, t = sample * T + mm.skew[c] + (clock?.[n] ?? 0) * jitter;
     const fundamental = bandwidthResponse(mm.bandwidth?.[c] ?? 0, fin, fs);
     let signal = AMP * fundamental.amplitude * Math.cos(2 * Math.PI * fin * t + fundamental.phase);
     for (const order of HARMONIC_ORDERS) {
@@ -127,6 +123,15 @@ export function capture(fin: number, mm: Mismatch, bits: number, len = N, option
     const v = mm.gain[c] * signal + mm.offset[c] + z[n] * NOISE_LSB * lsb;
     return Math.min(top, Math.max(0, Math.floor((v - -0.5) / lsb))) * lsb + -0.5;
   });
+}
+
+/**
+ * exp_ti01's capture: sample n comes from sub-ADC n mod m, which samples its skew late and scales and shifts what it
+ * sees. Then 0.3 LSB of thermal noise and the quantiser, which floors and clips on ±0.5 V as apply_quantization_noise
+ * does.
+ */
+export function capture(fin: number, mm: Mismatch, bits: number, len = N, options: CaptureOptions = {}): Float64Array {
+  return captureAtStride(fin, mm, bits, len, options, 1);
 }
 
 /** deinterleave: channel c holds samples c, c + m, c + 2m, … */
@@ -457,7 +462,7 @@ export interface Reading {
   measured: Params;
   spurs: Spur[];
   harmonics: HarmonicTone[];
-  /** Sample rate and record length after direct decimation. */
+  /** Sample rate and fixed analysis-record length after direct decimation. */
   fsOut: number;
   fftPoints: number;
   coherent: boolean;
@@ -479,9 +484,22 @@ export function read(m: number, target: number, mm: Mismatch, bits: number, meth
   const { fin, bin } = coherentFrequency(fs, target, N);
   const x = capture(fin, mm, bits, N, options);
   const measured = extractMismatch(x, m, fs, fin);
-  const y = method === 'off' ? null : calibrate(x, m, measured, fs, method);
-  const rawRecord = decimate(x, decimation), outRecord = y ? decimate(y, decimation) : rawRecord;
-  const coherent = N % decimation === 0;
+  const calibrationMethod = method === 'off' ? null : method;
+  const y = calibrationMethod ? calibrate(x, m, measured, fs, calibrationMethod) : null;
+  // Keep a full N-point analysis record at every output rate. Generating only the retained samples is exactly the
+  // memoryless ADC operation, and avoids constructing as many as 255 · N samples while the control is dragged.
+  const rawRecord = decimation === 1 ? x : captureAtStride(fin, mm, bits, N, options, decimation);
+  let outRecord = rawRecord;
+  if (y && calibrationMethod) {
+    if (decimation === 1) outRecord = y;
+    else {
+      // Calibration precedes downsampling. This slower branch is not used by the public lesson, which has no
+      // calibration control, but keeps the model's programmatic combination physically ordered.
+      const long = capture(fin, mm, bits, N * decimation, options);
+      outRecord = decimate(calibrate(long, m, measured, fs, calibrationMethod), decimation);
+    }
+  }
+  const coherent = true;
   const frequency = foldFrequency(fin, fsOut) / fsOut;
   const raw = outputSpectrum(rawRecord, bits, frequency, coherent);
   const spurs = outputSpurs(physicalParams(mm, fin, fs), fs, decimation);
@@ -493,9 +511,9 @@ export function read(m: number, target: number, mm: Mismatch, bits: number, meth
     spurs,
     harmonics: harmonicTones(fin, options.harmonics ?? {}, fsOut),
     fsOut,
-    fftPoints: rawRecord.length,
+    fftPoints: N,
     coherent,
-    metricsResolved: coherent || (rawRecord.length >= 64 && frequency * rawRecord.length > 5 && (0.5 - frequency) * rawRecord.length > 5),
+    metricsResolved: true,
     raw,
     out: y ? outputSpectrum(outRecord, bits, frequency, coherent) : raw,
     left: y ? extractMismatch(y, m, fs, fin) : null,

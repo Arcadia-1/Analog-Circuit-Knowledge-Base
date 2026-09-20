@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { fft } from '../src/lib/fft';
-import { coherentFrequency, foldFrequency } from '../src/lib/frequency';
+import { coherentFrequency, foldBin, foldFrequency } from '../src/lib/frequency';
 import {
   calibrate,
   capture,
@@ -427,13 +427,23 @@ describe('time-interleaved mismatch', () => {
     expect(h5Only.harmonics.map((tone) => tone.order)).toEqual([5]);
   });
 
-  it.each([1, 2, 3, 17, 63, 127, 255])('decimates by %i and reports the output rate and FFT size', (factor) => {
+  it.each([1, 2, 3, 17, 53, 63, 127, 255])('keeps an N-point coherent spectrum after direct decimation by %i', (factor) => {
     const r = read(4, 97e6, mismatch(4, 0.003, 0.001, 5e-12), 12, 'off', { decimation: factor });
     expect(r.rawData).toHaveLength(N);
-    expect(r.fftPoints).toBe(Math.ceil(N / factor));
+    expect(r.fftPoints).toBe(N);
     expect(r.fsOut).toBe(FS / factor);
-    expect(r.raw.dbfs).toHaveLength(Math.floor(Math.ceil(N / factor) / 2) + 1);
-    expect(decimate(r.rawData, factor)).toHaveLength(Math.ceil(N / factor));
+    expect(r.raw.dbfs).toHaveLength(N / 2 + 1);
+    expect(r.raw.signal).toBe(foldBin(r.bin * factor, N));
+    expect(r.coherent).toBe(true);
+    expect(r.metricsResolved).toBe(true);
+  });
+
+  it('aligns the measured and predicted interleaving spurs after decimation by 53', () => {
+    const r = read(8, 1e9, mismatch(8, 0.003, 0.001, 0.1e-12), 16, 'off', { fs: 10e9, decimation: 53 });
+    for (const spur of r.spurs) {
+      const bin = Math.round((spur.freq / r.fsOut) * r.fftPoints);
+      expect(r.raw.dbfs[bin]).toBeCloseTo(spur.dbfs, 0);
+    }
   });
 
   it.each([0, 256, 1.5])('rejects invalid decimation factor %s', (factor) => {

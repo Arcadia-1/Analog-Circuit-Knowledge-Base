@@ -70,9 +70,9 @@ describe('scientific audit: public lessons', () => {
     // A = 0.4 V; independent quantization (LSB²/12) + thermal noise (0.3 LSB)².
     const expected = 10 * Math.log10(0.4 ** 2 / 2 / ((1 / 12 + 0.3 ** 2) / 4096 ** 2));
     expect(Math.abs(r.raw.sndr - expected)).toBeLessThan(0.6);
-    expect(r.coherent).toBe(false);
-    // D=5 puts this particular input within one bin of output Nyquist: hide its spectral readouts.
-    expect(r.metricsResolved).toBe(factor !== 5);
+    expect(r.coherent).toBe(true);
+    expect(r.fftPoints).toBe(4096);
+    expect(r.metricsResolved).toBe(true);
   });
 
   it('measures a known -60 dBc noncoherent spur after subtracting the carrier', () => {
@@ -82,7 +82,7 @@ describe('scientific audit: public lessons', () => {
     const s = outputSpectrum(x, 16, f, false);
     expect(s.sndr).toBeCloseTo(60, 1);
     expect(s.sfdr).toBeCloseTo(60, 1);
-    expect(read(4, 100e6, mismatch(4, 0, 0, 0), 12, 'off', { decimation: 255 }).metricsResolved).toBe(false);
+    expect(read(4, 100e6, mismatch(4, 0, 0, 0), 12, 'off', { decimation: 255 }).metricsResolved).toBe(true);
   });
 
   it.each([1, 2, 3, 4, 5, 8])('predicts the spectrum of the actual visited channel sequence at decimation %i', (factor) => {
