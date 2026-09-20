@@ -3,12 +3,39 @@ import Base from '../layouts/Base.astro';
 import Entry from '../components/Entry.astro';
 import { related, topics } from '../data/illustrations';
 const lessons = topics.flatMap((topic) => topic.items);
+const SIGNAL_W = 180;
+const SIGNAL_H = 240;
+const sineY = (phase: number) => SIGNAL_H / 2 - 78 * Math.sin(2 * Math.PI * phase);
+const analogPath = Array.from({ length: 161 }, (_, i) =>
+  `${i === 0 ? 'M' : 'L'}${(SIGNAL_W * i / 160).toFixed(2)} ${sineY(i / 160).toFixed(2)}`,
+).join(' ');
+const digitalPath = `M0 ${SIGNAL_H / 2} ` + Array.from({ length: 32 }, (_, i) => {
+  const sample = i + 1;
+  const y = SIGNAL_H / 2 + 12 * Math.round((sineY(sample / 32) - SIGNAL_H / 2) / 12);
+  return `H${(SIGNAL_W * sample / 32).toFixed(2)}V${y}`;
+}).join(' ');
 ---
 <Base
   title="ADC Toolbox"
   description="Learn how analog-to-digital converters work with interactive lessons on sampling, SAR conversion, calibration, spectra and noise. Explore in your browser, then go further with the ADCToolbox Python library."
 >
   <main>
+    <section class="hero" aria-labelledby="site-title">
+      <div class="hero-inner">
+        <div class="title-row">
+          <h1 id="site-title">ADC Toolbox</h1>
+          <span>Interactive Playground</span>
+        </div>
+        <div class="signal" aria-hidden="true">
+          <svg viewBox="0 0 180 240" fill="none">
+            <path class="signal-grid" d="M0 40h180M0 80h180M0 120h180M0 160h180M0 200h180M30 0v240M60 0v240M90 0v240M120 0v240M150 0v240" />
+            <path class="analog" d={analogPath} />
+            <path class="digital" d={digitalPath} />
+          </svg>
+        </div>
+      </div>
+    </section>
+
     <div class="content">
       <section id="lessons" aria-label="Interactive lessons">
         <div class="lesson-grid">
@@ -29,14 +56,27 @@ const lessons = topics.flatMap((topic) => topic.items);
 </Base>
 
 <style>
-  .content { max-width: 1152px; margin: auto; padding: 30px 32px 40px; }
+  .hero { position: relative; overflow: hidden; border-bottom: 1px solid var(--rule-soft); }
+  .hero::before { content: ''; position: absolute; inset: 0; pointer-events: none; background-image: linear-gradient(var(--rule-soft) 1px, transparent 1px), linear-gradient(90deg, var(--rule-soft) 1px, transparent 1px); background-size: 32px 32px; mask-image: linear-gradient(90deg, transparent 20%, #000 100%); opacity: 0.45; }
+  .hero-inner { position: relative; max-width: 1152px; margin: auto; padding: 20px 32px 18px; display: flex; justify-content: space-between; align-items: center; gap: 48px; }
+  .title-row { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px 18px; }
+  h1 { margin: 0; font-size: clamp(34px, 4vw, 46px); line-height: 1.1; font-weight: 550; letter-spacing: -0.04em; }
+  .title-row span { color: var(--ink-2); font-size: 15px; font-weight: 450; letter-spacing: -0.01em; white-space: nowrap; }
+  .signal { box-sizing: border-box; width: 150px; margin-right: 54px; padding-inline: 4px; opacity: 0.85; }
+  .signal svg { display: block; width: 100%; }
+  .signal-grid { stroke: var(--rule); stroke-width: 0.6; }
+  .analog { stroke: var(--ink-3); stroke-width: 1.3; stroke-dasharray: 3 4; opacity: 0.6; }
+  .digital { stroke: var(--brand); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .content { max-width: 1152px; margin: auto; padding: 24px 32px 40px; }
   .section-head { padding-bottom: 13px; margin-bottom: 20px; border-bottom: 1px solid var(--rule); }
   h2 { margin: 0; font-size: 15px; font-weight: 600; letter-spacing: -0.02em; }
   .lesson-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 32px; }
   #related { margin-top: 32px; }
   .related-grid :global(.entry) { padding-inline: 0; }
-  @media (max-width: 760px) { .lesson-grid { column-gap: 22px; } }
+  @media (max-width: 760px) { .signal { width: 126px; margin: 0 18px 0 0; padding-inline: 0; } .hero-inner { gap: 24px; } .lesson-grid { column-gap: 22px; } }
   @media (max-width: 600px) {
+    .hero-inner { padding: 26px 20px; }
+    .signal { display: none; }
     .content { padding: 24px 20px 32px; }
     .lesson-grid { grid-template-columns: minmax(0, 1fr); }
     #related { margin-top: 26px; }
