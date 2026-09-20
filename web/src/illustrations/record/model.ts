@@ -81,6 +81,9 @@ export interface LengthRow {
   bin: number;
   sfdr: Spread;
   sndr: Spread;
+  /** Individual captures are retained so the lesson can show the population behind the summary band. */
+  sfdrRuns: number[];
+  sndrRuns: number[];
 }
 
 /**
@@ -100,7 +103,16 @@ export function* sweepStream(
       const s = spectrumOf(capture(n, run, noiseRms, hd3Dbc, bits));
       sfdr.push(s.sfdr);
       sndr.push(s.sndr);
-      yield run === runs - 1 ? { n, bin: coherentOddBin(n), sfdr: spread(sfdr), sndr: spread(sndr) } : null;
+      yield run === runs - 1
+        ? {
+            n,
+            bin: coherentOddBin(n),
+            sfdr: spread(sfdr),
+            sndr: spread(sndr),
+            sfdrRuns: [...sfdr],
+            sndrRuns: [...sndr],
+          }
+        : null;
     }
   }
 }

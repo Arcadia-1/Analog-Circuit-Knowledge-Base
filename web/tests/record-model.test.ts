@@ -44,6 +44,8 @@ describe('how long a record', () => {
     rows.forEach(([n, bin, sfdr, sndr], i) => {
       expect(coherentOddBin(n), `bin at ${n}`).toBe(bin);
       expect(swept[i].n).toBe(n);
+      expect(swept[i].sndrRuns).toHaveLength(16);
+      expect(swept[i].sfdrRuns).toHaveLength(16);
       ([['sfdr', sfdr], ['sndr', sndr]] as const).forEach(([which, want]) => {
         const got = swept[i][which];
         expect(got.mean, `${which} mean at ${n}`).toBeCloseTo(want[0], 4);

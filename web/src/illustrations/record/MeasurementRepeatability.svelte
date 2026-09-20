@@ -1,17 +1,24 @@
 <script lang="ts">
   import Notes from '../../components/ui/Notes.svelte';
   import Range from '../../components/ui/Range.svelte';
+  import SpectrumChart from '../../components/chart/SpectrumChart.svelte';
   import { nf } from '../../lib/format';
-  import { LENGTHS, RUNS, sweepStream, type LengthRow } from './model';
+  import { BITS, FS, LENGTHS, read, RUNS, sweepStream, type LengthRow } from './model';
+  import LengthChart from './LengthChart.svelte';
+  import RunChart from './RunChart.svelte';
   import StabilityChart from './StabilityChart.svelte';
 
   let index = $state(LENGTHS.indexOf(4096));
   let hover = $state<number | null>(null);
+  let hoverLength = $state<number | null>(null);
+  let hoverRuns = $state<number | null>(null);
+  let hoverSpectrum = $state<number | null>(null);
   const n = $derived(LENGTHS[index]);
   let rows = $state<LengthRow[]>([]);
   let running = $state(true);
   const selected = $derived(rows.find((row) => row.n === n) ?? null);
   const recommended = $derived(rows.find((row) => row.sndr.sigma <= 0.1) ?? null);
+  const capture = $derived(read(n));
 
   $effect(() => {
     const steps = sweepStream();
@@ -62,9 +69,24 @@
   </section>
 
   <section class="compare">
-    <div class="chart wide">
+    <div class="chart">
       <div class="cap"><span class="left"><span class="label">Run-to-run SNDR spread</span><span>same converter and stimulus, fresh noise each capture</span></span><span>{RUNS} captures per point{running ? ' · measuring' : ''}</span></div>
       <StabilityChart {rows} at={n} {hover} onhover={(i) => (hover = i)} label="Standard deviation of SNDR across repeated captures against record length" />
+    </div>
+
+    <div class="chart">
+      <div class="cap"><span class="left"><span class="label">What the spread came from</span><span>{RUNS} independent readings at {n.toLocaleString('en')} samples</span></span><span>{selected ? `${nf(selected.sndr.mean, 2)} ± ${nf(selected.sndr.sigma, 2)} dB` : 'measuring…'}</span></div>
+      <RunChart values={selected?.sndrRuns ?? []} spread={selected?.sndr ?? null} hover={hoverRuns} onhover={(i) => (hoverRuns = i)} label="Individual SNDR readings for the selected record length" />
+    </div>
+
+    <div class="chart">
+      <div class="cap"><span class="left"><span class="label">Mean and extremes</span><span>SNDR converges; SFDR keeps exposing lower spurs</span></span><span><span class="key k1"></span>SFDR · <span class="key k2"></span>SNDR</span></div>
+      <LengthChart {rows} at={n} hd3={-80} hover={hoverLength} onhover={(i) => (hoverLength = i)} label="Mean and range of SFDR and SNDR against record length" />
+    </div>
+
+    <div class="chart">
+      <div class="cap"><span class="left"><span class="label">One of those captures</span><span>the integrated floor stays; each bin gets quieter</span></span><span>SNDR <b>{nf(capture.spectrum.sndr, 1)}</b> · SFDR <b>{nf(capture.spectrum.sfdr, 1)} dB</b></span></div>
+      <SpectrumChart spectrum={capture.spectrum} n={BITS} series={1} fs={FS} hover={hoverSpectrum} onhover={(i) => (hoverSpectrum = i)} label="Spectrum of one capture at the selected record length" />
     </div>
   </section>
 </main>
@@ -76,7 +98,6 @@
   .facts > div + div { border-left: 1px solid var(--rule); }
   .facts b { justify-self: end; font: 500 17px var(--mono); white-space: nowrap; }
   .facts small { grid-column: 1 / -1; color: var(--ink-3); font-size: 11.5px; }
-  .compare { --rows: minmax(0, 1fr); }
-  .wide { grid-column: 1 / -1; }
-  @media (max-width: 700px) { .facts { grid-template-columns: 1fr; } .facts > div:nth-child(n) { border-left: 0; } .facts > div:nth-child(n + 2) { border-top: 1px solid var(--rule); } .wide { grid-column: auto; } }
+  .compare { --rows: repeat(2, minmax(0, 1fr)); }
+  @media (max-width: 700px) { .facts { grid-template-columns: 1fr; } .facts > div:nth-child(n) { border-left: 0; } .facts > div:nth-child(n + 2) { border-top: 1px solid var(--rule); } }
 </style>
