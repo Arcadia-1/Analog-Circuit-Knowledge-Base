@@ -1,11 +1,41 @@
 import { describe, expect, it } from 'vitest';
-import { analyze, CASES } from '../src/illustrations/analog-panel/model';
+import {
+  analyze,
+  capture,
+  CLEAN_IMPAIRMENTS,
+  DEFAULT_IMPAIRMENTS,
+  type Impairments,
+} from '../src/illustrations/analog-panel/model';
 
 const allFinite = (values: ArrayLike<number>) => Array.from(values).every(Number.isFinite);
+const withError = (patch: Partial<Impairments>): Impairments => ({ ...CLEAN_IMPAIRMENTS, ...patch });
+const differs = (a: ArrayLike<number>, b: ArrayLike<number>) => Array.from(a).some((value, i) => Math.abs(value - b[i]) > 1e-9);
+
+const individualErrors: { label: string; settings: Partial<Impairments> }[] = [
+  { label: 'thermal noise', settings: { thermalNoiseUv: 180 } },
+  { label: 'quantization', settings: { quantizerBits: 10 } },
+  { label: 'jitter', settings: { jitterPs: 2 } },
+  { label: 'AM noise', settings: { amNoisePpm: 500 } },
+  { label: 'HD2', settings: { hd2Dbc: -80 } },
+  { label: 'HD3', settings: { hd3Dbc: -70 } },
+  { label: 'memory', settings: { memoryPct: 0.9 } },
+  { label: 'settling', settings: { settlingTauPs: 40 } },
+  { label: 'residue gain', settings: { residueGainPct: -1 } },
+  { label: 'dynamic residue gain', settings: { dynamicResiduePctPerV2: 15 } },
+  { label: 'AM tone', settings: { amToneDepthPct: 5 } },
+  { label: 'clipping', settings: { clipLevelMv: 400 } },
+  { label: 'drift', settings: { driftStepUv: 50 } },
+  { label: 'reference droop', settings: { referenceDroopPctPerV: 0.2 } },
+  { label: 'glitches', settings: { glitchRatePpm: 2000, glitchAmplitudeMv: 100 } },
+];
 
 describe('ADCToolbox analog output panel', () => {
-  it.each(CASES)('computes all twelve views for $label', ({ id }) => {
-    const d = analyze(id, 1, 12);
+  it.each([
+    { label: 'clean converter', settings: CLEAN_IMPAIRMENTS },
+    { label: 'composite converter', settings: DEFAULT_IMPAIRMENTS },
+    ...individualErrors.map(({ label, settings }) => ({ label, settings: withError(settings) })),
+  ])('computes all twelve views for $label', ({ settings }) => {
+    const d = analyze(settings, 12);
     expect(d.y).toHaveLength(4096);
     expect(allFinite(d.y)).toBe(true);
     expect(allFinite(d.fit.error)).toBe(true);
@@ -17,29 +47,50 @@ describe('ADCToolbox analog output panel', () => {
     expect(allFinite(d.errorPhasePlane.y)).toBe(true);
     expect(d.outputPolar.rays).toHaveLength(5);
     expect(d.decompositionPolar.rays).toHaveLength(5);
-    expect(d.distribution.counts.reduce((sum, v) => sum + v, 0)).toBe(d.y.length);
+    expect(d.distribution.counts.reduce((sum, value) => sum + value, 0)).toBe(d.y.length);
     expect(d.error.harmonics).toEqual([]);
     expect(d.envelopeSpectrum.harmonics).toEqual([]);
-    // Sparse glitches must remain present in the phase-plane diagnostics, not disappear through stride sampling.
     expect(d.errorPhasePlane.y).toEqual(d.fit.error);
     expect(d.phasePlane.x).toHaveLength(d.y.length - d.phasePlane.lag);
   });
 
+  it.each(individualErrors)('$label has an independent, observable effect', ({ settings }) => {
+    const clean = capture(CLEAN_IMPAIRMENTS, 12);
+    expect(differs(capture(withError(settings), 12), clean)).toBe(true);
+  });
+
+  it('applies several enabled errors to the same record', () => {
+    const thermal = capture(withError({ thermalNoiseUv: 180 }), 12);
+    const harmonic = capture(withError({ hd3Dbc: -60 }), 12);
+    const combinedSettings = withError({ thermalNoiseUv: 180, hd3Dbc: -60, jitterPs: 1, amToneDepthPct: 2 });
+    const combined = capture(combinedSettings, 12);
+    expect(differs(combined, thermal)).toBe(true);
+    expect(differs(combined, harmonic)).toBe(true);
+
+    const d = analyze(combinedSettings, 12);
+    expect(d.decomposition.magnitudesDb[2]).toBeGreaterThan(-62);
+    expect(d.output.sndr).toBeLessThan(analyze(withError({ thermalNoiseUv: 180 }), 12).output.sndr);
+  });
+
   it('reconstructs every sample as fundamental + harmonics + residual', () => {
-    const d = analyze('hd3', 1, 12);
+    const d = analyze(withError({ hd3Dbc: -70 }), 12);
     for (let i = 0; i < d.y.length; i += 97) {
       expect(d.decomposition.fundamental[i] + d.decomposition.harmonic[i] + d.decomposition.residual[i]).toBeCloseTo(d.y[i], 10);
     }
   });
 
   it('preserves the expected diagnostic fingerprints', () => {
-    const jitter = analyze('jitter', 1, 12);
+    const jitter = analyze(withError({ jitterPs: 2 }), 12);
     expect(jitter.phase.pm).toBeGreaterThan(8 * Math.max(jitter.phase.am, 1e-6));
 
-    const hd3 = analyze('hd3', 1, 12);
+    const hd3 = analyze(withError({ hd3Dbc: -70 }), 12);
     expect(hd3.decomposition.magnitudesDb[2]).toBeGreaterThan(hd3.decomposition.magnitudesDb[1] + 8);
 
-    const memory = analyze('memory', 1, 12);
+    const memory = analyze(withError({ memoryPct: 0.9 }), 12);
     expect(Math.abs(memory.autocorr.y[47])).toBeGreaterThan(0.004);
+  });
+
+  it('has negligible fitted residual when every error is disabled', () => {
+    expect(analyze(CLEAN_IMPAIRMENTS, 12).fit.rmse).toBeLessThan(1e-8);
   });
 });

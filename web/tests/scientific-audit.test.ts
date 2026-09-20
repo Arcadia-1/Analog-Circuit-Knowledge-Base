@@ -3,7 +3,7 @@ import { gaussians } from '../src/lib/rng';
 import { analyzeSpectrum } from '../src/lib/spectrum';
 import { foldFrequency } from '../src/lib/frequency';
 import { read as aliasing, floorOf, KEEP } from '../src/illustrations/aliasing/model';
-import { decompose, spectrumPolar, FIN_BIN, analyze as panel } from '../src/illustrations/analog-panel/model';
+import { decompose, spectrumPolar, FIN_BIN, analyze as panel, CLEAN_IMPAIRMENTS } from '../src/illustrations/analog-panel/model';
 import { binaryWeights, redundantWeights, convert, reconstruct, type Trial } from '../src/illustrations/sar/model';
 import { read, mismatch, outputSpectrum, outputSpurs, physicalParams, FS, AMP } from '../src/illustrations/timeinterleave/model';
 import { analyze, dividerSequence, simulate, type Sim } from '../src/illustrations/pll/model';
@@ -61,8 +61,8 @@ describe('scientific audit: public lessons', () => {
     expect(d.magnitudesDb[h - 1]).toBeCloseTo(-40, 9);
   });
 
-  it('does not report a linear settling pole startup as steady-state distortion', () => {
-    expect(panel('settling', 0, 12).fit.rmse).toBeLessThan(1e-8);
+  it('does not report a synthetic startup transient when all panel errors are disabled', () => {
+    expect(panel(CLEAN_IMPAIRMENTS, 12).fit.rmse).toBeLessThan(1e-8);
   });
 
   it.each([3, 5, 17])('keeps a clean 12-bit converter near 69 dB SNDR after decimation by %i', (factor) => {

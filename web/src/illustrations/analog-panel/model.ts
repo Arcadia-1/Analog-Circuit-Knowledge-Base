@@ -16,125 +16,196 @@ export const FIN = (FIN_BIN / N_FFT) * FS;
 const A = 0.49;
 const DC = 0.5;
 
-export type CaseId =
-  | 'thermal' | 'quantization' | 'jitter' | 'am-noise' | 'hd2' | 'hd3'
-  | 'memory' | 'settling' | 'ra-gain' | 'ra-dynamic' | 'am-tone'
-  | 'clipping' | 'drift' | 'reference' | 'glitch';
+/** A value at or below this threshold disables a harmonic rather than creating a tiny hidden tone. */
+export const HD_OFF = -120;
 
-export interface PanelCase { id: CaseId; label: string; fingerprint: string }
+/**
+ * Independent controls for the fifteen non-idealities in nonideality_cases.py.
+ * Every field is expressed in the unit shown in the UI; there is no shared severity scale.
+ */
+export interface Impairments {
+  thermalNoiseUv: number;
+  quantizerBits: number;
+  jitterPs: number;
+  amNoisePpm: number;
+  hd2Dbc: number;
+  hd3Dbc: number;
+  memoryPct: number;
+  settlingTauPs: number;
+  residueGainPct: number;
+  dynamicResiduePctPerV2: number;
+  amToneDepthPct: number;
+  clipLevelMv: number;
+  driftStepUv: number;
+  referenceDroopPctPerV: number;
+  glitchRatePpm: number;
+  glitchAmplitudeMv: number;
+}
 
-export const CASES: PanelCase[] = [
-  { id: 'thermal', label: 'Thermal noise', fingerprint: 'a Gaussian floor with no preferred phase' },
-  { id: 'quantization', label: 'Quantization noise', fingerprint: 'a bounded error distribution and code structure' },
-  { id: 'jitter', label: 'Jitter noise', fingerprint: 'phase-dependent error that grows on the input slope' },
-  { id: 'am-noise', label: 'AM noise', fingerprint: 'amplitude-dependent random error' },
-  { id: 'hd2', label: 'Static HD2', fingerprint: 'a curved transfer and a second-harmonic line' },
-  { id: 'hd3', label: 'Static HD3', fingerprint: 'a symmetric transfer error and a third-harmonic line' },
-  { id: 'memory', label: 'Memory effect', fingerprint: 'history-dependent bands and spectral spurs' },
-  { id: 'settling', label: 'Incomplete settling', fingerprint: 'dynamic error tied to the preceding sample' },
-  { id: 'ra-gain', label: 'Residue gain error', fingerprint: 'stage-boundary discontinuities and harmonics' },
-  { id: 'ra-dynamic', label: 'Dynamic residue gain', fingerprint: 'signal-dependent gain with memory' },
-  { id: 'am-tone', label: 'AM tone', fingerprint: 'paired sidebands and an envelope tone' },
-  { id: 'clipping', label: 'Clipping', fingerprint: 'flat peaks, heavy PDF tails, and many harmonics' },
-  { id: 'drift', label: 'Drift', fingerprint: 'low-frequency residual energy and long correlation' },
-  { id: 'reference', label: 'Reference error', fingerprint: 'amplitude-dependent droop with memory' },
-  { id: 'glitch', label: 'Glitch', fingerprint: 'rare outliers, broad spectral energy, and phase-plane escapes' },
-];
-
-const percentile = (values: Float64Array, p: number) => {
-  const sorted = Array.from(values).sort((a, b) => a - b);
-  const at = Math.max(0, Math.min(sorted.length - 1, (p / 100) * (sorted.length - 1)));
-  const lo = Math.floor(at), hi = Math.ceil(at), f = at - lo;
-  return sorted[lo] * (1 - f) + sorted[hi] * f;
+export const CLEAN_IMPAIRMENTS: Impairments = {
+  thermalNoiseUv: 0,
+  quantizerBits: 0,
+  jitterPs: 0,
+  amNoisePpm: 0,
+  hd2Dbc: HD_OFF,
+  hd3Dbc: HD_OFF,
+  memoryPct: 0,
+  settlingTauPs: 0,
+  residueGainPct: 0,
+  dynamicResiduePctPerV2: 0,
+  amToneDepthPct: 0,
+  clipLevelMv: 500,
+  driftStepUv: 0,
+  referenceDroopPctPerV: 0,
+  glitchRatePpm: 0,
+  glitchAmplitudeMv: 0,
 };
 
-/** Illustrative adaptations of nonideality_cases.py; severity=1 uses its principal impairment settings. */
-export function capture(kind: CaseId, severity: number, bits: number, seed = 20260920): Float64Array {
-  const s = Math.max(0, severity), n = N_FFT;
-  const z0 = gaussians(n, seed), z1 = gaussians(n, seed + 1), u0 = uniforms(n, seed + 2);
-  const clean = Float64Array.from({ length: n }, (_, i) => A * Math.sin((2 * Math.PI * FIN_BIN * i) / n) + DC);
-  const y = new Float64Array(clean);
-  const baseline = kind === 'thermal' ? 0 : 10e-6 * s;
+/** A deliberately mixed starting point: each value remains independently editable or removable. */
+export const DEFAULT_IMPAIRMENTS: Impairments = {
+  ...CLEAN_IMPAIRMENTS,
+  thermalNoiseUv: 50,
+  quantizerBits: 12,
+  jitterPs: 0.5,
+  amNoisePpm: 100,
+  hd2Dbc: -85,
+  hd3Dbc: -75,
+  memoryPct: 0.1,
+  settlingTauPs: 40,
+  residueGainPct: -0.15,
+  dynamicResiduePctPerV2: 2,
+  amToneDepthPct: 0.5,
+  driftStepUv: 2,
+  referenceDroopPctPerV: 0.02,
+  glitchRatePpm: 250,
+  glitchAmplitudeMv: 20,
+};
 
-  if (kind === 'thermal') {
-    for (let i = 0; i < n; i++) y[i] += z0[i] * 180e-6 * s;
-  } else if (kind === 'quantization') {
-    const qbits = Math.max(4, Math.min(16, Math.round(16 - 6 * s)));
-    const levels = 2 ** qbits;
-    for (let i = 0; i < n; i++) y[i] = Math.min(levels - 1, Math.max(0, Math.floor(y[i] * levels))) / levels;
-  } else if (kind === 'jitter') {
+/**
+ * Compose all enabled non-idealities into one record. The order follows a signal path: sample-time error, continuous
+ * transfer errors, memory/stage errors, clipping/reference events, additive noise, and finally quantization.
+ */
+export function capture(settings: Impairments, bits: number, seed = 20260920): Float64Array {
+  const n = N_FFT;
+  const jitterNoise = gaussians(n, seed);
+  const amNoise = gaussians(n, seed + 1);
+  const thermalNoise = gaussians(n, seed + 2);
+  const driftNoise = gaussians(n, seed + 3);
+  const glitchDraw = uniforms(n, seed + 4);
+  let y = Float64Array.from({ length: n }, (_, i) => {
+    const t = i / FS + jitterNoise[i] * Math.max(0, settings.jitterPs) * 1e-12;
+    return A * Math.sin(2 * Math.PI * FIN * t) + DC;
+  });
+
+  const amStrength = Math.max(0, settings.amNoisePpm) * 1e-6;
+  if (amStrength) {
+    for (let i = 0; i < n; i++) y[i] = DC + (y[i] - DC) * (1 + amStrength * amNoise[i]);
+  }
+
+  const k2 = settings.hd2Dbc <= HD_OFF ? 0 : (2 * 10 ** (settings.hd2Dbc / 20)) / A;
+  const k3 = settings.hd3Dbc <= HD_OFF ? 0 : (4 * 10 ** (settings.hd3Dbc / 20)) / A ** 2;
+  if (k2 || k3) {
     for (let i = 0; i < n; i++) {
-      const t = i + z0[i] * 2e-12 * s * FS;
-      y[i] = A * Math.sin((2 * Math.PI * FIN_BIN * t) / n) + DC;
-    }
-  } else if (kind === 'am-noise') {
-    for (let i = 0; i < n; i++) y[i] = (clean[i] - DC) * (1 + 0.0005 * s * z0[i]) + DC;
-  } else if (kind === 'hd2' || kind === 'hd3') {
-    const k2 = kind === 'hd2' ? ((2 * 10 ** (-80 / 20)) / A) * s : 0;
-    const k3 = kind === 'hd3' ? ((4 * 10 ** (-70 / 20)) / A ** 2) * s : 0;
-    for (let i = 0; i < n; i++) {
-      const x = clean[i] - DC;
+      const x = y[i] - DC;
       y[i] = DC + x + k2 * x ** 2 + k3 * x ** 3;
     }
-  } else if (kind === 'memory') {
-    let previous = Math.floor(clean[n - 1] * 16) / 16;
+  }
+
+  const memory = settings.memoryPct / 100;
+  if (memory) {
+    const source = new Float64Array(y);
+    let previousMsb = Math.floor(source[n - 1] * 16) / 16;
     for (let i = 0; i < n; i++) {
-      const msb = Math.floor(clean[i] * 16) / 16;
-      const lsb = Math.floor((clean[i] - msb) * 4096) / 4096;
-      y[i] = msb + lsb + 0.009 * s * previous;
-      previous = msb;
+      const msb = Math.floor(source[i] * 16) / 16;
+      y[i] = source[i] + memory * previousMsb;
+      previousMsb = msb;
     }
-  } else if (kind === 'settling') {
-    let previous = 0;
+  }
+
+  const tauNom = Math.max(0, settings.settlingTauPs) * 1e-12;
+  if (tauNom) {
+    const source = new Float64Array(y);
     const track = 0.2 / FS;
-    // Settle the state before the measured record; startup is not ADC distortion.
+    let previous = source[n - 1] - DC;
+    // Warm a periodic state before the measured record so startup is not presented as converter distortion.
     for (let i = -32; i < n; i++) {
-      const target = clean[(i + n) % n] - DC;
-      const tau = 40e-12 * (1 + 0.09 * s * target ** 2);
+      const target = source[(i + n) % n] - DC;
+      const tau = tauNom * (1 + 0.15 * target ** 2);
       const out = target + (previous - target) * Math.exp(-track / tau);
       if (i >= 0) y[i] = DC + out;
       previous = out;
     }
-  } else if (kind === 'ra-gain') {
+  }
+
+  if (settings.residueGainPct) {
+    const source = new Float64Array(y), gain = 1 + settings.residueGainPct / 100;
     for (let i = 0; i < n; i++) {
-      const x = clean[i] - DC, msb = Math.floor(x * 16) / 16, lsb = Math.floor((x - msb) * 256) / 256;
-      y[i] = DC + msb * (1 - 0.01 * s) + lsb;
+      const x = source[i] - DC, msb = Math.floor(x * 16) / 16, lsb = Math.floor((x - msb) * 256) / 256;
+      y[i] = DC + msb * gain + lsb;
     }
-  } else if (kind === 'ra-dynamic') {
+  }
+
+  const dynamic = settings.dynamicResiduePctPerV2 / 100;
+  if (dynamic) {
+    const source = new Float64Array(y);
     let previous = 0;
     for (let i = 0; i < n; i++) {
-      const x = clean[i] - DC, msb = Math.floor(x * 16) / 16, lsb = Math.floor((x - msb) * 256) / 256;
-      const out = msb * (1 + 0.15 * s * previous ** 2) + lsb;
+      const x = source[i] - DC, msb = Math.floor(x * 16) / 16, lsb = Math.floor((x - msb) * 256) / 256;
+      const out = msb * (1 + dynamic * previous ** 2) + lsb;
       y[i] = DC + out;
       previous = out;
     }
-  } else if (kind === 'am-tone') {
-    const fm = 500e3 / FS;
-    for (let i = 0; i < n; i++) y[i] = (clean[i] - DC) * (1 + 0.05 * s * Math.sin(2 * Math.PI * fm * i)) + DC;
-  } else if (kind === 'clipping') {
-    const p = Math.min(20, s);
-    const lo = percentile(clean, p), hi = percentile(clean, 100 - p);
-    for (let i = 0; i < n; i++) y[i] = Math.min(hi, Math.max(lo, clean[i]));
-  } else if (kind === 'drift') {
+  }
+
+  const amToneDepth = settings.amToneDepthPct / 100;
+  if (amToneDepth) {
+    for (let i = 0; i < n; i++) {
+      y[i] = DC + (y[i] - DC) * (1 + amToneDepth * Math.sin((2 * Math.PI * 500e3 * i) / FS));
+    }
+  }
+
+  const clipLevel = Math.max(0, settings.clipLevelMv) * 1e-3;
+  if (clipLevel <= 0.5) {
+    const lo = DC - clipLevel, hi = DC + clipLevel;
+    for (let i = 0; i < n; i++) y[i] = Math.min(hi, Math.max(lo, y[i]));
+  }
+
+  const driftStep = Math.max(0, settings.driftStepUv) * 1e-6;
+  if (driftStep) {
     let walk = 0, smooth = 0;
     for (let i = 0; i < n; i++) {
-      walk += z0[i] * 5e-5 * s;
+      walk += driftNoise[i] * driftStep;
       smooth += 0.006 * (walk - smooth);
       y[i] += smooth;
     }
-  } else if (kind === 'reference') {
-    let droop = 0;
-    const decay = Math.exp(-10);
-    for (let i = 0; i < n; i++) {
-      const ac = clean[i] - DC;
-      droop = 0.002 * s * Math.abs(ac) + decay * droop;
-      y[i] = DC + ac * (1 - droop);
-    }
-  } else if (kind === 'glitch') {
-    for (let i = 0; i < n; i++) if (u0[i] < 0.002 * s) y[i] += 0.1;
   }
 
-  if (baseline) for (let i = 0; i < n; i++) y[i] += z1[i] * baseline;
+  const droopStrength = Math.max(0, settings.referenceDroopPctPerV) / 100;
+  if (droopStrength) {
+    let droop = 0;
+    const decay = Math.exp(-10); // The reference example uses a 0.1-sample recovery constant.
+    for (let i = 0; i < n; i++) {
+      const ac = y[i] - DC;
+      droop = droopStrength * Math.abs(ac) + decay * droop;
+      y[i] = DC + ac * (1 - droop);
+    }
+  }
+
+  const glitchProbability = Math.max(0, settings.glitchRatePpm) * 1e-6;
+  const glitchAmplitude = settings.glitchAmplitudeMv * 1e-3;
+  if (glitchProbability && glitchAmplitude) {
+    for (let i = 0; i < n; i++) if (glitchDraw[i] < glitchProbability) y[i] += glitchAmplitude;
+  }
+
+  const noiseRms = Math.max(0, settings.thermalNoiseUv) * 1e-6;
+  if (noiseRms) for (let i = 0; i < n; i++) y[i] += thermalNoise[i] * noiseRms;
+
+  const qbits = Math.round(settings.quantizerBits);
+  if (qbits > 0) {
+    const levels = 2 ** qbits;
+    for (let i = 0; i < n; i++) y[i] = Math.min(levels - 1, Math.max(0, Math.floor(y[i] * levels))) / levels;
+  }
+
   const codes = 2 ** bits;
   return y.map((v) => v * codes);
 }
@@ -286,8 +357,8 @@ export interface Dashboard {
   errorPhasePlane: XY;
 }
 
-export function analyze(kind: CaseId, severity: number, bits: number): Dashboard {
-  const y = capture(kind, severity, bits), fit = fitSine(y, FIN_BIN);
+export function analyze(settings: Impairments, bits: number): Dashboard {
+  const y = capture(settings, bits), fit = fitSine(y, FIN_BIN);
   const output = outputSpectrum(y, bits), decomposition = decompose(y);
   return {
     y,
