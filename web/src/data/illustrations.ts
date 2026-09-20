@@ -1,3 +1,5 @@
+export type LessonCategory = 'ADC' | 'PLL' | 'Circuits & Systems';
+
 export interface Illustration {
   href: string;
   title: string;
@@ -5,6 +7,8 @@ export interface Illustration {
   thumb: 'pll' | 'divider' | 'sar' | 'inl' | 'err' | 'win' | 'fold' | 'ntf' | 'ti' | 'bits' | 'polar' | 'bode' | 'floor' | 'fom' | 'harm' | 'record' | 'repeat' | 'short' | 'train' | 'panel';
   /** Whose site this is, for a page that is not on this one; it opens in a tab of its own. */
   external?: string;
+  /** Public catalog label; assigned only after a lesson passes the editorial gate. */
+  category?: LessonCategory;
 }
 
 export interface Topic {
@@ -153,5 +157,15 @@ export const related: Topic = {
 };
 
 /** The small, reviewed set shown on the public home page. */
-export const featuredLessons = [...topics.flatMap((topic) => topic.items), ...related.items]
-  .filter((item) => isPublicLessonPath(item.href) || isPublicExternalHref(item.href));
+export const featuredLessons: Illustration[] = [
+  ...topics
+    .flatMap((topic) => topic.items)
+    .filter((item) => isPublicLessonPath(item.href))
+    .map((item) => ({ ...item, category: 'ADC' as const })),
+  ...related.items
+    .filter((item) => isPublicLessonPath(item.href) || isPublicExternalHref(item.href))
+    .map((item) => ({
+      ...item,
+      category: item.external ? 'Circuits & Systems' as const : 'PLL' as const,
+    })),
+];
