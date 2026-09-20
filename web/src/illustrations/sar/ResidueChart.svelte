@@ -7,7 +7,7 @@
 
   /**
    * Residue V_in − V_test at each comparison on a symmetric log axis. Bars span the DAC levels the remaining capacitors can
-   * still reach; once V_in falls outside a bar, no digital weights can recover the conversion.
+   * still reach, with a ±1 LSB allowance. These are analog bounds, not a claim about digital calibration.
    */
   let { trace, x, n, slots, shown, series, hover, onhover, label }: {
     trace: Trial[];
@@ -46,7 +46,7 @@
     const k = Math.floor((px - X0) / ((W - 6 - X0) / slots));
     onhover(k >= 0 && k < Math.min(shown, trace.length) ? k : null);
   }
-  const reachable = (t: Trial) => t.lo < x && x < t.hi;
+  const reachable = (t: Trial) => t.lo <= x && x <= t.hi;
 </script>
 
 <Plot {label} onpointermove={move} onpointerleave={() => onhover(null)}>

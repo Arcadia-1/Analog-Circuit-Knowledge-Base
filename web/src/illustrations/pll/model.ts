@@ -173,6 +173,7 @@ export interface Spur { f: number; dBc: number }
 /** Shared vertical scales of the two phase-detector charts. */
 export interface EdgeScale { nMin: number; nMax: number; R: number }
 export interface Analysis {
+  carrierPower: number;
   jitterFs: number;
   bandLo: number;
   bandHi: number;
@@ -196,6 +197,8 @@ export function analyze(r: Sim): Analysis {
     re[i] = w * Math.cos(ph); im[i] = w * Math.sin(ph); sw2 += w * w;
   }
   fft(re, im);
+  // dBc is relative to the remaining carrier, not the total power of an unmodulated unit phasor.
+  const carrierPower = Math.max((re[0] ** 2 + im[0] ** 2) / (n / 2) ** 2, 1e-30);
   const fRef = r.fRef, fTop = 0.48 * fRef, half = n / 2, df = fRef / n;
   const P = new Float64Array(half), dB = new Float64Array(half);
   for (let k = 1; k < half; k++) {
@@ -216,7 +219,7 @@ export function analyze(r: Sim): Analysis {
   for (let k = 6; k < half - 2; k++) {
     if (k * df < 1e4 || dB[k] < floor[k] + 18) continue;
     if (dB[k] < Math.max(dB[k - 2], dB[k - 1], dB[k + 1], dB[k + 2])) continue;
-    const pw = (P[k - 2] + P[k - 1] + P[k] + P[k + 1] + P[k + 2]) / (n * sw2);
+    const pw = (P[k - 2] + P[k - 1] + P[k] + P[k + 1] + P[k + 2]) / (n * sw2 * carrierPower);
     spurs.push({ f: k * df, dBc: 10 * Math.log10(pw) });
     for (let j = k - 3; j <= k + 3; j++) lobe[j] = 1;
   }
@@ -229,7 +232,7 @@ export function analyze(r: Sim): Analysis {
     a = Math.max(a, 4); b = Math.min(b, half - 1);
     let s = 0, cnt = 0;
     for (let k = a; k <= b; k++) if (!lobe[k]) { s += P[k]; cnt++; }
-    if (cnt) curve.push({ f, L: 10 * Math.log10(s / cnt / (fRef * sw2) + 1e-300) });
+    if (cnt) curve.push({ f, L: 10 * Math.log10(s / cnt / (fRef * sw2 * carrierPower) + 1e-300) });
   }
-  return { jitterFs: Math.sqrt(ss / n) * 1e15, bandLo: df, bandHi: fRef / 2, fTop, spurs: spurs.filter((p) => p.f <= fTop), curve };
+  return { carrierPower, jitterFs: Math.sqrt(ss / n) * 1e15, bandLo: df, bandHi: fRef / 2, fTop, spurs: spurs.filter((p) => p.f <= fTop), curve };
 }

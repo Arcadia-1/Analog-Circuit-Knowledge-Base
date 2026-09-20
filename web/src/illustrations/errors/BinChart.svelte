@@ -2,7 +2,7 @@
   import Plot from '../../components/chart/Plot.svelte';
   import Tip from '../../components/chart/Tip.svelte';
   import { nf } from '../../lib/format';
-  import { clamp } from '../../lib/scale';
+  import { clamp, niceStep } from '../../lib/scale';
   import type { Bins } from './model';
 
   /** The residual binned along some axis: the mean of each bin as a line, its rms as a band behind it. */
@@ -33,7 +33,7 @@
       bot = `L${x},${sy(-bins.rms[b])}` + bot;
       line += `${line ? 'L' : 'M'}${x},${sy(bins.mean[b])}`;
     }
-    const step = span >= 8 ? 4 : span >= 4 ? 2 : span >= 2 ? 1 : span >= 0.8 ? 0.5 : 0.2;
+    const step = niceStep(2 * span / Math.max(2, Math.floor((Y1 - Y0) / 35)));
     const grid: number[] = [];
     for (let v = -Math.floor(span / step) * step; v <= span; v += step) grid.push(Number(v.toFixed(2)));
     return { X1, Y0, Y1, sx, sy, band: top && `${top}${bot}Z`, line, grid };

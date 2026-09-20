@@ -77,7 +77,7 @@ describe('SAR ADC model, ported from ADCToolbox', () => {
     expect(6.02 * spectrum.enob + 1.76).toBeCloseTo(-10 * Math.log10(10 ** (-alone / 10) + 10 ** (-quiet / 10)), 0);
   });
 
-  // [N, arch, chip, percentage of inputs no digital weights recover] at 10 % unit-cap mismatch, from a 0.02 LSB sweep.
+  // [N, arch, chip, percentage of inputs with analog DAC error > 1 LSB] at 10 % unit-cap mismatch, from a 0.02 LSB sweep.
   // What a redundant array still loses is only the top of the range, where its capacitors happen to add up short of
   // full scale; a binary array loses that too, plus a gap wherever a weight outgrew the ones after it.
   it.each([
@@ -87,7 +87,7 @@ describe('SAR ADC model, ported from ADCToolbox', () => {
     [16, 'binary', 7, 2.7914],
     [16, 'redundant', 7, 0.012],
     [16, 'redundant', 29, 0],
-  ] as const)('finds the inputs a %i-bit %s chip cannot resolve', (n, arch, chip, percent) => {
+  ] as const)('finds analog DAC errors above one LSB for a %i-bit %s chip', (n, arch, chip, percent) => {
     const nominal = weightsFor(arch, n);
     const actual = capMismatch(nominal, 0.1, gaussians(nominal.length, 1000 * chip + (arch === 'binary' ? 0 : 1)));
     expect(lostInputs(n, actual, 0.02).fraction * 100).toBeCloseTo(percent, 3);
@@ -95,7 +95,7 @@ describe('SAR ADC model, ported from ADCToolbox', () => {
     const { bands, fraction } = lostInputs(n, actual);
     expect(fraction * 100).toBeCloseTo(percent, 1);
     expect(bands.reduce((a, [lo, hi]) => a + hi - lo, 0)).toBeCloseTo(fraction, 6);
-    // every band really is lost: the conversion of its midpoint ends more than one LSB away from the input
+    // every flagged band meets the analog-error criterion: the conversion of its midpoint ends more than one LSB away from the input
     const bits = new Uint8Array(nominal.length);
     for (const [lo, hi] of bands.slice(0, 4)) {
       const x = ((lo + hi) / 2) * 2 ** n;

@@ -90,6 +90,10 @@ an explicit choice; that choice is stored locally.
 
 ## Numerical verification
 
+See [the 2026-09-20 scientific audit](SCIENTIFIC-AUDIT-2026-09-20.md) for the scope, analytical checks, corrected
+calculations and the external Bode tool's known marginal-stability limitation. `tests/scientific-audit.test.ts`
+checks independent signal identities in addition to the Python regression comparisons.
+
 For reproducible reference results, install the verified library revision from the repository root:
 
 ```sh

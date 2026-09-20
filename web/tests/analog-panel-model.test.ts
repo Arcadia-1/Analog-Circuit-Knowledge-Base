@@ -17,6 +17,12 @@ describe('ADCToolbox analog output panel', () => {
     expect(allFinite(d.errorPhasePlane.y)).toBe(true);
     expect(d.outputPolar.rays).toHaveLength(5);
     expect(d.decompositionPolar.rays).toHaveLength(5);
+    expect(d.distribution.counts.reduce((sum, v) => sum + v, 0)).toBe(d.y.length);
+    expect(d.error.harmonics).toEqual([]);
+    expect(d.envelopeSpectrum.harmonics).toEqual([]);
+    // Sparse glitches must remain present in the phase-plane diagnostics, not disappear through stride sampling.
+    expect(d.errorPhasePlane.y).toEqual(d.fit.error);
+    expect(d.phasePlane.x).toHaveLength(d.y.length - d.phasePlane.lag);
   });
 
   it('reconstructs every sample as fundamental + harmonics + residual', () => {

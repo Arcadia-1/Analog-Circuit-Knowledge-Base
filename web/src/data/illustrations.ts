@@ -149,7 +149,7 @@ export const related: Topic = {
     {
       href: 'https://many-question.github.io/bode-sketch/',
       title: 'Bode plots & stability',
-      summary: 'Move poles and zeros to explore Bode plots, stability and transient response.',
+      summary: 'Explore poles, zeros and responses; verify marginal stability independently.',
       thumb: 'bode',
       external: 'many-question.github.io',
     },

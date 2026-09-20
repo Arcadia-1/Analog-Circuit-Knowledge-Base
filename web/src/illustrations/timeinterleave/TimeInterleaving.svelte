@@ -99,7 +99,7 @@
       <div class="chart spectrum-chart">
         <div class="cap">
           <span class="left"><span class="label">Output spectrum</span><span>{r.fftPoints}-point FFT · {rateText(r.fsOut)} · {r.coherent ? 'rectangular' : 'Blackman–Harris'}</span></span>
-          <span title={r.metricsResolved ? 'Finite-record estimates' : 'Record too short or carrier too close to DC / Nyquist'}>SFDR <b>{r.metricsResolved ? nf(r.raw.sfdr, 1) : '—'} dB</b> · SNDR <b>{r.metricsResolved ? nf(r.raw.sndr, 1) : '—'} dB</b></span>
+          <span title={r.metricsResolved ? (r.coherent ? 'Coherent FFT estimates' : 'SNDR: known-frequency sine fit. SFDR: strongest windowed residual lobe. Closely spaced tones may not resolve.') : 'Noncoherent record has fewer than 64 points, or the carrier is within five bins of DC / Nyquist'}>SFDR <b>{r.metricsResolved ? nf(r.raw.sfdr, 1) : '—'} dB</b> · SNDR <b>{r.metricsResolved ? nf(r.raw.sndr, 1) : '—'} dB</b></span>
         </div>
         <SpurSpectrum spectrum={r.raw} spurs={r.spurs} harmonics={r.harmonics} {bits} fs={r.fsOut} points={r.fftPoints} hover={hoverBin} onhover={(b) => (hoverBin = b)} label="Spectrum of the interleaved and decimated output" />
       </div>

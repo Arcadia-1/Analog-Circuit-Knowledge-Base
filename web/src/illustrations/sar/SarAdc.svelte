@@ -57,7 +57,7 @@
   const nominals = $derived([binaryWeights(n), redundantWeights(n)]);
   // the capacitors one chip actually has
   const actuals = $derived(nominals.map((w, i) => capMismatch(w, sigma, gaussians(w.length, 1000 * chip + i))));
-  // inputs no chip of this architecture can resolve any more
+  // input ranges with more than one LSB of analog DAC reconstruction error
   const gaps = $derived(actuals.map((w) => lostInputs(n, w)));
   // standard normals for the test and training captures, drawn once per resolution and scaled by the noise slider
   const normals = $derived(nominals.map((w, i) => gaussians(2 * N_FFT * w.length, 11 + i)));
@@ -82,14 +82,14 @@
   const slots = $derived(nominals[1].length);
   const at = $derived(Math.min(shown, slots));
   const x = $derived(vin * 2 ** n);
-  const ideal = $derived(Math.round(x));
+  const ideal = $derived(Math.min(2 ** n - 1, Math.max(0, Math.round(x))));
   const noise = $derived(gaussians(32, seed).map((v) => v * noiseLsb));
   const conversions = $derived(
     nominals.map((nominal, i) => {
       const trace: Trial[] = [];
       const bits = new Uint8Array(nominal.length);
       convert(x, actuals[i], noise, bits, trace);
-      return { trace, code: reconstruct(bits, nominal)[0], lost: trace.findIndex((t) => !(t.lo < x && x < t.hi)) };
+      return { trace, code: reconstruct(bits, nominal)[0], lost: trace.findIndex((t) => !(t.lo <= x && x <= t.hi)) };
     }),
   );
 
@@ -126,7 +126,7 @@
       </div>
       <span class="meta">
         {nominal.length} comparisons for {n} bits · {i ? `margin from ${margin(nominal, 0)} LSB down to 1` : 'no margin anywhere'}
-        <b class:ghost={gaps[i].fraction <= 0} class="unreachable" aria-hidden={gaps[i].fraction <= 0}>{nf(gaps[i].fraction * 100, 2)}% of inputs unrecoverable</b>
+        <b class:ghost={gaps[i].fraction <= 0} class="unreachable" aria-hidden={gaps[i].fraction <= 0}>{nf(gaps[i].fraction * 100, 2)}% with DAC error &gt; 1 LSB</b>
       </span>
     </div>
     <div class="line">
@@ -134,7 +134,7 @@
         <span>code <span class="mono">{c.code}</span></span>
         <span>ideal <span class="mono">{ideal}</span></span>
         {#if c.code === ideal}<span class="chip">correct</span>{:else}<span class="chip off">off by {c.code > ideal ? '+' : '−'}{Math.abs(c.code - ideal)} LSB</span>{/if}
-        {#if c.lost >= 0}<span class="chip off">lost at comparison {c.lost + 1}</span>{:else}<span class="chip">recoverable</span>{/if}
+        {#if c.lost >= 0}<span class="chip off">outside DAC bounds at {c.lost + 1}</span>{:else}<span class="chip">within DAC bounds</span>{/if}
       </div>
     </div>
   </div>
@@ -164,10 +164,11 @@
     <Notes>
       <p><b>Ported from ADCToolbox 0.9.1.</b> <code>models/sar.py</code>: <a href="/doc/api/models#adctoolbox.sar_convert"><code>sar_convert</code></a>, <a href="/doc/api/models#adctoolbox.sar_reconstruct"><code>sar_reconstruct</code></a>, <a href="/doc/api/models#adctoolbox.sar_apply_cap_mismatch"><code>sar_apply_cap_mismatch</code></a>. <code>calibration/</code>: <a href="/doc/api/dout#adctoolbox.calibrate_weight_sine"><code>calibrate_weight_sine</code></a>, <a href="/doc/api/dout#adctoolbox.scale_calibration_output"><code>scale_calibration_output</code></a>. <code>siggen/nonidealities.py</code>: <a href="/doc/api/siggen#adctoolbox.siggen.ADC_Signal_Generator.apply_jitter"><code>apply_jitter</code></a>. <code>spectrum/</code>: <a href="/doc/api/spectrum#adctoolbox.analyze_spectrum"><code>analyze_spectrum</code></a>. This page is the interactive companion to its examples <code>exp_d02</code>, <code>exp_d03</code>, <code>exp_d15</code> and <code>exp_g04</code>; <a href="https://github.com/Arcadia-1/Analog-Circuit-Knowledge-Base/blob/main/web/python/sar_binary_vs_redundant.py">python/sar_binary_vs_redundant.py</a> calls <a href="https://github.com/Arcadia-1/ADCToolbox">ADCToolbox</a> itself and the numbers agree to 0.001 ENOB.</p>
       <p><b>Conversion.</b> Comparison <var>j</var> adds weight <var>w<sub>j</sub></var> to the DAC level kept so far and keeps it when the input is not lower. The code is the sum of the kept nominal weights.</p>
-      <p><b>Terminating capacitor.</b> The switched capacitors add up to 2<sup><var>N</var></sup> − 1 units, so one more unit terminates the array and makes the total 2<sup><var>N</var></sup>: that is what makes one unit worth exactly one LSB. Half of it is switched to the reference, which puts every decision level half an LSB below a code level, so the converter returns the nearest code rather than the one below and its error is ±½ LSB instead of 0 … 1 LSB.</p>
-      <p><b>Weights.</b> Both arrays are specified by the same thing, the nominal resolution <var>N</var>: they cover 2<sup><var>N</var></sup> − 1 LSB and their smallest capacitor is one unit. Binary spends one comparison per bit, <var>w<sub>j</sub></var> = 2<sup><var>N</var>−1−<var>j</var></sup>. Redundant takes the fewest comparisons <var>m</var> whose radix 2<sup><var>N</var>/<var>m</var></sup> is still at most 1.8 — 15 for 12 bits, 19 for 16 — and uses that geometric series, with every weight capped at the sum of the weights after it.</p>
-      <p><b>What the cap buys.</b> Capping is what leaves each comparison a margin: a comparison that wrongly drops its weight is recovered while the input stays within the later weights plus one LSB, and the cap keeps that margin at one LSB or more everywhere. It binds only at the bottom, where it ends the array 4 2 1 1 instead of 4 2 1 — the extra unit capacitor is the last LSB of redundancy, and with ideal capacitors it is the one comparison that never changes anything.</p>
-      <p><b>What is left to lose.</b> An input counts as lost when its code comes out more than a whole LSB away from it, which no set of digital weights can put right; the sub-LSB spacing errors mismatch leaves everywhere are ordinary DNL and are not counted. With the margin held all the way down, the only inputs a redundant chip loses are at the very top, where its capacitors happen to add up short of full scale: a gain error, not a gap, and it shrinks as σ/2<sup><var>N</var>/2</sup>. A binary array has that same shortfall and, on top of it, a gap wherever mismatch let a weight outgrow everything after it.</p>
+      <p><b>Terminating capacitor.</b> The switched capacitors add up to 2<sup><var>N</var></sup> − 1 units, so one more unit terminates the array and makes the total 2<sup><var>N</var></sup>: that is what makes one unit worth exactly one LSB. Half of it is switched to the reference, which puts every decision level half an LSB below a code level, so the converter returns the nearest code rather than the one below and its interior-range error is ±½ LSB instead of −1 … 0 LSB. The endpoints saturate. This is a behavioral decision-threshold offset, not a universal SAR switching scheme.</p>
+      <p><b>Weights.</b> Both arrays are specified by the same thing, the nominal resolution <var>N</var>: they cover 2<sup><var>N</var></sup> − 1 LSB and their smallest capacitor is one unit. Binary spends one comparison per bit, <var>w<sub>j</sub></var> = 2<sup><var>N</var>−1−<var>j</var></sup>. Redundant takes the fewest comparisons <var>m</var> whose radix 2<sup><var>N</var>/<var>m</var></sup> is still at most 1.8 — 15 for 12 bits, 19 for 16 — and uses that geometric series, with each nonterminal weight limited by the available tail where the cap applies.</p>
+      <p><b>What the cap buys.</b> Capping is what leaves each comparison a margin: a comparison that wrongly drops its weight is recovered while the input stays within the later weights plus one LSB, and the nominal array has at least one LSB of that margin before the final comparison. The final comparison has no later weight for recovery. It binds only at the bottom, where it ends the array 4 2 1 1 instead of 4 2 1 — the extra unit capacitor is the last LSB of redundancy, and with ideal capacitors it is the one comparison that never changes anything.</p>
+      <p><b>The shaded input ranges.</b> These mark an analog DAC reconstruction error larger than one LSB, sampled on a 0.25 LSB grid. They do not measure an irrecoverable percentage: digital weights can shift reconstruction levels. What calibration cannot recover is information within an overly wide decision interval. Redundancy reduces such intervals when the remaining actual weights cover a decision error; it is not a guarantee for every mismatch or noise draw.</p>
+      <p><b>Reachability bars.</b> After each decision the remaining positive weights give an outer DAC range, expanded by ±1 LSB. Being outside proves that the analog reconstruction cannot finish within that tolerance. Being inside does not prove that every level is reachable. This unipolar search mainly tolerates a wrongly rejected weight; a wrongly accepted weight cannot subsequently be subtracted.</p>
       <p><b>Capacitor mismatch.</b> Weight <var>w<sub>j</sub></var> is built from <var>w<sub>j</sub></var>/<var>w</var><sub>min</sub> unit capacitors, each with relative mismatch σ, so its relative error is σ/√units. New chip draws another set of errors.</p>
       <p><b>Comparator noise.</b> Gaussian, drawn anew for every decision. The stepped conversion uses one draw; New noise replaces it.</p>
       <p><b>Calibration.</b> Sine-fit weight calibration: a least-squares fit of the bit columns plus an offset to a unit sine at the known frequency, using {trainingPoints} points and rescaled to the nominal weight sum. The fitted weights are then applied to an independent {testPoints}-point capture at a different frequency and phase. A digital weight fit can correct the value of observed decisions; it cannot recreate an input interval that a non-redundant search skipped.</p>
@@ -218,7 +219,7 @@
       <div class="chart">
         <div class="cap">
           <span class="left"><span class="label"><span class="tag">{NAMES[i]}</span>Successive approximation</span><span>residue, log scale</span></span>
-          <span class="keys"><i class="sw"></i>reachable<i class="sw lost"></i>V<sub>in</sub> lost<i class="sw wrong"></i>wrong bit</span>
+          <span class="keys"><i class="sw"></i>DAC bounds<i class="sw lost"></i>outside bounds<i class="sw wrong"></i>wrong bit</span>
         </div>
         <ResidueChart trace={c.trace} {x} {n} {slots} shown={at} series={i ? 2 : 1} hover={hoverK} onhover={(k) => (hoverK = k)} label="{NAMES[i]} SAR residue per comparison" />
       </div>
@@ -226,7 +227,7 @@
     <div class="cal-summary">
       <span class="label">After the same {trainingPoints}-point training record</span>
       <b>{calibratedGap.enob >= 0 ? 'Redundant' : 'Binary'} +{nf(Math.abs(calibratedGap.enob), 2)} ENOB · {calibratedGap.sfdr >= 0 ? 'Redundant' : 'Binary'} +{nf(Math.abs(calibratedGap.sfdr), 1)} dB SFDR</b>
-      <span>Digital weights cannot restore the {nf(gaps[0].fraction * 100, 2)}% of input range skipped by this binary array.</span>
+      <span>Binary analog DAC error exceeds 1 LSB over {nf(gaps[0].fraction * 100, 2)}% of the swept input range.</span>
     </div>
     {#each spectra as _, i (i)}
       <div class="pair">{@render spectrumChart(i, 0)}{@render spectrumChart(i, 1)}</div>

@@ -27,7 +27,8 @@
     </div>
     <Notes>
       <p><b>They are two orders of the same idea.</b> Both generate integer divider corrections <var>y</var>[<var>k</var>] whose long-term mean is <var>α</var>. The first-order accumulator emits only 0 or 1. A MASH 1-1-1 combines three accumulator carries and emits a multibit sequence.</p>
-      <p><b>The difference is noise shaping.</b> For the accumulator, the quantisation error has one factor of (1 − <var>z</var><sup>−1</sup>). The MASH cancels its first two internal errors and leaves three factors. Its low-frequency error is therefore much smaller, in exchange for larger cycle-to-cycle divider changes.</p>
+      <p><b>The difference is noise shaping.</b> For the accumulator, divider-word error has one factor of (1 − <var>z</var><sup>−1</sup>). The MASH cancels its first two internal errors and leaves three factors. This gives stronger low-frequency suppression of the final stage's error, in exchange for larger cycle-to-cycle changes; it does not guarantee a smaller spur at every frequency for every rational input.</p>
+      <p><b>Word error is not phase error.</b> Accumulation removes one factor: the accumulator's phase error has no remaining shaping factor, while MASH 1-1-1 phase error has two. The plotted sums are in VCO cycles; multiply by 2π for radians or by the VCO period for seconds. Means use 4096 words, while the charts show the first 64. The requested α is rounded to a 24-bit control word.</p>
       <p><b>Neither sequence here is dithered.</b> A constant rational <var>α</var> produces a deterministic, often periodic pattern, so tones can remain. Making a frequency-control word odd only changes that period; it does not create random dither.</p>
     </Notes>
   </header>

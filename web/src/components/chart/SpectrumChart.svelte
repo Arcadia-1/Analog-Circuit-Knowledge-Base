@@ -6,7 +6,7 @@
   import Tip from './Tip.svelte';
 
   /** Output spectrum in dBFS; each pixel column spans the min … max of the bins it covers. */
-  let { spectrum, n, series, hover, onhover, label, fs, marks = [], behind }: {
+  let { spectrum, n, series, hover, onhover, label, fs, marks = [], behind, signalLabel = 'input' }: {
     spectrum: Spectrum;
     n: number;
     series: 1 | 2;
@@ -19,6 +19,7 @@
     marks?: { bin: number; text: string }[];
     /** a second spectrum of the same record to draw faded underneath, such as the same capture before a correction */
     behind?: Spectrum;
+    signalLabel?: string;
   } = $props();
 
   const X0 = 46;
@@ -100,7 +101,7 @@
     {#if hover !== null}
       {@const g = geo(width, height)}
       {@const h = order(hover)}
-      <Tip x={g.sx(hover)} y={g.sy(spectrum.dbfs[hover])} {width} text="{at(hover)} · {nf(spectrum.dbfs[hover], 1)} dBFS{hover === spectrum.signal ? ' · input' : h > 1 ? ` · H${h}` : ''}" />
+      <Tip x={g.sx(hover)} y={g.sy(spectrum.dbfs[hover])} {width} text="{at(hover)} · {nf(spectrum.dbfs[hover], 1)} dBFS{hover === spectrum.signal ? ` · ${signalLabel}` : h > 1 ? ` · H${h}` : ''}" />
     {/if}
   {/snippet}
 </Plot>

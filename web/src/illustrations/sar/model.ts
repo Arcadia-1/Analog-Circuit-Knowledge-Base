@@ -64,9 +64,9 @@ export function redundantWeights(n: number, m = comparisons(n)): number[] {
 export const margin = (w: number[], j: number): number => sum(w.slice(j + 1)) + w[w.length - 1] - w[j];
 
 /**
- * Inputs whose code comes out more than a whole LSB away from them, which no set of digital weights can put right: a
- * comparison dropped its weight and left the later weights short of the input. Sub-LSB spacing errors are ordinary DNL
- * and are not counted. Sweeps the range in steps of `step` LSB and returns the lost ranges as fractions of full scale.
+ * Inputs whose analog DAC reconstruction differs by more than one LSB. This diagnostic is NOT a proof of
+ * irrecoverable information loss: calibrated digital weights can move a reconstruction level. A wide decision
+ * interval still limits attainable resolution. Sweeps in `step` LSB and returns the flagged fractions of full scale.
  */
 export function lostInputs(n: number, w: ArrayLike<number>, step = 0.25): { bands: [number, number][]; fraction: number } {
   const m = w.length, full = 2 ** n;
@@ -100,7 +100,7 @@ export interface Trial {
   bit: 0 | 1;
   /** decision of a noiseless comparator */
   ideal: 0 | 1;
-  /** the conversion can still end within one LSB of the input if lo < x < hi */
+  /** Outer bounds of remaining analog DAC levels, expanded by one LSB, AFTER this decision. Not gap-free coverage. */
   lo: number;
   hi: number;
 }
@@ -116,10 +116,10 @@ export function convert(x: number, w: ArrayLike<number>, noise: ArrayLike<number
   for (let j = 0; j < w.length; j++) {
     const test = dac + w[j];
     const bit = u + (noise ? noise[j] : 0) >= test ? 1 : 0;
-    trace?.push({ test, bit, ideal: u >= test ? 1 : 0, lo: dac - HALF, hi: dac + rest + 1 });
     bits[j] = bit;
     rest -= w[j];
     if (bit) dac = test;
+    trace?.push({ test, bit, ideal: u >= test ? 1 : 0, lo: dac - 1, hi: dac + rest + 1 });
   }
 }
 

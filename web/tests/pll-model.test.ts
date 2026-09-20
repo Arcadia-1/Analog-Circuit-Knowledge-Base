@@ -40,8 +40,8 @@ describe('integer-N vs fractional-N PLL model', () => {
     expect(intA.spurs).toHaveLength(0);
     expect(acc.spurs[0].f).toBeCloseTo(5e6, -3);
     expect(acc.spurs[0].dBc).toBeCloseTo(-20.5, 0);
-    expect(sd.jitterFs / 2603.5).toBeGreaterThan(0.95);
-    expect(sd.jitterFs / 2603.5).toBeLessThan(1.05);
+    expect(sd.jitterFs / 2681.7).toBeGreaterThan(0.98);
+    expect(sd.jitterFs / 2681.7).toBeLessThan(1.02);
     // alpha = 1/8 is rational and this MASH is not dithered, so its deterministic period produces tones.
     expect(sd.spurs.length).toBeGreaterThan(0);
     expect(Math.abs(dtc.jitterFs / intA.jitterFs - 1)).toBeLessThan(0.02);
@@ -58,7 +58,9 @@ describe('integer-N vs fractional-N PLL model', () => {
     expect(mismatched.jitterFs / 2693.8).toBeLessThan(1.05);
     // the accumulator spur is set by the ramp, not by the pump; the DTC cancels the ramp, so nothing folds
     const acc = analyze(simulate(near, 'acc', false, 0, fRef, bw, 0.05));
-    expect(acc.spurs[0].dBc).toBeCloseTo(-4.7, 0);
+    // Large modulation suppresses the actual carrier by ~17 dB: the sideband can exceed it.
+    expect(acc.carrierPower).toBeLessThan(0.025);
+    expect(acc.spurs[0].dBc).toBeCloseTo(12.5, 0);
     expect(analyze(simulate(near, 'sd', true, 0, fRef, bw, 0.05)).spurs).toHaveLength(0);
   });
 

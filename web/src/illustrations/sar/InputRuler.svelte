@@ -1,7 +1,7 @@
 <script lang="ts">
   import SliderRuler from '../../components/chart/SliderRuler.svelte';
 
-  /** Input voltage over a 6-bit grid of decision levels, with both output codes marked and their lost inputs shaded. */
+  /** Input voltage over a 6-bit grid, with output codes marked and analog DAC errors above one LSB shaded. */
   let { vin, n, codeA, codeB, gaps, onchange }: {
     vin: number;
     n: number;
@@ -16,7 +16,7 @@
   const LANES = [48, 59];
   const mid = (code: number) => (code + 0.5) / 2 ** n;
 
-  /** Lost inputs come in thousands of slivers at high resolution, so shade each pixel of the lane by the share of it that is lost. */
+  /** Flagged ranges can be thinner than a pixel; shade each pixel by the covered fraction. */
   function shade(bands: [number, number][], W: number): number[] {
     const px = new Array(Math.max(1, Math.round(W))).fill(0);
     for (const [a, b] of bands) {

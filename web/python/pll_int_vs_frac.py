@@ -83,10 +83,11 @@ def analyze(r, n_fft=32768):
     phi = 2 * np.pi * x / r["t_out"]
     w = 0.5 - 0.5 * np.cos(2 * np.pi * np.arange(n_fft) / n_fft); sw2 = float(np.sum(w * w))
     Z = np.fft.fft(np.exp(1j * phi) * w)
+    carrier_power = abs(Z[0] / np.sum(w)) ** 2
     k = np.arange(1, n_fft // 2)
     P = 0.5 * (np.abs(Z[k]) ** 2 + np.abs(Z[n_fft - k]) ** 2)
     f = k * F_REF / n_fft
-    L = 10 * np.log10(P / (F_REF * sw2) + 1e-300)
+    L = 10 * np.log10(P / (F_REF * sw2 * carrier_power) + 1e-300)
     # floor: median of dB(P) in log bins, spurs >= 12 dB above floor and local max
     dbp = 10 * np.log10(P + 1e-300)
     edges = np.unique(np.round(np.logspace(0, np.log10(len(k)), 60)).astype(int))
@@ -97,7 +98,7 @@ def analyze(r, n_fft=32768):
     for i in range(2, len(k) - 2):
         if f[i] < 1e4: continue
         if dbp[i] >= floor[i] + 18 and dbp[i] == dbp[i - 2:i + 3].max():
-            pw = P[i - 2:i + 3].sum() / (n_fft * sw2)
+            pw = P[i - 2:i + 3].sum() / (n_fft * sw2 * carrier_power)
             spurs.append((f[i], 10 * np.log10(pw)))
     return dict(jitter_fs=jitter_fs, f=f, L=L, spurs=sorted(spurs, key=lambda s: -s[1]))
 

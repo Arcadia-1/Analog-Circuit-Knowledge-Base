@@ -1,5 +1,5 @@
 /**
- * Browser port of ADCToolbox's generate_aout_dashboard_3x4 and the 15 cases in
+ * Browser adaptation of ADCToolbox's generate_aout_dashboard_3x4 and the 15 cases in
  * examples/06_use_toolsets/exp_t02_aout_dashboard_batch.py.
  *
  * The dashboard works in ADC-code units after the selected voltage-domain
@@ -48,7 +48,7 @@ const percentile = (values: Float64Array, p: number) => {
   return sorted[lo] * (1 - f) + sorted[hi] * f;
 };
 
-/** The same standard cases as nonideality_cases.py, with severity=1 at the example's nominal value. */
+/** Illustrative adaptations of nonideality_cases.py; severity=1 uses its principal impairment settings. */
 export function capture(kind: CaseId, severity: number, bits: number, seed = 20260920): Float64Array {
   const s = Math.max(0, severity), n = N_FFT;
   const z0 = gaussians(n, seed), z1 = gaussians(n, seed + 1), u0 = uniforms(n, seed + 2);
@@ -87,11 +87,12 @@ export function capture(kind: CaseId, severity: number, bits: number, seed = 202
   } else if (kind === 'settling') {
     let previous = 0;
     const track = 0.2 / FS;
-    for (let i = 0; i < n; i++) {
-      const target = clean[i] - DC;
+    // Settle the state before the measured record; startup is not ADC distortion.
+    for (let i = -32; i < n; i++) {
+      const target = clean[(i + n) % n] - DC;
       const tau = 40e-12 * (1 + 0.09 * s * target ** 2);
       const out = target + (previous - target) * Math.exp(-track / tau);
-      y[i] = DC + out;
+      if (i >= 0) y[i] = DC + out;
       previous = out;
     }
   } else if (kind === 'ra-gain') {
@@ -161,7 +162,8 @@ export function decompose(y: Float64Array, harmonics = 5): Decomposition {
     }
     a *= 2 / n; b *= 2 / n;
     magnitudes[h - 1] = Math.hypot(a, b);
-    phases[h - 1] = Math.atan2(b, a);
+    // a cos(wt) + b sin(wt) = A cos(wt + phi), so phi = atan2(-b, a).
+    phases[h - 1] = Math.atan2(-b, a);
     for (let i = 0; i < n; i++) components[h - 1][i] = a * Math.cos((2 * Math.PI * h * FIN_BIN * i) / n) + b * Math.sin((2 * Math.PI * h * FIN_BIN * i) / n);
   }
   const fundamental = components[0].map((v) => v + dc);
@@ -192,13 +194,15 @@ export function spectrumPolar(y: Float64Array, out: Spectrum): PolarData {
   const n = y.length, mean = y.reduce((a, v) => a + v, 0) / n, peak = (Math.max(...y) - Math.min(...y)) / 2 || 1;
   const re = y.map((v) => (v - mean) / peak), im = new Float64Array(n);
   fft(re, im);
-  const points: PolarData['points'] = [];
-  const stride = Math.max(1, Math.floor((n / 2) / 420));
-  for (let k = 1; k <= n / 2; k += stride) points.push({ angle: Math.atan2(im[k], re[k]), db: out.dbfs[k] });
   const bins = [out.signal, ...out.harmonics.slice(0, 4)], phase0 = Math.atan2(im[out.signal], re[out.signal]);
   const wrap = (angle: number) => ((angle + Math.PI) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI) - Math.PI;
-  const rays = bins.map((bin, i) => ({ angle: wrap(Math.atan2(im[bin], re[bin]) - (i + 1) * phase0), db: out.dbfs[bin], text: i ? `H${i + 1}` : 'input', series: (i ? 2 : 1) as 1 | 2 }));
-  return { points, rays, floor: Math.max(-120, Math.min(-40, Math.round(Math.min(...Array.from(out.dbfs).filter(Number.isFinite)) / 10) * 10)) };
+  const rays = bins.map((bin, i) => {
+    const order = i + 1, mirrored = (order * out.signal) % n > n / 2;
+    const phase = (mirrored ? -1 : 1) * Math.atan2(im[bin], re[bin]);
+    return { angle: wrap(phase - order * phase0), db: out.dbfs[bin], text: i ? `H${order}` : 'input', series: (i ? 2 : 1) as 1 | 2 };
+  });
+  // Only harmonics have the order needed for phi_h - h*phi_1. Do not mix raw noise-bin phases into this coordinate system.
+  return { points: [], rays, floor: Math.max(-120, Math.min(-40, Math.round(Math.min(...Array.from(out.dbfs).filter(Number.isFinite)) / 10) * 10)) };
 }
 
 export function decompositionPolar(d: Decomposition): PolarData {
@@ -235,7 +239,7 @@ export function envelope(error: Float64Array): Float64Array {
   return Float64Array.from({ length: n }, (_, k) => Math.hypot(re[k] / n, -im[k] / n));
 }
 
-export function phasePlane(values: Float64Array, lag: number | 'auto' = 'auto', maxPoints = 600): XY & { lag: number } {
+export function phasePlane(values: Float64Array, lag: number | 'auto' = 'auto', maxPoints = 4096): XY & { lag: number } {
   let k = lag === 'auto' ? 1 : lag;
   if (lag === 'auto') {
     const f = FIN_BIN / values.length, limit = Math.min(values.length / 2, Math.floor((1 / f) * 0.6) + 20);
@@ -254,7 +258,7 @@ export function phasePlane(values: Float64Array, lag: number | 'auto' = 'auto', 
   return { x, y, lag: k };
 }
 
-export function errorPhasePlane(fit: Fit, bits: number, maxPoints = 700): XY {
+export function errorPhasePlane(fit: Fit, bits: number, maxPoints = 4096): XY {
   const count = Math.min(maxPoints, fit.error.length), step = fit.error.length / count, scale = 2 ** bits;
   const x = new Float64Array(count), y = new Float64Array(count);
   for (let j = 0; j < count; j++) {
@@ -290,10 +294,11 @@ export function analyze(kind: CaseId, severity: number, bits: number): Dashboard
     fit,
     value: byValue(y, fit.error),
     phase: byPhase(fit.error, FIN_BIN, fit.phase),
-    distribution: pdf(fit.error, Math.max(0.75, 3.5 * fit.rmse)),
+    distribution: pdf(fit.error, Math.max(0.75, 1.02 * Math.max(...fit.error.map(Math.abs)))),
     output,
-    error: errorSpectrum(fit.error, bits),
-    envelopeSpectrum: outputSpectrum(envelope(fit.error), bits),
+    // A residual/envelope peak is not a new fundamental from which to label H2–H5.
+    error: { ...errorSpectrum(fit.error, bits), harmonics: [] },
+    envelopeSpectrum: { ...outputSpectrum(envelope(fit.error), bits), harmonics: [] },
     decomposition,
     outputPolar: spectrumPolar(y, output),
     decompositionPolar: decompositionPolar(decomposition),

@@ -26,7 +26,7 @@
 
   const selected = $derived(CASES.find((item) => item.id === caseId) ?? CASES[0]);
   const d = $derived(analyze(caseId, severity / 100, bits));
-  const span = $derived(Math.max(0.5, 1.15 * Math.max(...Array.from(d.value.rms).filter(Number.isFinite))));
+  const span = $derived(Math.max(0.5, 1.15 * Math.max(...[...d.value.rms, ...d.phase.rms].filter(Number.isFinite))));
   const harmonicPeak = $derived(Math.max(...Array.from(d.decomposition.magnitudesDb.slice(1))));
 </script>
 
@@ -36,13 +36,14 @@
     <h1>Analog output analysis panel</h1>
     <p class="sub">The ADCToolbox 3 × 4 dashboard, live in the browser.</p>
     <div class="pick">
-      <span class="label">Resolution</span>
-      <Segmented size="sm" mono label="ADC resolution" options={[10, 12, 14].map((value) => ({ value, label: String(value) }))} bind:value={bits} />
+      <span class="label">Code scale</span>
+      <Segmented size="sm" mono label="Code-unit scale in bits" options={[10, 12, 14].map((value) => ({ value, label: String(value) }))} bind:value={bits} />
       <span class="unit">bits</span>
     </div>
     <Notes>
-      <p><b>This is the Analog panel from ADCToolbox.</b> It preserves the 3 × 4 layout and the same twelve analyses as <a href="https://github.com/Arcadia-1/ADCToolbox/blob/main/python/src/adctoolbox/examples/06_use_toolsets/exp_t01_aout_dashboard_single.py"><code>exp_t01_aout_dashboard_single.py</code></a> and <a href="/doc/api/toolset#adctoolbox.toolset.generate_aout_dashboard"><code>generate_aout_dashboard</code></a>: spectrum, polar spectrum, error by value and phase, time and polar decomposition, error PDF and autocorrelation, error and envelope spectra, signal phase plane, and error phase plane.</p>
-      <p><b>The error selector follows the batch example.</b> Its fifteen entries come from <code>exp_t02_aout_dashboard_batch.py</code>. At 100%, every model uses the example's nominal value. The severity slider scales that one non-ideality while all twelve panels recompute from the same deterministic capture.</p>
+      <p><b>Adapted from the ADCToolbox Analog panel.</b> The twelve views follow <a href="https://github.com/Arcadia-1/ADCToolbox/blob/main/python/src/adctoolbox/examples/06_use_toolsets/exp_t01_aout_dashboard_single.py"><code>exp_t01_aout_dashboard_single.py</code></a> and <a href="/doc/api/toolset#adctoolbox.toolset.generate_aout_dashboard"><code>generate_aout_dashboard</code></a>. This browser model uses 4096 points, a known-frequency sine fit and simplified diagnostic plots; it is not a numerical reproduction of every Python analysis.</p>
+      <p><b>Fifteen illustrative impairments.</b> The selector follows <code>exp_t02_aout_dashboard_batch.py</code>, with its principal settings at 100%. Code scale only converts a 1 V full-scale range to LSB units; it does not add a quantizer. The quantization case varies from 16 to 4 bits with severity (10 bits at 100%). Memory and residue-gain cases retain their own quantization, and settling retains its linear pole at 0%. Other cases include 10 µV rms × severity of background noise.</p>
+      <p><b>Phase and spectra.</b> Both polar views show cosine phase φ<sub>h</sub> − hφ<sub>1</sub>, with conjugation undone for a harmonic above Nyquist; radii are dBFS in the spectrum and dBc in decomposition. FFT plots use a rectangular window: noncoherent modulation and drift can spread over bins. The AM/PM readouts are a phase-dependent error-variance diagnostic, not a unique separation of all noise sources.</p>
       <p><b>How to read it.</b> A spectral line identifies periodic distortion; error by value exposes a static transfer curve; error by phase separates amplitude and timing effects; the PDF and autocorrelation show statistics and memory; the envelope spectrum isolates modulation; phase planes expose trajectories and rare escapes that are easy to miss in an FFT.</p>
     </Notes>
   </header>
@@ -102,12 +103,12 @@
 
     <article class="chart">
       <div class="cap"><span class="label">9 · Error spectrum</span><span>residual lines and floor</span></div>
-      <SpectrumChart spectrum={d.error} n={bits} series={2} fs={FS} hover={hoverError} onhover={(v) => (hoverError = v)} label="Spectrum of the fitted-sine residual" />
+      <SpectrumChart spectrum={d.error} n={bits} series={2} fs={FS} hover={hoverError} onhover={(v) => (hoverError = v)} signalLabel="largest residual bin" label="Spectrum of the fitted-sine residual" />
     </article>
 
     <article class="chart">
       <div class="cap"><span class="label">10 · Error envelope spectrum</span><span>amplitude modulation</span></div>
-      <SpectrumChart spectrum={d.envelopeSpectrum} n={bits} series={2} fs={FS} hover={hoverEnvelope} onhover={(v) => (hoverEnvelope = v)} label="Spectrum of the error envelope" />
+      <SpectrumChart spectrum={d.envelopeSpectrum} n={bits} series={2} fs={FS} hover={hoverEnvelope} onhover={(v) => (hoverEnvelope = v)} signalLabel="largest envelope bin" label="Spectrum of the error envelope" />
     </article>
 
     <article class="chart">
