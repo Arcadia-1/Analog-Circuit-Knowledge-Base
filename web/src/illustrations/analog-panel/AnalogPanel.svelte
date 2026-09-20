@@ -3,7 +3,7 @@
   import Notes from '../../components/ui/Notes.svelte';
   import Range from '../../components/ui/Range.svelte';
   import Segmented from '../../components/ui/Segmented.svelte';
-  import { nf } from '../../lib/format';
+  import { freqText, nf } from '../../lib/format';
   import BinChart from '../errors/BinChart.svelte';
   import PdfChart from '../errors/PdfChart.svelte';
   import PolarChart from './PolarChart.svelte';
@@ -11,18 +11,20 @@
   import XYChart from './XYChart.svelte';
   import {
     analyze,
-    CLEAN_IMPAIRMENTS,
     DEFAULT_IMPAIRMENTS,
     FIN,
-    FIN_BIN,
     FS,
     HD_OFF,
+    MAX_IMPAIRMENTS,
+    MIN_IMPAIRMENTS,
     type Impairments,
   } from './model';
 
   const QUANTIZER_BITS = [0, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
   let imp = $state<Impairments>({ ...DEFAULT_IMPAIRMENTS });
   let bits = $state(12);
+  let fftExponent = $state(12);
+  let inputMHz = $state(FIN / 1e6);
   let hoverSpectrum = $state<number | null>(null);
   let hoverValue = $state<number | null>(null);
   let hoverPhase = $state<number | null>(null);
@@ -33,13 +35,40 @@
   let hoverPlane = $state<number | null>(null);
   let hoverErrorPlane = $state<number | null>(null);
 
-  const d = $derived(analyze(imp, bits));
+  const points = $derived(2 ** fftExponent);
+  const finBin = $derived(Math.max(1, Math.min(points / 2 - 1, Math.round((inputMHz * 1e6 * points) / FS))));
+  const fin = $derived((finBin / points) * FS);
+  const d = $derived(analyze(imp, bits, { fs: FS, points, finBin }));
   const span = $derived(Math.max(0.5, 1.15 * Math.max(...[...d.value.rms, ...d.phase.rms].filter(Number.isFinite))));
   const harmonicPeak = $derived(Math.max(...Array.from(d.decomposition.magnitudesDb.slice(1))));
 
   const set = (key: keyof Impairments, value: number) => (imp = { ...imp, [key]: value });
   const quantizerText = (value: number) => value ? `${value} bits` : 'off';
   const harmonicText = (value: number) => value <= HD_OFF ? 'off' : `${nf(value, 0)} dBc`;
+  const eventText = (value: number) => `${value} ${value === 1 ? 'event' : 'events'}`;
+  const randomStep = (min: number, max: number, step: number) => min + Math.floor(Math.random() * (Math.round((max - min) / step) + 1)) * step;
+  const setInputBin = (value: number) => (inputMHz = (Math.round(value) / points) * FS / 1e6);
+
+  function randomize() {
+    imp = {
+      thermalNoiseUv: randomStep(0, 500, 5),
+      quantizerBits: QUANTIZER_BITS[Math.floor(Math.random() * QUANTIZER_BITS.length)],
+      jitterPs: randomStep(0, 5, 0.05),
+      amNoisePpm: randomStep(0, 2000, 25),
+      hd2Dbc: randomStep(HD_OFF, -40, 1),
+      hd3Dbc: randomStep(HD_OFF, -40, 1),
+      memoryPct: randomStep(0, 2, 0.02),
+      settlingTauPs: randomStep(0, 120, 2),
+      residueGainPct: randomStep(-3, 3, 0.05),
+      dynamicResiduePctPerV2: randomStep(0, 30, 0.5),
+      amToneDepthPct: randomStep(0, 10, 0.1),
+      clipLevelMv: randomStep(250, 500, 5),
+      driftStepUv: randomStep(0, 100, 1),
+      referenceDroopPctPerV: randomStep(0, 1, 0.01),
+      glitchCount: randomStep(0, 32, 1),
+      glitchAmplitudeMv: randomStep(0, 200, 2),
+    };
+  }
 </script>
 
 <main class="page analog-panel">
@@ -50,7 +79,7 @@
       <span class="unit">bits</span>
     </div>
     <Notes>
-      <p><b>Adapted from the ADCToolbox Analog panel.</b> The twelve views follow <a href="https://github.com/Arcadia-1/ADCToolbox/blob/main/python/src/adctoolbox/examples/06_use_toolsets/exp_t01_aout_dashboard_single.py"><code>exp_t01_aout_dashboard_single.py</code></a> and <a href="/doc/api/toolset#adctoolbox.toolset.generate_aout_dashboard"><code>generate_aout_dashboard</code></a>. This browser model uses 4096 points and a known-frequency sine fit.</p>
+      <p><b>Adapted from the ADCToolbox Analog panel.</b> The twelve views follow <a href="https://github.com/Arcadia-1/ADCToolbox/blob/main/python/src/adctoolbox/examples/06_use_toolsets/exp_t01_aout_dashboard_single.py"><code>exp_t01_aout_dashboard_single.py</code></a> and <a href="/doc/api/toolset#adctoolbox.toolset.generate_aout_dashboard"><code>generate_aout_dashboard</code></a>. Choose a coherent input tone and an FFT record from 64 to 262,144 samples; the sine fit uses that exact frequency.</p>
       <p><b>One composite converter.</b> Every control on the left acts on the same record, so noise, timing error, harmonics, memory, residue-stage errors, modulation, clipping, drift, reference droop and glitches can all coexist. Each slider carries its own physical unit; no shared severity factor or hidden background noise is applied. Code scale only expresses the result in LSB, while Quantizer explicitly enables conversion quantization.</p>
       <p><b>Phase and spectra.</b> Both polar views show cosine phase φ<sub>h</sub> − hφ<sub>1</sub>, with conjugation undone for a harmonic above Nyquist; radii are dBFS in the spectrum and dBc in decomposition. FFT plots use a rectangular window: noncoherent modulation and drift can spread over bins. The AM/PM readouts are a phase-dependent error-variance diagnostic, not a unique separation of all noise sources.</p>
       <p><b>How to read it.</b> A spectral line identifies periodic distortion; error by value exposes a static transfer curve; error by phase separates amplitude and timing effects; the PDF and autocorrelation show statistics and memory; the envelope spectrum isolates modulation; phase planes expose trajectories and rare escapes that are easy to miss in an FFT.</p>
@@ -62,8 +91,17 @@
       <div class="control-head">
         <div><span class="eyebrow">COMPOSITE ERRORS</span><strong>All effects add together</strong></div>
         <div class="actions">
-          <button type="button" onclick={() => (imp = { ...DEFAULT_IMPAIRMENTS })}>Example mix</button>
-          <button type="button" onclick={() => (imp = { ...CLEAN_IMPAIRMENTS })}>Clear</button>
+          <button type="button" onclick={randomize}>Random</button>
+          <button type="button" onclick={() => (imp = { ...MIN_IMPAIRMENTS })}>Minimum</button>
+          <button type="button" onclick={() => (imp = { ...MAX_IMPAIRMENTS })}>Maximum</button>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <h2>Capture</h2>
+        <div class="control-list">
+          <Range id="analog-input-frequency" min={1} max={points / 2 - 1} step={1} output={freqText(fin)} bind:value={() => finBin, setInputBin}>Input frequency</Range>
+          <Range id="analog-fft-points" min={6} max={18} step={1} output={points.toLocaleString('en-US')} bind:value={fftExponent}>FFT points</Range>
         </div>
       </div>
 
@@ -102,12 +140,12 @@
       <div class="control-group">
         <h2>Sparse events</h2>
         <div class="control-list">
-          <Range id="analog-glitch-rate" min={0} max={5000} step={50} output="{nf(imp.glitchRatePpm, 0)} ppm" bind:value={() => imp.glitchRatePpm, (v) => set('glitchRatePpm', v)}>Glitch rate</Range>
+          <Range id="analog-glitch-count" min={0} max={32} step={1} output={eventText(imp.glitchCount)} bind:value={() => imp.glitchCount, (v) => set('glitchCount', v)}>Glitches / record</Range>
           <Range id="analog-glitch-amplitude" min={0} max={200} step={2} output="{nf(imp.glitchAmplitudeMv, 0)} mV" bind:value={() => imp.glitchAmplitudeMv, (v) => set('glitchAmplitudeMv', v)}>Glitch amplitude</Range>
         </div>
       </div>
 
-      <span class="conditions"><b>{nf(FS / 1e6, 0)}</b> MS/s · <b>{nf(FIN / 1e6, 2)}</b> MHz · 4096 samples</span>
+      <span class="conditions"><b>{nf(FS / 1e6, 0)}</b> MS/s · <b>{freqText(fin)}</b> · {points.toLocaleString('en-US')} samples</span>
     </aside>
 
     <section class="panel-grid" aria-label="Twelve analog output analyses">
@@ -133,7 +171,7 @@
 
     <article class="chart">
       <div class="cap"><span class="label">5 · Decomposition time</span><span>five harmonics + residual</span></div>
-      <TimeChart signal={d.y} decomposition={d.decomposition} bin={FIN_BIN} label="Time-domain harmonic decomposition" />
+      <TimeChart signal={d.y} decomposition={d.decomposition} bin={finBin} label="Time-domain harmonic decomposition" />
     </article>
 
     <article class="chart">

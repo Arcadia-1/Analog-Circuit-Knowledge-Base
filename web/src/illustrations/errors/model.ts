@@ -171,8 +171,8 @@ export interface Phase extends Bins {
  * rearrange_error_by_phase, with ADCToolbox's AM / PM split. An error proportional to the signal has power ∝ cos²φ and
  * one proportional to its slope ∝ sin²φ, so fitting e² to a constant plus cos 2φ separates them from plain noise.
  */
-export function byPhase(error: Float64Array, bin_: number, phase: number, k = 96): Phase {
-  const w = (2 * Math.PI * bin_) / N_FFT;
+export function byPhase(error: Float64Array, bin_: number, phase: number, k = 96, recordLength = N_FFT): Phase {
+  const w = (2 * Math.PI * bin_) / recordLength;
   const phi = (i: number) => {
     const p = (w * i + phase) % (2 * Math.PI);
     return p < 0 ? p + 2 * Math.PI : p;

@@ -13,6 +13,12 @@ import { N_FFT, type Spectrum } from '../../lib/spectrum';
 export const FS = 800e6;
 export const FIN_BIN = 497;
 export const FIN = (FIN_BIN / N_FFT) * FS;
+export interface PanelConfig {
+  fs: number;
+  points: number;
+  finBin: number;
+}
+export const DEFAULT_PANEL_CONFIG: PanelConfig = { fs: FS, points: N_FFT, finBin: FIN_BIN };
 const A = 0.49;
 const DC = 0.5;
 
@@ -38,7 +44,8 @@ export interface Impairments {
   clipLevelMv: number;
   driftStepUv: number;
   referenceDroopPctPerV: number;
-  glitchRatePpm: number;
+  /** Exact number of sparse events placed in one record. */
+  glitchCount: number;
   glitchAmplitudeMv: number;
 }
 
@@ -57,8 +64,34 @@ export const CLEAN_IMPAIRMENTS: Impairments = {
   clipLevelMv: 500,
   driftStepUv: 0,
   referenceDroopPctPerV: 0,
-  glitchRatePpm: 0,
+  glitchCount: 0,
   glitchAmplitudeMv: 0,
+};
+
+/** Literal lower and upper positions of every impairment slider. */
+export const MIN_IMPAIRMENTS: Impairments = {
+  ...CLEAN_IMPAIRMENTS,
+  residueGainPct: -3,
+  clipLevelMv: 250,
+};
+
+export const MAX_IMPAIRMENTS: Impairments = {
+  thermalNoiseUv: 500,
+  quantizerBits: 16,
+  jitterPs: 5,
+  amNoisePpm: 2000,
+  hd2Dbc: -40,
+  hd3Dbc: -40,
+  memoryPct: 2,
+  settlingTauPs: 120,
+  residueGainPct: 3,
+  dynamicResiduePctPerV2: 30,
+  amToneDepthPct: 10,
+  clipLevelMv: 500,
+  driftStepUv: 100,
+  referenceDroopPctPerV: 1,
+  glitchCount: 32,
+  glitchAmplitudeMv: 200,
 };
 
 /** A deliberately mixed starting point: each value remains independently editable or removable. */
@@ -77,24 +110,33 @@ export const DEFAULT_IMPAIRMENTS: Impairments = {
   amToneDepthPct: 0.5,
   driftStepUv: 2,
   referenceDroopPctPerV: 0.02,
-  glitchRatePpm: 250,
+  glitchCount: 1,
   glitchAmplitudeMv: 20,
 };
+
+function resolvedConfig(config: PanelConfig): PanelConfig {
+  const points = Math.max(64, Math.round(config.points));
+  return {
+    fs: Math.max(1, config.fs),
+    points,
+    finBin: Math.max(1, Math.min(Math.floor(points / 2) - 1, Math.round(config.finBin))),
+  };
+}
 
 /**
  * Compose all enabled non-idealities into one record. The order follows a signal path: sample-time error, continuous
  * transfer errors, memory/stage errors, clipping/reference events, additive noise, and finally quantization.
  */
-export function capture(settings: Impairments, bits: number, seed = 20260920): Float64Array {
-  const n = N_FFT;
+export function capture(settings: Impairments, bits: number, seed = 20260920, config = DEFAULT_PANEL_CONFIG): Float64Array {
+  const { points: n, fs, finBin } = resolvedConfig(config);
+  const fin = (finBin / n) * fs;
   const jitterNoise = gaussians(n, seed);
   const amNoise = gaussians(n, seed + 1);
   const thermalNoise = gaussians(n, seed + 2);
   const driftNoise = gaussians(n, seed + 3);
-  const glitchDraw = uniforms(n, seed + 4);
   let y = Float64Array.from({ length: n }, (_, i) => {
-    const t = i / FS + jitterNoise[i] * Math.max(0, settings.jitterPs) * 1e-12;
-    return A * Math.sin(2 * Math.PI * FIN * t) + DC;
+    const t = i / fs + jitterNoise[i] * Math.max(0, settings.jitterPs) * 1e-12;
+    return A * Math.sin(2 * Math.PI * fin * t) + DC;
   });
 
   const amStrength = Math.max(0, settings.amNoisePpm) * 1e-6;
@@ -125,7 +167,7 @@ export function capture(settings: Impairments, bits: number, seed = 20260920): F
   const tauNom = Math.max(0, settings.settlingTauPs) * 1e-12;
   if (tauNom) {
     const source = new Float64Array(y);
-    const track = 0.2 / FS;
+    const track = 0.2 / fs;
     let previous = source[n - 1] - DC;
     // Warm a periodic state before the measured record so startup is not presented as converter distortion.
     for (let i = -32; i < n; i++) {
@@ -160,7 +202,7 @@ export function capture(settings: Impairments, bits: number, seed = 20260920): F
   const amToneDepth = settings.amToneDepthPct / 100;
   if (amToneDepth) {
     for (let i = 0; i < n; i++) {
-      y[i] = DC + (y[i] - DC) * (1 + amToneDepth * Math.sin((2 * Math.PI * 500e3 * i) / FS));
+      y[i] = DC + (y[i] - DC) * (1 + amToneDepth * Math.sin((2 * Math.PI * 500e3 * i) / fs));
     }
   }
 
@@ -191,10 +233,16 @@ export function capture(settings: Impairments, bits: number, seed = 20260920): F
     }
   }
 
-  const glitchProbability = Math.max(0, settings.glitchRatePpm) * 1e-6;
+  const glitchCount = Math.min(n, Math.max(0, Math.round(settings.glitchCount)));
   const glitchAmplitude = settings.glitchAmplitudeMv * 1e-3;
-  if (glitchProbability && glitchAmplitude) {
-    for (let i = 0; i < n; i++) if (glitchDraw[i] < glitchProbability) y[i] += glitchAmplitude;
+  if (glitchCount && glitchAmplitude) {
+    // Floyd's sampling algorithm chooses exactly `glitchCount` distinct samples in O(glitchCount), even for a long FFT record.
+    const draws = uniforms(glitchCount, seed + 4), selected = new Set<number>();
+    for (let i = 0, candidate = n - glitchCount; candidate < n; candidate++, i++) {
+      const index = Math.floor(draws[i] * (candidate + 1));
+      selected.add(selected.has(index) ? candidate : index);
+    }
+    for (const index of selected) y[index] += glitchAmplitude;
   }
 
   const noiseRms = Math.max(0, settings.thermalNoiseUv) * 1e-6;
@@ -220,14 +268,14 @@ export interface Decomposition {
 }
 
 /** Coherent five-harmonic least-squares decomposition used by both decomposition panels. */
-export function decompose(y: Float64Array, harmonics = 5): Decomposition {
+export function decompose(y: Float64Array, harmonics = 5, finBin = FIN_BIN): Decomposition {
   const n = y.length, dc = y.reduce((a, v) => a + v, 0) / n;
   const components = Array.from({ length: harmonics }, () => new Float64Array(n));
   const magnitudes = new Float64Array(harmonics), phases = new Float64Array(harmonics);
   for (let h = 1; h <= harmonics; h++) {
     let a = 0, b = 0;
     for (let i = 0; i < n; i++) {
-      const w = (2 * Math.PI * h * FIN_BIN * i) / n;
+      const w = (2 * Math.PI * h * finBin * i) / n;
       a += (y[i] - dc) * Math.cos(w);
       b += (y[i] - dc) * Math.sin(w);
     }
@@ -235,7 +283,7 @@ export function decompose(y: Float64Array, harmonics = 5): Decomposition {
     magnitudes[h - 1] = Math.hypot(a, b);
     // a cos(wt) + b sin(wt) = A cos(wt + phi), so phi = atan2(-b, a).
     phases[h - 1] = Math.atan2(-b, a);
-    for (let i = 0; i < n; i++) components[h - 1][i] = a * Math.cos((2 * Math.PI * h * FIN_BIN * i) / n) + b * Math.sin((2 * Math.PI * h * FIN_BIN * i) / n);
+    for (let i = 0; i < n; i++) components[h - 1][i] = a * Math.cos((2 * Math.PI * h * finBin * i) / n) + b * Math.sin((2 * Math.PI * h * finBin * i) / n);
   }
   const fundamental = components[0].map((v) => v + dc);
   const harmonic = new Float64Array(n), residual = new Float64Array(n);
@@ -262,7 +310,10 @@ export interface PolarData {
 }
 
 export function spectrumPolar(y: Float64Array, out: Spectrum): PolarData {
-  const n = y.length, mean = y.reduce((a, v) => a + v, 0) / n, peak = (Math.max(...y) - Math.min(...y)) / 2 || 1;
+  const n = y.length, mean = y.reduce((a, v) => a + v, 0) / n;
+  let lo = Infinity, hi = -Infinity;
+  for (const value of y) { lo = Math.min(lo, value); hi = Math.max(hi, value); }
+  const peak = (hi - lo) / 2 || 1;
   const re = y.map((v) => (v - mean) / peak), im = new Float64Array(n);
   fft(re, im);
   const bins = [out.signal, ...out.harmonics.slice(0, 4)], phase0 = Math.atan2(im[out.signal], re[out.signal]);
@@ -272,8 +323,10 @@ export function spectrumPolar(y: Float64Array, out: Spectrum): PolarData {
     const phase = (mirrored ? -1 : 1) * Math.atan2(im[bin], re[bin]);
     return { angle: wrap(phase - order * phase0), db: out.dbfs[bin], text: i ? `H${order}` : 'input', series: (i ? 2 : 1) as 1 | 2 };
   });
+  let minimum = Infinity;
+  for (const value of out.dbfs) if (Number.isFinite(value)) minimum = Math.min(minimum, value);
   // Only harmonics have the order needed for phi_h - h*phi_1. Do not mix raw noise-bin phases into this coordinate system.
-  return { points: [], rays, floor: Math.max(-120, Math.min(-40, Math.round(Math.min(...Array.from(out.dbfs).filter(Number.isFinite)) / 10) * 10)) };
+  return { points: [], rays, floor: Math.max(-120, Math.min(-40, Math.round(minimum / 10) * 10)) };
 }
 
 export function decompositionPolar(d: Decomposition): PolarData {
@@ -310,10 +363,10 @@ export function envelope(error: Float64Array): Float64Array {
   return Float64Array.from({ length: n }, (_, k) => Math.hypot(re[k] / n, -im[k] / n));
 }
 
-export function phasePlane(values: Float64Array, lag: number | 'auto' = 'auto', maxPoints = 4096): XY & { lag: number } {
+export function phasePlane(values: Float64Array, lag: number | 'auto' = 'auto', maxPoints = 4096, finBin = FIN_BIN): XY & { lag: number } {
   let k = lag === 'auto' ? 1 : lag;
   if (lag === 'auto') {
-    const f = FIN_BIN / values.length, limit = Math.min(values.length / 2, Math.floor((1 / f) * 0.6) + 20);
+    const f = finBin / values.length, limit = Math.min(values.length / 2, Math.floor((1 / f) * 0.6) + 20);
     let score = -Infinity;
     for (let candidate = 1; candidate < limit; candidate++) {
       const at = Math.abs(Math.sin(2 * Math.PI * f * candidate)) - candidate * 0.0001;
@@ -357,15 +410,18 @@ export interface Dashboard {
   errorPhasePlane: XY;
 }
 
-export function analyze(settings: Impairments, bits: number): Dashboard {
-  const y = capture(settings, bits), fit = fitSine(y, FIN_BIN);
-  const output = outputSpectrum(y, bits), decomposition = decompose(y);
+export function analyze(settings: Impairments, bits: number, config = DEFAULT_PANEL_CONFIG): Dashboard {
+  const { finBin, points } = resolvedConfig(config);
+  const y = capture(settings, bits, 20260920, config), fit = fitSine(y, finBin);
+  const output = outputSpectrum(y, bits), decomposition = decompose(y, 5, finBin);
+  let peakError = 0;
+  for (const value of fit.error) peakError = Math.max(peakError, Math.abs(value));
   return {
     y,
     fit,
     value: byValue(y, fit.error),
-    phase: byPhase(fit.error, FIN_BIN, fit.phase),
-    distribution: pdf(fit.error, Math.max(0.75, 1.02 * Math.max(...fit.error.map(Math.abs)))),
+    phase: byPhase(fit.error, finBin, fit.phase, 96, points),
+    distribution: pdf(fit.error, Math.max(0.75, 1.02 * peakError)),
     output,
     // A residual/envelope peak is not a new fundamental from which to label H2–H5.
     error: { ...errorSpectrum(fit.error, bits), harmonics: [] },
@@ -374,7 +430,7 @@ export function analyze(settings: Impairments, bits: number): Dashboard {
     outputPolar: spectrumPolar(y, output),
     decompositionPolar: decompositionPolar(decomposition),
     autocorr: autocorrelation(fit.error),
-    phasePlane: phasePlane(y),
+    phasePlane: phasePlane(y, 'auto', 4096, finBin),
     errorPhasePlane: errorPhasePlane(fit, bits),
   };
 }

@@ -17,11 +17,22 @@
     output: string;
     children: Snippet;
   } = $props();
+
+  function wheel(event: WheelEvent) {
+    if (!event.deltaY) return;
+    event.preventDefault();
+    const increment = step === 'any' ? (max - min) / 100 : step;
+    const direction = event.deltaY < 0 ? 1 : -1;
+    const scale = event.shiftKey ? 10 : 1;
+    const index = Math.round((value - min) / increment) + direction * scale;
+    const next = Math.min(max, Math.max(min, min + index * increment));
+    value = Number(next.toPrecision(12));
+  }
 </script>
 
 <div class="range">
   <label class="label" for={id}>{@render children()}</label>
-  <input {id} type="range" {min} {max} {step} bind:value aria-valuetext={output} />
+  <input {id} type="range" {min} {max} {step} bind:value aria-valuetext={output} onwheel={wheel} title="Drag, use the arrow keys, or scroll to change this value" />
   <output class="mono" for={id}>{output}</output>
 </div>
 

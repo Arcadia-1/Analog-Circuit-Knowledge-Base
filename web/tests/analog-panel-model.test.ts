@@ -26,7 +26,7 @@ const individualErrors: { label: string; settings: Partial<Impairments> }[] = [
   { label: 'clipping', settings: { clipLevelMv: 400 } },
   { label: 'drift', settings: { driftStepUv: 50 } },
   { label: 'reference droop', settings: { referenceDroopPctPerV: 0.2 } },
-  { label: 'glitches', settings: { glitchRatePpm: 2000, glitchAmplitudeMv: 100 } },
+  { label: 'glitches', settings: { glitchCount: 8, glitchAmplitudeMv: 100 } },
 ];
 
 describe('ADCToolbox analog output panel', () => {
@@ -92,5 +92,19 @@ describe('ADCToolbox analog output panel', () => {
 
   it('has negligible fitted residual when every error is disabled', () => {
     expect(analyze(CLEAN_IMPAIRMENTS, 12).fit.rmse).toBeLessThan(1e-8);
+  });
+
+  it('uses the selected coherent input bin and FFT record length', () => {
+    const config = { fs: 800e6, points: 1024, finBin: 123 };
+    const d = analyze(CLEAN_IMPAIRMENTS, 12, config);
+    expect(d.y).toHaveLength(1024);
+    expect(d.output.signal).toBe(123);
+    expect(d.fit.frequency).toBeCloseTo(123 / 1024, 12);
+  });
+
+  it('places exactly the requested number of glitches in each record', () => {
+    const clean = capture(CLEAN_IMPAIRMENTS, 12, 41);
+    const glitched = capture(withError({ glitchCount: 7, glitchAmplitudeMv: 100 }), 12, 41);
+    expect(Array.from(glitched).filter((value, i) => Math.abs(value - clean[i]) > 1e-9)).toHaveLength(7);
   });
 });
