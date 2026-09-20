@@ -1,6 +1,5 @@
 <script lang="ts">
   import Notes from '../../components/ui/Notes.svelte';
-  import Range from '../../components/ui/Range.svelte';
   import Segmented from '../../components/ui/Segmented.svelte';
   import ValueField from '../../components/ui/ValueField.svelte';
   import { freqText, jitterText, nf } from '../../lib/format';
@@ -25,7 +24,6 @@
   let fRef = $state(40e6);
   let mode = $state<Exclude<Mode, 'int'>>('acc');
   let dtc = $state(false);
-  let inl = $state(1);
   let hoverCycle = $state<number | null>(null);
   let hoverF = $state<number | null>(null);
 
@@ -37,11 +35,11 @@
   const alpha = $derived(target / fRef - nBase);
 
   const intSim: Sim = $derived(simulate(integerOut, 'int', false, 0, fRef, BW, 0));
-  const fracSim: Sim = $derived(simulate(target, mode, dtc, inl, fRef, BW, 0));
+  const fracSim: Sim = $derived(simulate(target, mode, dtc, 0, fRef, BW, 0));
   const intAn: Analysis = $derived(analyze(intSim));
   const fracAn: Analysis = $derived(analyze(fracSim));
   const dividerName = $derived(mode === 'acc' ? 'Accumulator' : 'MASH 1-1-1 ΣΔ');
-  const fracName = $derived(`${dividerName}${dtc ? ' + DTC' : ''}`);
+  const fracName = $derived(`${dividerName}${dtc ? ' + ideal DTC' : ''}`);
 
   const edgeScale: EdgeScale = $derived.by(() => {
     let nMin = Infinity, nMax = -Infinity, R = 0;
@@ -91,9 +89,9 @@
     <Notes>
       <p><b>Integer-<var>N</var>.</b> The feedback divider is one integer <var>N</var>, so <var>f</var><sub>out</sub> can only move in steps of <var>f</var><sub>ref</sub>. A requested frequency between two channels must be rounded.</p>
       <p><b>Fractional-<var>N</var>.</b> The divider changes among nearby integers. Its long-term average is <var>N</var> + <var>α</var>, so the average output can land between integer channels. The modulator is part of how that average is produced; it is not a different frequency formula.</p>
-      <p><b>Choose the fractional path.</b> The accumulator is first order and emits 0 or 1. MASH 1-1-1 is third order and moves more quantisation noise away from low offset frequencies. DTC compensates the accumulated divider timing error before the phase detector; its remaining INL can add timing error of its own.</p>
+      <p><b>Choose the fractional path.</b> The accumulator is first order and emits 0 or 1. MASH 1-1-1 is third order and moves more quantisation noise away from low offset frequencies. The ideal DTC compensates the accumulated divider timing error before the phase detector.</p>
       <p><b>The plots below show the system view.</b> The block diagram, phase-detector timing and output spectrum all follow the selected divider and DTC state. With DTC enabled, the grey points show the uncompensated divider timing and the orange points show what reaches the phase detector.</p>
-      <p><b>Model assumptions.</b> A reference-rate behavioral loop with a linear phase detector, type-II PI filter and two extra poles at 6 MHz is tuned to a 1 MHz closed-loop −3 dB bandwidth. White reference/PD noise uses a −228 dBc/Hz normalized floor; free-running VCO noise follows 1/f² with −120 dBc/Hz at 1 MHz. The accumulator and MASH are undithered 24-bit models; the DTC has ideal gain plus the selected parabolic INL. Charge-pump mismatch is zero. These are illustrative assumptions, not predictions for a particular PLL circuit.</p>
+      <p><b>Model assumptions.</b> A reference-rate behavioral loop with a linear phase detector, type-II PI filter and two extra poles at 6 MHz is tuned to a 1 MHz closed-loop −3 dB bandwidth. White reference/PD noise uses a −228 dBc/Hz normalized floor; free-running VCO noise follows 1/f² with −120 dBc/Hz at 1 MHz. The accumulator and MASH are undithered 24-bit models. The DTC has ideal gain and zero INL; charge-pump mismatch is zero. These are illustrative assumptions, not predictions for a particular PLL circuit.</p>
       <p><b>Frequency and noise readouts.</b> Fractional resolution is f<sub>ref</sub>/2²⁴ (up to 5.96 Hz here), with at most half a step of rounding error. RMS jitter is the detrended time-record rms, including deterministic tones, over 32768 reference samples; the listed band is the record's nominal FFT span, not a brick-wall integration filter. Spectral levels average the two sidebands and are normalized to the measured carrier. “Not detected” means no tone passed the 18 dB local-floor threshold above 10 kHz; it does not prove zero spurs.</p>
     </Notes>
   </header>
@@ -139,21 +137,18 @@
           <Segmented
             size="sm"
             label="Digital-to-time converter"
-            options={[{ value: false, label: 'DTC off' }, { value: true, label: 'DTC on' }]}
+            options={[{ value: false, label: 'DTC off' }, { value: true, label: 'Ideal DTC' }]}
             bind:value={dtc}
           />
         </div>
       </div>
-      <div class="line detail-line">
+      <div class="line">
         <div class="readout">
           <span class="architecture">{fracName}</span>
           <span><var>N</var> = <span class="mono">{nBase}</span></span>
           <span><var>α</var> = <span class="mono">{alpha.toFixed(5)}</span></span>
           <span class="mono">{(fracSim.fOut / 1e9).toFixed(4)} GHz</span>
           <span class="chip" title={`24-bit rounding error: ${(fracSim.fOut - target).toFixed(3)} Hz`}>within {nf(fRef / 2 ** 25, 2)} Hz</span>
-        </div>
-        <div class="inl-slot accent2" class:inactive={!dtc} aria-hidden={!dtc}>
-          <Range id="dtc-inl" min={0} max={5} step={0.1} output={`${inl.toFixed(1)} ps`} bind:value={inl}>DTC INL</Range>
         </div>
       </div>
     </div>
@@ -197,16 +192,12 @@
   .compare { --rows: auto 78px minmax(0, 1fr) minmax(0, 1.15fr); }
   .head { gap: 8px; }
   .picks { display: flex; flex-wrap: wrap; gap: 6px; }
-  .detail-line { min-height: 30px; }
   .architecture { color: var(--ink); font-weight: 500; }
-  .inl-slot { min-width: 242px; transition: opacity 120ms ease; }
-  .inl-slot.inactive { visibility: hidden; opacity: 0; pointer-events: none; }
   .gk { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin: 0 5px 0 10px; background: var(--ghost); }
   .gk.g2 { background: var(--s2); }
   .diagram { align-self: center; padding-block: 14px; }
   @media (max-width: 1180px) {
     .picks { width: 100%; }
-    .inl-slot { min-width: 0; }
   }
   @media (max-width: 900px) {
     .tuner { grid-template-columns: 1fr; }
