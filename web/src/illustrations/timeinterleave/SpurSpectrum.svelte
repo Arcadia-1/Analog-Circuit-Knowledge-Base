@@ -4,18 +4,17 @@
   import { freqText, nf } from '../../lib/format';
   import { clamp } from '../../lib/scale';
   import type { Spectrum } from '../../lib/spectrum';
-  import { FS, N, type Spur } from './model';
+  import { N, type Spur } from './model';
 
   /**
    * The spectrum of the interleaved output, with a mark wherever predict_spurs expects a spur and as high as it
-   * expects it: circles for the images of gain and skew, squares for the offset tones. After calibration the raw
-   * spectrum stays behind in grey.
+   * expects it: circles for the images of gain, bandwidth and skew, squares for the offset tones.
    */
-  let { spectrum, ghost, spurs, bits, hover, onhover, label }: {
+  let { spectrum, spurs, bits, fs, hover, onhover, label }: {
     spectrum: Spectrum;
-    ghost: Spectrum | null;
     spurs: Spur[];
     bits: number;
+    fs: number;
     hover: number | null;
     onhover: (bin: number | null) => void;
     label: string;
@@ -23,7 +22,7 @@
 
   const X0 = 46, HALF = N / 2;
   const ybot = $derived(-20 * Math.ceil((6.02 * bits + 1.76 + 10 * Math.log10(HALF) + 12) / 20));
-  const binOf = (f: number) => Math.round((f / FS) * N);
+  const binOf = (f: number) => Math.round((f / fs) * N);
   const spurText = (bin: number) =>
     spurs
       .filter((s) => binOf(s.freq) === bin)
@@ -51,8 +50,9 @@
     for (let v = ybot; v <= 0; v += 20) grid.push(v);
     const every = Y1 - Y0 < 170 ? 40 : 20;
     const marks = spurs.filter((s) => s.dbfs > ybot).map((s) => ({ x: sx(binOf(s.freq)), y: sy(s.dbfs), offset: s.kind === 'offset' }));
-    const ticks = X1 - X0 < 360 ? [0, 250, 500] : [0, 100, 200, 300, 400, 500];
-    return { ticks, X1, Y0, Y1, sx, sy, grid, every, marks, d: trace(spectrum, cols, sy), back: ghost ? trace(ghost, cols, sy) : '' };
+    const steps = X1 - X0 < 360 ? 2 : 5;
+    const ticks = Array.from({ length: steps + 1 }, (_, i) => (i / steps) * fs / 2);
+    return { ticks, X1, Y0, Y1, sx, sy, grid, every, marks, d: trace(spectrum, cols, sy) };
   }
 
   function move(px: number, W: number) {
@@ -69,11 +69,10 @@
       {#if (v - ybot) % g.every === 0}<text class="tx" x="40" y={g.sy(v)} text-anchor="end" dominant-baseline="central">{nf(v, 0)}</text>{/if}
     {/each}
     {#each g.ticks as f, i (f)}
-      <line class="gr" x1={g.sx((f * 1e6 * N) / FS)} y1={g.Y0} x2={g.sx((f * 1e6 * N) / FS)} y2={g.Y1} />
-      <text class="tx" x={g.sx((f * 1e6 * N) / FS)} y={height - 5} text-anchor={i === 0 ? 'start' : i === g.ticks.length - 1 ? 'end' : 'middle'}>{i === g.ticks.length - 1 ? `${f} MHz` : f}</text>
+      <line class="gr" x1={g.sx((f * N) / fs)} y1={g.Y0} x2={g.sx((f * N) / fs)} y2={g.Y1} />
+      <text class="tx" x={g.sx((f * N) / fs)} y={height - 5} text-anchor={i === 0 ? 'start' : i === g.ticks.length - 1 ? 'end' : 'middle'}>{freqText(f)}</text>
     {/each}
     <text class="tx2 halo" x={X0 + 6} y={g.Y0 + 12}>dBFS</text>
-    {#if ghost}<path class="back" stroke-width="1" d={g.back} />{/if}
     <path class="c1" stroke-width="1" d={g.d} />
     <circle class="f1 ring" cx={g.sx(spectrum.signal)} cy={g.sy(spectrum.dbfs[spectrum.signal])} r="4.5" />
     {#each g.marks as m, i (i)}
@@ -93,13 +92,12 @@
         x={g.sx(hover)}
         y={g.sy(spectrum.dbfs[hover])}
         {width}
-        text="{freqText((hover * FS) / N)} · {nf(spectrum.dbfs[hover], 1)} dBFS{ghost ? ` (${nf(ghost.dbfs[hover], 1)} before)` : ''}{hover === spectrum.signal ? ' · the input' : named ? ` · ${named}` : ''}"
+        text="{freqText((hover * fs) / N)} · {nf(spectrum.dbfs[hover], 1)} dBFS{hover === spectrum.signal ? ' · the input' : named ? ` · ${named}` : ''}"
       />
     {/if}
   {/snippet}
 </Plot>
 
 <style>
-  .back { stroke: var(--ghost); fill: none; }
   .mark { fill: none; stroke: var(--s2); stroke-width: 1.6; }
 </style>

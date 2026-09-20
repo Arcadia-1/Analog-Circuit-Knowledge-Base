@@ -5,6 +5,7 @@ import {
   calibrate,
   capture,
   channelNyquist,
+  contributions,
   deinterleave,
   delayFarrow,
   delayFft,
@@ -390,6 +391,21 @@ describe('time-interleaved mismatch', () => {
     expect(read(c.m, c.target, mm, c.bits, 'farrow').out.sfdr).toBeCloseTo(c.metrics[4], 2);
     // an image for every k, an offset tone for k = 1 … m/2
     expect(fft.spurs).toHaveLength(c.m - 1 + c.m / 2);
+  });
+
+  it('runs the expanded page model at 10 GS/s and keeps each new source distinct', () => {
+    const fs = 10e9, fin = 1e9, jitter = 0.5e-12;
+    const mm = mismatch(4, 0.003, 0.001, 5e-12, 0.02);
+    const r = read(4, fin, mm, 12, 'off', { fs, jitter, harmonicDbc: -65 });
+    expect(r.rawData).toHaveLength(N);
+    expect(Math.abs(r.fin - fin)).toBeLessThanOrEqual(fs / N);
+    expect(Number.isFinite(r.raw.sndr)).toBe(true);
+
+    const rows = contributions(mm, fin, fs, -65, jitter);
+    expect(rows.map((row) => row.id)).toEqual(['offset', 'gain', 'skew', 'bandwidth', 'harmonics', 'jitter']);
+    expect(rows.slice(0, 5).every((row) => Number.isFinite(row.level))).toBe(true);
+    expect(rows.find((row) => row.id === 'harmonics')?.frequencies).toEqual([2e9, 3e9]);
+    expect(rows.find((row) => row.id === 'jitter')?.level).toBeCloseTo(20 * Math.log10(2 * Math.PI * fin * jitter), 9);
   });
 
   it('sweeps the frequency as the reference does', () => {

@@ -123,7 +123,7 @@ export const topics: Topic[] = [
       {
         href: '/adc/time-interleaved-adcs/',
         title: 'Time-interleaved ADCs',
-        summary: 'Find and correct offset, gain and timing mismatch.',
+        summary: 'See where channel mismatch, jitter and harmonics land in the spectrum.',
         thumb: 'ti',
       },
     ],

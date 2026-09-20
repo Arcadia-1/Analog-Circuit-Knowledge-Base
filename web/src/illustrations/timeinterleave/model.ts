@@ -26,6 +26,7 @@ export const CHANNELS = [2, 4, 8];
 export const TAPS = 9;
 const NOISE_LSB = 0.3;
 const NOISE_SEED = 7;
+const JITTER_SEED = 71;
 
 export type Method = 'off' | 'fft' | 'farrow';
 
@@ -34,10 +35,12 @@ export interface Mismatch {
   gain: Float64Array;
   offset: Float64Array;
   skew: Float64Array;
+  /** Relative mismatch of each channel's one-pole input bandwidth. */
+  bandwidth?: Float64Array;
 }
 
 // one fixed draw per quantity and channel; the controls only scale it
-const DRAWS = gaussians(24, 2026);
+const DRAWS = gaussians(32, 2026);
 
 /** Draws `which` for the first m channels, less their mean and scaled to an rms of one. */
 export function pattern(which: number, m: number): Float64Array {
@@ -50,11 +53,45 @@ export function pattern(which: number, m: number): Float64Array {
 }
 
 /** A mismatch with the given rms across the m channels: gain as a fraction, offset in volts, skew in seconds. */
-export function mismatch(m: number, gainRms: number, offsetRms: number, skewRms: number): Mismatch {
-  return {
+export function mismatch(m: number, gainRms: number, offsetRms: number, skewRms: number, bandwidthRms?: number): Mismatch {
+  const out: Mismatch = {
     gain: pattern(0, m).map((z) => 1 + gainRms * z),
     offset: pattern(1, m).map((z) => offsetRms * z),
     skew: pattern(2, m).map((z) => skewRms * z),
+  };
+  if (bandwidthRms !== undefined) out.bandwidth = pattern(3, m).map((z) => bandwidthRms * z);
+  return out;
+}
+
+export interface CaptureOptions {
+  fs?: number;
+  /** RMS aperture jitter in seconds. */
+  jitter?: number;
+  /** H2 in dBc; H3 is 6 dB lower. Values at or below −100 dBc disable both. */
+  harmonicDbc?: number;
+}
+
+/** The source before channel mismatch: fundamental plus optional H2 and H3. */
+export function inputValue(t: number, fin: number, harmonicDbc = -Infinity): number {
+  let v = AMP * Math.cos(2 * Math.PI * fin * t);
+  if (harmonicDbc > -100) {
+    v += AMP * 10 ** (harmonicDbc / 20) * Math.cos(2 * Math.PI * 2 * fin * t + 0.31);
+    v += AMP * 10 ** ((harmonicDbc - 6) / 20) * Math.cos(2 * Math.PI * 3 * fin * t - 0.47);
+  }
+  return v;
+}
+
+/**
+ * A channel bandwidth error is modelled as a shifted one-pole corner. The nominal corner is fs/2; returning the ratio
+ * to the nominal response keeps the common roll-off out of the lesson and leaves only channel-to-channel mismatch.
+ */
+export function bandwidthResponse(relativeError: number, frequency: number, fs: number): { amplitude: number; phase: number } {
+  const nominal = fs / 2;
+  const actual = nominal * Math.max(0.05, 1 + relativeError);
+  const xn = frequency / nominal, xa = frequency / actual;
+  return {
+    amplitude: Math.sqrt((1 + xn * xn) / (1 + xa * xa)),
+    phase: Math.atan(xn) - Math.atan(xa),
   };
 }
 
@@ -63,12 +100,21 @@ export function mismatch(m: number, gainRms: number, offsetRms: number, skewRms:
  * sees. Then 0.3 LSB of thermal noise and the quantiser, which floors and clips on ±0.5 V as apply_quantization_noise
  * does.
  */
-export function capture(fin: number, mm: Mismatch, bits: number, len = N): Float64Array {
-  const m = mm.gain.length, T = 1 / FS, lsb = 1 / 2 ** bits, top = 2 ** bits - 1;
-  const z = gaussians(len, NOISE_SEED);
+export function capture(fin: number, mm: Mismatch, bits: number, len = N, options: CaptureOptions = {}): Float64Array {
+  const fs = options.fs ?? FS, jitter = options.jitter ?? 0, harmonicDbc = options.harmonicDbc ?? -Infinity;
+  const m = mm.gain.length, T = 1 / fs, lsb = 1 / 2 ** bits, top = 2 ** bits - 1;
+  const z = gaussians(len, NOISE_SEED), clock = jitter ? gaussians(len, JITTER_SEED) : null;
   return Float64Array.from({ length: len }, (_, n) => {
-    const c = n % m, t = n * T + mm.skew[c];
-    const v = mm.gain[c] * AMP * Math.cos(2 * Math.PI * fin * t) + mm.offset[c] + z[n] * NOISE_LSB * lsb;
+    const c = n % m, t = n * T + mm.skew[c] + (clock?.[n] ?? 0) * jitter;
+    const harmonics = harmonicDbc > -100 ? [1, 2, 3] : [1];
+    let signal = 0;
+    for (const h of harmonics) {
+      const dbc = h === 1 ? 0 : h === 2 ? harmonicDbc : harmonicDbc - 6;
+      const phase = h === 1 ? 0 : h === 2 ? 0.31 : -0.47;
+      const bw = bandwidthResponse(mm.bandwidth?.[c] ?? 0, h * fin, fs);
+      signal += AMP * 10 ** (dbc / 20) * bw.amplitude * Math.cos(2 * Math.PI * h * fin * t + phase + bw.phase);
+    }
+    const v = mm.gain[c] * signal + mm.offset[c] + z[n] * NOISE_LSB * lsb;
     return Math.min(top, Math.max(0, Math.floor((v - -0.5) / lsb))) * lsb + -0.5;
   });
 }
@@ -273,6 +319,61 @@ export const predictedSfdr = (spurs: Spur[]): number => -Math.max(...spurs.map((
 /** The sub-ADCs' own Nyquist frequency: calibrate_foreground's delays hold only below it. */
 export const channelNyquist = (m: number): number => FS / (2 * m);
 
+/** The fundamental-frequency gain and phase that the physical channel mismatches present to predict_spurs. */
+export function physicalParams(mm: Mismatch, fin: number, fs: number): Params {
+  const m = mm.gain.length, gain = new Float64Array(m), skew = new Float64Array(m);
+  for (let c = 0; c < m; c++) {
+    const bw = bandwidthResponse(mm.bandwidth?.[c] ?? 0, fin, fs);
+    gain[c] = mm.gain[c] * bw.amplitude;
+    skew[c] = mm.skew[c] + bw.phase / (2 * Math.PI * fin);
+  }
+  return { fin, amp: AMP, gain, offset: mm.offset, skew };
+}
+
+export interface Contribution {
+  id: 'offset' | 'gain' | 'skew' | 'bandwidth' | 'harmonics' | 'jitter';
+  label: string;
+  note: string;
+  /** Strongest result in dBc. Negative infinity means that source is off. */
+  level: number;
+  frequencies: number[];
+  broadband?: boolean;
+}
+
+const zeroes = (m: number) => new Float64Array(m);
+const ones = (m: number) => new Float64Array(m).fill(1);
+const strongest = (spurs: Spur[]): number => Math.max(...spurs.map((s) => s.dbc));
+
+/** A source-by-source map for the explanatory chart. Periodic mismatch makes tones; random jitter raises a floor. */
+export function contributions(mm: Mismatch, fin: number, fs: number, harmonicDbc: number, jitter: number): Contribution[] {
+  const m = mm.gain.length;
+  const images = (gain: Float64Array, skew: Float64Array) =>
+    predictSpurs({ fin, amp: AMP, gain, offset: zeroes(m), skew }, fs, 0.5).filter((s) => s.kind === 'image');
+  const offset = predictSpurs({ fin, amp: AMP, gain: ones(m), offset: mm.offset, skew: zeroes(m) }, fs, 0.5).filter((s) => s.kind === 'offset');
+  const gain = images(mm.gain, zeroes(m));
+  const skew = images(ones(m), mm.skew);
+  const bwGain = new Float64Array(m), bwSkew = new Float64Array(m);
+  for (let c = 0; c < m; c++) {
+    const bw = bandwidthResponse(mm.bandwidth?.[c] ?? 0, fin, fs);
+    bwGain[c] = bw.amplitude;
+    bwSkew[c] = bw.phase / (2 * Math.PI * fin);
+  }
+  const bandwidth = images(bwGain, bwSkew);
+  const harmonicOn = harmonicDbc > -100;
+  const jitterLevel = jitter > 0 ? 20 * Math.log10(2 * Math.PI * fin * jitter) : -Infinity;
+  return [
+    { id: 'offset', label: 'Offset', note: 'fixed tones at k·fs/M', level: strongest(offset), frequencies: offset.map((s) => s.freq) },
+    { id: 'gain', label: 'Gain', note: 'copies around k·fs/M', level: strongest(gain), frequencies: gain.map((s) => s.freq) },
+    { id: 'skew', label: 'Timing skew', note: 'same copies, rising with fin', level: strongest(skew), frequencies: skew.map((s) => s.freq) },
+    { id: 'bandwidth', label: 'Bandwidth', note: 'frequency-dependent gain and phase', level: strongest(bandwidth), frequencies: bandwidth.map((s) => s.freq) },
+    {
+      id: 'harmonics', label: 'Harmonics', note: 'H2 and H3 fold into band', level: harmonicOn ? harmonicDbc : -Infinity,
+      frequencies: harmonicOn ? [foldFrequency(2 * fin, fs), foldFrequency(3 * fin, fs)] : [],
+    },
+    { id: 'jitter', label: 'Jitter', note: 'broadband phase-noise floor', level: jitterLevel, frequencies: [], broadband: true },
+  ];
+}
+
 export interface Reading {
   fin: number;
   bin: number;
@@ -289,31 +390,33 @@ export interface Reading {
   outData: Float64Array;
 }
 
-export function read(m: number, target: number, mm: Mismatch, bits: number, method: Method): Reading {
-  const { fin, bin } = coherentFrequency(FS, target, N);
-  const x = capture(fin, mm, bits);
-  const measured = extractMismatch(x, m, FS, fin);
+export function read(m: number, target: number, mm: Mismatch, bits: number, method: Method, options: CaptureOptions = {}): Reading {
+  const fs = options.fs ?? FS;
+  const { fin, bin } = coherentFrequency(fs, target, N);
+  const x = capture(fin, mm, bits, N, options);
+  const measured = extractMismatch(x, m, fs, fin);
   const raw = spectrumOf(x, bits);
-  const y = method === 'off' ? null : calibrate(x, m, measured, FS, method);
+  const y = method === 'off' ? null : calibrate(x, m, measured, fs, method);
+  const hasExtendedModel = Boolean(mm.bandwidth || options.jitter || (options.harmonicDbc ?? -Infinity) > -100 || options.fs);
   return {
     fin,
     bin,
     truth: mm,
     measured,
-    spurs: predictSpurs(measured, FS, 0.5),
+    spurs: predictSpurs(hasExtendedModel ? physicalParams(mm, fin, fs) : measured, fs, 0.5),
     raw,
     out: y ? spectrumOf(y, bits) : raw,
-    left: y ? extractMismatch(y, m, FS, fin) : null,
+    left: y ? extractMismatch(y, m, fs, fin) : null,
     rawData: x,
     outData: y ?? x,
   };
 }
 
 /** RMS error against the ideal uniformly sampled input, over the requested leading samples or the whole record. */
-export function residualRms(data: Float64Array, fin: number, count = data.length): number {
+export function residualRms(data: Float64Array, fin: number, count = data.length, fs = FS, harmonicDbc = -Infinity): number {
   let power = 0;
   const n = Math.min(count, data.length);
-  for (let i = 0; i < n; i++) power += (data[i] - AMP * Math.cos((2 * Math.PI * fin * i) / FS)) ** 2;
+  for (let i = 0; i < n; i++) power += (data[i] - inputValue(i / fs, fin, harmonicDbc)) ** 2;
   return Math.sqrt(power / n);
 }
 
