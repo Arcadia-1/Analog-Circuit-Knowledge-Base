@@ -9,6 +9,7 @@ import {
   quantise,
   read,
   SHORT,
+  shortCapture,
   spectrumOf,
   sweep,
 } from '../src/illustrations/record/model';
@@ -93,5 +94,10 @@ describe('how long a record', () => {
       expect(got[i].sfdr, `SFDR at ${n}`).toBeCloseTo(sfdr, 4);
       expect(got[i].enob, `ENOB at ${n}`).toBeCloseTo(enob, 4);
     });
+    const capture = shortCapture(16);
+    expect(capture.bin).toBe(7);
+    expect(capture.data).toHaveLength(16);
+    expect(Array.from(capture.counts).reduce((sum, count) => sum + count, 0)).toBe(16);
+    expect(capture.spectrum.sndr).toBeCloseTo(got[4].sndr, 10);
   });
 });

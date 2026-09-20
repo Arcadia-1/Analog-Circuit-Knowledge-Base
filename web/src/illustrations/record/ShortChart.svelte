@@ -10,9 +10,10 @@
    * exp_s09: the same converter with the tone as close to Nyquist as each record allows. Even and odd lengths are
    * drawn apart, because which one you pick changes the answer more than the length itself does.
    */
-  let { rows, bits, hover, onhover, label }: {
+  let { rows, bits, at, hover, onhover, label }: {
     rows: ShortRow[];
     bits: number;
+    at: number;
     hover: number | null;
     onhover: (i: number | null) => void;
     label: string;
@@ -62,12 +63,14 @@
       {/if}
     {/each}
     <text class="tx2 halo" x={X0 + 6} y={g.Y0 + 24}>dBc</text>
+    {@const selected = Math.max(0, rows.findIndex((row) => row.n === at))}
+    <line class="guide" x1={g.sx(selected)} y1={g.Y0} x2={g.sx(selected)} y2={g.Y1} />
     <path class="c1" stroke-width="1.8" d={g.sfdrEven} />
     <path class="c1 odd" stroke-width="1.8" d={g.sfdrOdd} />
     <path class="c2" stroke-width="1.6" d={g.sndr} />
     {#each rows as r, i (r.n)}
-      <circle class="f1" cx={g.sx(i)} cy={g.sy(r.sfdr)} r={hover === i ? 4.5 : 2.6} />
-      <circle class="f2" cx={g.sx(i)} cy={g.sy(r.sndr)} r={hover === i ? 4.5 : 2.6} />
+      <circle class="f1" cx={g.sx(i)} cy={g.sy(r.sfdr)} r={hover === i || r.n === at ? 4.5 : 2.6} />
+      <circle class="f2" cx={g.sx(i)} cy={g.sy(r.sndr)} r={hover === i || r.n === at ? 4.5 : 2.6} />
     {/each}
   {/snippet}
   {#snippet overlay({ width, height })}

@@ -132,13 +132,32 @@ export interface ShortRow {
   enob: number;
 }
 
+export interface ShortCapture {
+  n: number;
+  bin: number;
+  data: Float64Array;
+  phases: Float64Array;
+  codes: Uint16Array;
+  counts: Uint16Array;
+  spectrum: Spectrum;
+}
+
+/** One of exp_s09's records, retaining the evidence hidden behind its three summary numbers. */
+export function shortCapture(n: number, bits = SAR_BITS): ShortCapture {
+  const bin = nearNyquistBin(n), levels = 2 ** bits;
+  const data = Float64Array.from({ length: n }, (_, i) => quantise(DC + AMP * Math.sin((2 * Math.PI * bin * i) / n), bits));
+  const phases = Float64Array.from({ length: n }, (_, i) => ((bin * i) % n) / n);
+  const codes = Uint16Array.from(data, (v) => Math.min(levels - 1, Math.max(0, Math.round(v * levels))));
+  const counts = new Uint16Array(levels);
+  for (const code of codes) counts[code] += 1;
+  return { n, bin, data, phases, codes, counts, spectrum: analyzeSpectrum(data.map((v) => v * 2), 1, 'rectangular', 'auto') };
+}
+
 /** exp_s09: a small SAR with the tone as close to Nyquist as the record allows, at lengths too short to trust. */
 export function nearNyquist(bits = SAR_BITS, lengths = SHORT): ShortRow[] {
   return lengths.map((n) => {
-    const bin = nearNyquistBin(n);
-    const x = Float64Array.from({ length: n }, (_, i) => quantise(DC + AMP * Math.sin((2 * Math.PI * bin * i) / n), bits));
-    const s = analyzeSpectrum(x.map((v) => v * 2), 1, 'rectangular', 'auto');
-    return { n, bin, sndr: s.sndr, sfdr: s.sfdr, enob: s.enob };
+    const capture = shortCapture(n, bits), s = capture.spectrum;
+    return { n, bin: capture.bin, sndr: s.sndr, sfdr: s.sfdr, enob: s.enob };
   });
 }
 
