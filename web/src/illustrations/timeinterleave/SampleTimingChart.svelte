@@ -49,9 +49,9 @@
     <path class="ideal" d={g.wave} />
     {#each samples.subarray(0, COUNT) as value, i}
       {@const c = i % m}
-      <line class="sample-stem" x1={g.sx(i)} x2={g.sx(i + truth.skew[c] * fs)} y1={g.sy(value)} y2={g.sy(value)} />
+      <line class="sample-stem ch{c % 4}" x1={g.sx(i)} x2={g.sx(i + truth.skew[c] * fs)} y1={g.sy(value)} y2={g.sy(value)} />
       <circle class="sample ch{c % 4}" cx={g.sx(i + truth.skew[c] * fs)} cy={g.sy(value)} r={hover === i ? 4.5 : 2.8} />
-      {#if i < m}<text class="tx channel" x={g.sx(i + truth.skew[c] * fs)} y="15" text-anchor="middle">{c}</text>{/if}
+      {#if i < m}<text class="tx channel ch{c % 4}" x={g.sx(i + truth.skew[c] * fs)} y="15" text-anchor="middle">{c}</text>{/if}
     {/each}
     <text class="tx2 halo" x={g.X1} y="15" text-anchor="end">input and channel samples · V</text>
     {#each [0, 12, 24, 36, 47] as i, k}
@@ -74,7 +74,11 @@
   .sample { stroke: var(--plot); stroke-width: 1.2; }
   .ch0 { fill: var(--s1); }
   .ch1 { fill: var(--s2); }
-  .ch2 { fill: var(--ink-2); }
-  .ch3 { fill: var(--ghost); }
-  .channel { fill: var(--ink-2); }
+  .ch2 { fill: var(--bad); }
+  .ch3 { fill: var(--brand); }
+  .sample-stem.ch0 { stroke: var(--s1); }
+  .sample-stem.ch1 { stroke: var(--s2); }
+  .sample-stem.ch2 { stroke: var(--bad); }
+  .sample-stem.ch3 { stroke: var(--brand); }
+  .channel { font-weight: 600; }
 </style>
