@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { baseCycles, capture, LENGTHS, read, sweep } from '../src/illustrations/coherence/model';
+import { baseCycles, capture, idealCode, LENGTHS, read, sweep } from '../src/illustrations/coherence/model';
 import { SIDE_BINS, type Window } from '../src/lib/spectrum';
 
 const WINDOWS: Window[] = ['rectangular', 'hann', 'blackmanharris', 'flattop'];
@@ -69,5 +69,12 @@ describe('coherent sampling, windows and record length', () => {
       expect(v).toBeGreaterThanOrEqual(0);
       expect(v).toBeLessThanOrEqual(4096);
     }
+  });
+
+  it('shows a boundary step only when the record is not coherent', () => {
+    const len = 4096, base = baseCycles(len), coherent = capture(12, len, base, 0, 3);
+    expect(Math.abs(coherent[0] - idealCode(12, len, base, len))).toBeLessThan(1e-9);
+    const leaking = capture(12, len, base + 0.1, 0, 3);
+    expect(Math.abs(leaking[0] - idealCode(12, len, base + 0.1, len))).toBeGreaterThan(900);
   });
 });

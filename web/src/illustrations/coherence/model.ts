@@ -13,6 +13,12 @@ export const LENGTHS = [256, 1024, 4096, 16384];
 const TONE = 613 / 4096;
 const AMP_DBFS = -1;
 
+/** The unquantised ideal code at any sample index, including beyond the end of the record. */
+export function idealCode(n: number, len: number, cycles: number, i: number): number {
+  const codes = 2 ** n, mid = codes / 2, amp = mid * 10 ** (AMP_DBFS / 20);
+  return mid + amp * Math.sin((2 * Math.PI * cycles * i) / len);
+}
+
 /** Cycles in the record nearest the fixed tone, forced odd so no harmonic folds onto the fundamental. */
 export function baseCycles(len: number): number {
   const k = Math.round(len * TONE);
@@ -25,10 +31,9 @@ export function baseCycles(len: number): number {
  * step at the seam, which is what leaks.
  */
 export function capture(n: number, len: number, cycles: number, noise: number, seed: number): Float64Array {
-  const codes = 2 ** n, mid = codes / 2, amp = mid * 10 ** (AMP_DBFS / 20);
   const z = noise ? gaussians(len, seed) : null;
   return Float64Array.from({ length: len }, (_, i) =>
-    Math.round(mid + amp * Math.sin((2 * Math.PI * cycles * i) / len) + (z ? z[i] * noise : 0)),
+    Math.round(idealCode(n, len, cycles, i) + (z ? z[i] * noise : 0)),
   );
 }
 

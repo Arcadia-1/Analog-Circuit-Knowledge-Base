@@ -5,8 +5,9 @@
   import Segmented from '../../components/ui/Segmented.svelte';
   import { nf } from '../../lib/format';
   import { SIDE_BINS, type Window } from '../../lib/spectrum';
-  import { baseCycles, LENGTHS, read, sweep } from './model';
+  import { baseCycles, capture, idealCode, LENGTHS, read, sweep } from './model';
   import OffsetChart from './OffsetChart.svelte';
+  import SeamChart from './SeamChart.svelte';
   import ZoomChart from './ZoomChart.svelte';
 
   const WINDOWS: { value: Window; label: string }[] = [
@@ -26,6 +27,7 @@
   let hoverBin = $state<number | null>(null);
   let hoverZoom = $state<number | null>(null);
   let hoverSweep = $state<number | null>(null);
+  let hoverSeam = $state<number | null>(null);
 
   const base = $derived(baseCycles(len));
   const cycles = $derived(base + offset);
@@ -34,6 +36,8 @@
   const curve = $derived(sweep(n, len, kind, sideBin, noise, 3, 41));
   const reference = $derived(sweep(n, len, 'rectangular', 0, noise, 3, 41));
   const lost = $derived(coherent.enob - spectrum.enob);
+  const samples = $derived(capture(n, len, cycles, noise, 3));
+  const seam = $derived(Math.abs(samples[0] - idealCode(n, len, cycles, len)));
 
   function pick(k: Window) {
     kind = k;
@@ -77,12 +81,20 @@
   </section>
 
   <section class="compare">
-    <div class="chart wide">
+    <div class="chart">
       <div class="cap">
         <span class="left"><span class="label">Spectrum</span><span>of a perfect {n}-bit converter</span></span>
         <span>ENOB <b>{nf(spectrum.enob, 2)}</b> · SFDR <b>{nf(spectrum.sfdr, 1)} dB</b>{lost > 0.05 ? ` · ${nf(lost, 2)} bits lost to the measurement` : ' · nothing lost'}</span>
       </div>
       <SpectrumChart spectrum={spectrum} {n} series={1} hover={hoverBin} onhover={(b) => (hoverBin = b)} label="Output spectrum" />
+    </div>
+
+    <div class="chart">
+      <div class="cap">
+        <span class="left"><span class="label">Where leakage begins</span><span>the FFT repeats this record forever</span></span>
+        <span>boundary step <b>{nf(seam, 0)} codes</b></span>
+      </div>
+      <SeamChart data={samples} {n} {cycles} hover={hoverSeam} onhover={(i) => (hoverSeam = i)} label="End and beginning of the record compared with the continuous input sine" />
     </div>
 
     <div class="chart">
@@ -109,9 +121,5 @@
   .group { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 20px; }
   .group .label { color: var(--ink-3); }
   .cycles { font-size: 12.5px; color: var(--ink-3); }
-  .compare { --rows: minmax(0, 0.95fr) minmax(0, 1fr); }
-  .wide { grid-column: 1 / -1; }
-  @media (max-width: 900px) {
-    .wide { grid-column: auto; }
-  }
+  .compare { --rows: repeat(2, minmax(0, 1fr)); }
 </style>
