@@ -61,7 +61,7 @@
 <main class="page">
   <header class="top">
     <a class="crumb" href="/#lessons">← All lessons</a>
-    <h1>Reading the error</h1>
+    <h1>Diagnosing ADC error</h1>
     <p class="sub">Subtract the sine you asked for. What is left tells you which impairment you have.</p>
     <div class="pick">
       <span class="label">Resolution</span>

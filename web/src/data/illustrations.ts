@@ -32,21 +32,9 @@ export const topics: Topic[] = [
       },
       {
         href: '/adc/how-long-a-record/',
-        title: 'How long a record?',
+        title: 'Choosing FFT record length',
         summary: 'Choose record length from frequency resolution and spur visibility.',
         thumb: 'record',
-      },
-      {
-        href: '/adc/measurement-repeatability/',
-        title: 'Measurement repeatability',
-        summary: 'Choose enough samples for a stable SNDR reading.',
-        thumb: 'repeat',
-      },
-      {
-        href: '/adc/short-records-near-nyquist/',
-        title: 'Short records near Nyquist',
-        summary: 'See why a handful of samples can report misleading dynamic metrics.',
-        thumb: 'short',
       },
       {
         href: '/adc/binary-vs-redundant-sar/',
@@ -56,7 +44,7 @@ export const topics: Topic[] = [
       },
       {
         href: '/adc/how-much-training/',
-        title: 'How much training a calibration needs',
+        title: 'Choosing calibration record length',
         summary: 'Watch weight calibration overfit a short record, then generalise.',
         thumb: 'train',
       },
@@ -68,31 +56,31 @@ export const topics: Topic[] = [
       },
       {
         href: '/adc/what-sets-the-floor/',
-        title: 'What sets the floor',
+        title: 'ADC noise, jitter, and distortion',
         summary: 'Weigh noise, resolution, jitter and distortion against each other.',
         thumb: 'floor',
       },
       {
         href: '/adc/reading-the-error/',
-        title: 'Reading the error',
+        title: 'Diagnosing ADC error',
         summary: 'Separate noise, distortion and jitter in the residual.',
         thumb: 'err',
       },
       {
         href: '/adc/pulling-the-harmonics-out/',
-        title: 'Pulling the harmonics out',
+        title: 'Measuring harmonic distortion',
         summary: 'Measure distortion three ways and see whether they agree.',
         thumb: 'harm',
       },
       {
         href: '/adc/reading-the-bits/',
-        title: 'Reading the bits',
+        title: 'Recovering SAR bit weights',
         summary: 'Read bit activity and recover the weights of a SAR ADC.',
         thumb: 'bits',
       },
       {
         href: '/adc/what-a-conversion-costs/',
-        title: 'What a conversion costs',
+        title: 'ADC energy and figures of merit',
         summary: 'Weigh figures of merit, physical walls and the units a datasheet uses.',
         thumb: 'fom',
       },

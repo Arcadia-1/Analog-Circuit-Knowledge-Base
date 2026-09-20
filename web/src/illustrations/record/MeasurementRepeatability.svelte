@@ -51,7 +51,7 @@
     <Notes>
       <p><b>A measurement is an estimate.</b> Fresh noise changes the energy assigned to every FFT bin, so two captures of the same converter do not return exactly the same SNDR. The curve is the standard deviation across {RUNS} independent captures at each record length.</p>
       <p><b>Longer records reduce uncertainty.</b> More independent noise samples make the summed noise power steadier. The mean SNDR remains near the same value while its run-to-run spread shrinks roughly with 1/√<var>N</var>.</p>
-      <p><b>Choose a tolerance first.</b> This experiment marks ±0.1 dB as the acceptance band. Select the shortest record whose spread lies inside it. That is a repeatability requirement, separate from the frequency-resolution and spur-visibility requirements in <a href="/adc/how-long-a-record/">How long a record?</a>.</p>
+      <p><b>Choose a tolerance first.</b> This experiment marks ±0.1 dB as the acceptance band. Select the shortest record whose spread lies inside it. That is a repeatability requirement, separate from the frequency-resolution and spur-visibility requirements in <a href="/adc/how-long-a-record/">Choosing FFT record length</a>.</p>
     </Notes>
   </header>
 

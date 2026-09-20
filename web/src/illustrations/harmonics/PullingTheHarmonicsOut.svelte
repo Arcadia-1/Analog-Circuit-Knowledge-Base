@@ -55,7 +55,7 @@
 <main class="page">
   <header class="top">
     <a class="crumb" href="/#lessons">← All lessons</a>
-    <h1>Pulling the harmonics out</h1>
+    <h1>Measuring harmonic distortion</h1>
     <p class="sub">Ask for a given amount of distortion, then measure it back three ways and see whether they agree.</p>
     <div class="pick">
       <span class="label">Fit</span>

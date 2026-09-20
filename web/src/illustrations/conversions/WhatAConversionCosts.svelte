@@ -41,7 +41,7 @@
 <main class="page">
   <header class="top">
     <a class="crumb" href="/#lessons">← All lessons</a>
-    <h1>What a conversion costs</h1>
+    <h1>ADC energy and figures of merit</h1>
     <p class="sub">A converter written every way a datasheet writes it, against the figures of merit and the walls it has to live inside.</p>
     <div class="pick">
       <Segmented size="sm" label="Converter" options={NAMES.map((n) => ({ value: n.value, label: n.label }))} bind:value={() => name, pick} />
