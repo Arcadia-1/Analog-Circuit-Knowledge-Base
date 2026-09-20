@@ -37,6 +37,18 @@ export const topics: Topic[] = [
         thumb: 'record',
       },
       {
+        href: '/adc/measurement-repeatability/',
+        title: 'Measurement repeatability',
+        summary: 'See how record length controls the spread of a reported SNDR value.',
+        thumb: 'repeat',
+      },
+      {
+        href: '/adc/short-records-near-nyquist/',
+        title: 'Short records near Nyquist',
+        summary: 'See how sparse phase and code coverage can produce convincing wrong metrics.',
+        thumb: 'short',
+      },
+      {
         href: '/adc/binary-vs-redundant-sar/',
         title: 'Binary vs redundant SAR',
         summary: 'Explore SAR decisions, redundancy and weight calibration.',

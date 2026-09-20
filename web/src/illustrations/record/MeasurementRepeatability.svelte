@@ -75,7 +75,7 @@
     </div>
 
     <div class="chart">
-      <div class="cap"><span class="left"><span class="label">What the spread came from</span><span>{RUNS} independent readings at {n.toLocaleString('en')} samples</span></span><span>{selected ? `${nf(selected.sndr.mean, 2)} ± ${nf(selected.sndr.sigma, 2)} dB` : 'measuring…'}</span></div>
+      <div class="cap"><span class="left"><span class="label">Individual readings</span><span>{RUNS} captures at {n.toLocaleString('en')} samples</span></span><span>{selected ? `${nf(selected.sndr.mean, 2)} ± ${nf(selected.sndr.sigma, 2)} dB` : 'measuring…'}</span></div>
       <RunChart values={selected?.sndrRuns ?? []} spread={selected?.sndr ?? null} hover={hoverRuns} onhover={(i) => (hoverRuns = i)} label="Individual SNDR readings for the selected record length" />
     </div>
 

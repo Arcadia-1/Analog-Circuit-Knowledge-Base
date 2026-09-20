@@ -27,8 +27,16 @@
 
 <style>
   .range { display: flex; align-items: center; gap: 10px; }
-  input { width: var(--range-width, 130px); margin: 0; accent-color: var(--accent, var(--ink-2)); cursor: ew-resize; }
-  output { min-width: 7ch; font-size: 13px; color: var(--ink); }
+  label { white-space: nowrap; }
+  input { flex: 0 0 var(--range-width, 130px); width: var(--range-width, 130px); margin: 0; accent-color: var(--accent, var(--ink-2)); cursor: ew-resize; }
+  output {
+    flex: 0 0 var(--range-output-width, 12ch);
+    width: var(--range-output-width, 12ch);
+    white-space: nowrap;
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink);
+  }
   @media (max-width: 900px) {
     .range { width: 100%; }
     input { flex: 1 1 auto; width: auto; min-width: 0; }

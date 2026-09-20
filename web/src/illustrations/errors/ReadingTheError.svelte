@@ -43,10 +43,17 @@
   const fit = $derived(fitSine(y, bin));
   const value = $derived(byValue(y, fit.error));
   const phase = $derived(byPhase(fit.error, bin, fit.phase));
-  const dist = $derived(pdf(fit.error, Math.max(1.2, 3.5 * fit.rmse)));
+  // Keep the diagnostic axes fixed while input frequency moves. The last
+  // coherent bin is the worst case for jitter and safely covers the other
+  // impairments, whose voltage-domain scale is independent of frequency.
+  const scaleBin = 2045;
+  const scaleY = $derived(capture(n, scaleBin, imp, 5));
+  const scaleFit = $derived(fitSine(scaleY, scaleBin));
+  const scaleValue = $derived(byValue(scaleY, scaleFit.error));
+  const dist = $derived(pdf(fit.error, Math.max(1.2, 3.5 * scaleFit.rmse)));
   const out = $derived(outputSpectrum(y, n));
   const err = $derived(errorSpectrum(fit.error, n));
-  const span = $derived(Math.max(0.4, 1.2 * Math.max(...Array.from(value.rms).filter(Number.isFinite))));
+  const span = $derived(Math.max(0.4, 1.2 * Math.max(...Array.from(scaleValue.rms).filter(Number.isFinite))));
 
   const fin = $derived((bin / 4096) * FS);
   // the extreme value bins hold a handful of samples each, so they are too noisy to read a trend off

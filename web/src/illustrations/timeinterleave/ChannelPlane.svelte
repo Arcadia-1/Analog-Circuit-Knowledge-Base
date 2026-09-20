@@ -10,10 +10,12 @@
    * percent, and the offset less the common part in a strip beside it. Rings are what was set, orange dots what
    * extract_mismatch_sine measured, blue dots what it still measures after calibration.
    */
-  let { truth, measured, left, hover, onhover, label }: {
+  let { truth, measured, left, finMax, hover, onhover, label }: {
     truth: Mismatch;
     measured: Params;
     left: Params | null;
+    /** Highest input frequency in the lesson, used to keep the plane's scale fixed while tuning. */
+    finMax: number;
     hover: number | null;
     onhover: (channel: number | null) => void;
     label: string;
@@ -44,9 +46,11 @@
     after: left ? plane(left.gain, left.skew, measured.fin) : null,
   });
   const offs = $derived({ set: ac(truth.offset), got: ac(measured.offset), after: left ? ac(left.offset) : null });
-  // one scale for all three sets of dots, so a calibration that makes things worse shows it
-  const lim = $derived(niceStep(Math.max(0.01, ...[...pts.set, ...pts.got, ...(pts.after ?? [])].flatMap((p) => [Math.abs(p.re), Math.abs(p.im)])) * 1.1));
-  const limO = $derived(niceStep(Math.max(0.01, ...offs.set.map(Math.abs), ...offs.got.map(Math.abs), ...(offs.after ?? []).map(Math.abs)) * 1.1));
+  // Scale from the mismatch that was set, at the end of the complete input
+  // sweep. Measured dots then move inside one fixed frame as frequency moves.
+  const scalePts = $derived(plane(truth.gain, truth.skew, finMax));
+  const lim = $derived(niceStep(Math.max(0.1, ...scalePts.flatMap((p) => [Math.abs(p.re), Math.abs(p.im)])) * 1.25));
+  const limO = $derived(niceStep(Math.max(0.1, ...offs.set.map(Math.abs)) * 1.25));
 
   function geo(W: number, H: number) {
     const side = Math.max(60, Math.min(H - Y0 - 22, (W - X0) * 0.58));

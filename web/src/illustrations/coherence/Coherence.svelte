@@ -108,7 +108,7 @@
     <div class="chart">
       <div class="cap">
         <span class="left"><span class="label">The cost of being off</span><span>this window, against none</span></span>
-        <span>coherent <b>{nf(coherent.enob, 2)}</b> ENOB</span>
+        <span class="coherent-readout">coherent <b>{nf(coherent.enob, 2)}</b> ENOB</span>
       </div>
       <OffsetChart {curve} {reference} at={offset} ideal={coherent.enob} hover={hoverSweep} onhover={(i) => (hoverSweep = i)} label="ENOB against offset from a bin" />
     </div>
@@ -121,5 +121,7 @@
   .group { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 20px; }
   .group .label { color: var(--ink-3); }
   .cycles { font-size: 12.5px; color: var(--ink-3); }
+  .coherent-readout { flex: 0 0 140px; white-space: nowrap; }
   .compare { --rows: repeat(2, minmax(0, 1fr)); }
+  @media (max-width: 900px) { .group { width: 100%; min-width: 0; } }
 </style>

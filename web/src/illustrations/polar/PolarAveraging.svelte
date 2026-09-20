@@ -117,7 +117,7 @@
     <div class="chart">
       <div class="cap">
         <span class="left"><span class="label">Polar spectrum</span><span>coherent, phase against the tone</span></span>
-        <span>HD2 <b>∠{nf(phaseDeg(r.coherent, spoke(2)), 0)}°</b> · HD3 <b>∠{nf(phaseDeg(r.coherent, spoke(3)), 0)}°</b></span>
+        <span class="phase-readout">HD2 <b>∠{nf(phaseDeg(r.coherent, spoke(2)), 0)}°</b> · HD3 <b>∠{nf(phaseDeg(r.coherent, spoke(3)), 0)}°</b></span>
       </div>
       <PolarChart spectrum={r.coherent} hover={hoverPolar} onhover={(b) => (hoverPolar = b)} label="Polar spectrum: phase and level of every bin" />
     </div>
@@ -143,6 +143,7 @@
   .group { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 18px; }
   .group .label { color: var(--ink-3); }
   .controls :global(.range) { --range-width: 120px; }
+  .phase-readout { min-width: 27ch; white-space: nowrap; }
   .s1 { color: var(--s1); }
   .s2 { color: var(--s2); }
   .wait { flex: 1 1 auto; display: grid; place-items: center; color: var(--ink-3); font-size: 13px; }

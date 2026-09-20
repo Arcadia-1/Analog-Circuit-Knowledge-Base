@@ -126,7 +126,7 @@
         <span class="left"><span class="label">Each channel</span><span>set <span class="sym">○</span>, measured <span class="sym s2">●</span>{method !== 'off' ? ', left after calibration' : ''}{#if method !== 'off'} <span class="sym s1">●</span>{/if}</span></span>
         <span>largest spur <b>{nf(worst.dbc, 1)} dBc</b>, {worst.kind === 'offset' ? 'offset' : 'image'} k={worst.k}</span>
       </div>
-      <ChannelPlane truth={r.truth} measured={r.measured} left={r.left} hover={hoverChannel} onhover={(c) => (hoverChannel = c)} label="Each channel's gain and skew as a complex gain, and its offset" />
+      <ChannelPlane truth={r.truth} measured={r.measured} left={r.left} finMax={FS / 2} hover={hoverChannel} onhover={(c) => (hoverChannel = c)} label="Each channel's gain and skew as a complex gain, and its offset" />
     </div>
 
     <div class="chart">
@@ -150,8 +150,7 @@
   .controls { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 30px; }
   .group { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 18px; }
   .group .label { color: var(--ink-3); }
-  .controls :global(.range) { --range-width: 92px; }
-  .controls :global(output) { min-width: 6ch; }
+  .controls :global(.range) { --range-width: 92px; --range-output-width: 8ch; }
   .sym { color: var(--ink-3); font-family: var(--mono); }
   .s1 { color: var(--s1); }
   .s2 { color: var(--s2); }

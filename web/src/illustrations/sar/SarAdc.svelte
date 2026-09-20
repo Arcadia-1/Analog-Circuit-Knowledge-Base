@@ -112,7 +112,7 @@
       </div>
       <span class="meta">
         {nominal.length} comparisons for {n} bits · {i ? `margin from ${margin(nominal, 0)} LSB down to 1` : 'no margin anywhere'}
-        {#if gaps[i].fraction > 0}<b class="unreachable">{nf(gaps[i].fraction * 100, 2)}% of inputs unrecoverable</b>{/if}
+        <b class:ghost={gaps[i].fraction <= 0} class="unreachable" aria-hidden={gaps[i].fraction <= 0}>{nf(gaps[i].fraction * 100, 2)}% of inputs unrecoverable</b>
       </span>
     </div>
     <div class="line">
@@ -120,7 +120,7 @@
         <span>code <span class="mono">{c.code}</span></span>
         <span>ideal <span class="mono">{ideal}</span></span>
         {#if c.code === ideal}<span class="chip">correct</span>{:else}<span class="chip off">off by {c.code > ideal ? '+' : '−'}{Math.abs(c.code - ideal)} LSB</span>{/if}
-        {#if c.lost >= 0}<span class="chip off">lost at comparison {c.lost + 1}</span>{:else if c.code !== ideal}<span class="chip">recoverable</span>{/if}
+        {#if c.lost >= 0}<span class="chip off">lost at comparison {c.lost + 1}</span>{:else}<span class="chip">recoverable</span>{/if}
       </div>
     </div>
   </div>
@@ -172,7 +172,7 @@
         <button type="button" onclick={() => step(1)} disabled={at >= slots} aria-label="Next comparison">›</button>
         <button type="button" class="play" onclick={play}>{playing ? 'Pause' : 'Play'}</button>
         <span class="mono count">{at}/{slots}</span>
-        {#if noiseLsb > 0}<button type="button" onclick={() => seed++} title="Draw a new comparator-noise sample for this conversion">New noise</button>{/if}
+        <button class:ghost={noiseLsb <= 0} aria-hidden={noiseLsb <= 0} disabled={noiseLsb <= 0} type="button" onclick={() => seed++} title="Draw a new comparator-noise sample for this conversion">New noise</button>
       </div>
     </div>
     <InputRuler {vin} {n} codeA={conversions[0].code} codeB={conversions[1].code} gaps={gaps.map((g) => g.bands)} onchange={(v) => { vin = v; reset(); }} />
@@ -211,11 +211,13 @@
 <style>
   .compare { --rows: auto auto 78px minmax(0, 1fr) minmax(0, 1fr); padding-top: 10px; }
   .imp { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 28px; }
+  .imp :global(.range) { --range-width: 110px; --range-output-width: 9ch; }
   .imp .label { color: var(--ink-3); }
   .meta { font-size: 12.5px; color: var(--ink-3); }
   .chip.off { color: var(--bad); box-shadow: inset 0 0 0 1px var(--bad); background: transparent; }
-  .unreachable { font-weight: 500; color: var(--bad); }
+  .unreachable { display: inline-block; min-width: 28ch; font-weight: 500; color: var(--bad); font-variant-numeric: tabular-nums; }
   .unreachable::before { content: '· '; color: var(--ink-3); }
+  .ghost { visibility: hidden; }
   .transport { display: flex; align-items: center; gap: 6px; }
   button { font: 500 13px/1 var(--sans); color: var(--ink-2); background: var(--plot); border: 1px solid var(--rule); border-radius: 7px; padding: 5px 10px; min-width: 30px; cursor: pointer; }
   button:hover:not(:disabled) { color: var(--ink); border-color: var(--ink-3); }
@@ -230,5 +232,7 @@
   .pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 18px; min-height: 0; }
   @media (max-width: 900px) {
     .pair { order: 3; grid-template-columns: minmax(0, 1fr); row-gap: 16px; }
+    .head .readout { min-height: 49.5px; align-content: center; }
+    .pair .cap { min-height: 39px; }
   }
 </style>

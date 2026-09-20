@@ -54,7 +54,7 @@
     </div>
 
     <div class="chart">
-      <div class="cap"><span class="left"><span class="label">Phases the record actually saw</span><span>the selected samples, reordered around one input cycle</span></span><span>{n} phase points</span></div>
+      <div class="cap"><span class="left"><span class="label">Phases actually sampled</span><span>selected samples, sorted around one cycle</span></span><span>{n} phase points</span></div>
       <PhaseCoverageChart phases={capture.phases} values={capture.data} hover={hoverPhase} onhover={(i) => (hoverPhase = i)} label="Input phases and quantized values visited by the selected short record" />
     </div>
 
@@ -72,13 +72,13 @@
 
 <style>
   .page { grid-template-rows: auto auto auto minmax(0, 1fr); }
-  .controls { display: flex; align-items: center; gap: 12px 28px; border-top: 1px solid var(--rule); padding-top: 10px; }
+  .controls { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 28px; border-top: 1px solid var(--rule); padding-top: 10px; }
   .facts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-block: 1px solid var(--rule); }
   .facts > div { min-width: 0; padding: 9px 16px 10px; display: grid; grid-template-columns: max-content 1fr; align-items: baseline; gap: 1px 12px; }
   .facts > div + div { border-left: 1px solid var(--rule); }
   .facts b { justify-self: end; font: 500 17px var(--mono); white-space: nowrap; }
   .facts small { grid-column: 1 / -1; color: var(--ink-3); font-size: 11.5px; }
   .compare { --rows: repeat(2, minmax(0, 1fr)); }
-  @media (max-width: 900px) { .facts { grid-template-columns: repeat(2, minmax(0, 1fr)); } .facts > div:nth-child(3) { border-left: 0; border-top: 1px solid var(--rule); } .facts > div:nth-child(4) { border-top: 1px solid var(--rule); } }
+  @media (max-width: 900px) { .controls .unit { width: 100%; } .facts { grid-template-columns: repeat(2, minmax(0, 1fr)); } .facts > div:nth-child(3) { border-left: 0; border-top: 1px solid var(--rule); } .facts > div:nth-child(4) { border-top: 1px solid var(--rule); } }
   @media (max-width: 700px) { .facts { grid-template-columns: 1fr; } .facts > div:nth-child(n) { border-left: 0; } .facts > div:nth-child(n + 2) { border-top: 1px solid var(--rule); } }
 </style>

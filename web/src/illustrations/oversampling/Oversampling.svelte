@@ -93,7 +93,7 @@
     <div class="chart">
       <div class="cap">
         <span class="left"><span class="label">SNDR in the band</span><span>against OSR</span></span>
-        <span>perfosr <b>{nf(r.sweep[at], 1)} dB</b> · predicted <b>{nf(r.theory[at], 1)} dB</b></span>
+        <span class="sndr-readout">perfosr <b>{nf(r.sweep[at], 1)} dB</b> · predicted <b>{nf(r.theory[at], 1)} dB</b></span>
       </div>
       <OsrChart osrs={OSRS} sweep={r.sweep} theory={r.theory} at={osr} hover={hoverOsr} onhover={(i) => (hoverOsr = i)} label="In-band SNDR against OSR, measured and predicted" />
     </div>
@@ -113,6 +113,8 @@
   .controls { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 34px; border-top: 1px solid var(--rule); padding-top: 10px; }
   .group { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; }
   .group .label { color: var(--ink-3); }
+  .controls :global(.range) { --range-output-width: 12ch; }
+  .sndr-readout { flex: 0 0 258px; white-space: nowrap; }
   .about { font-size: 12.5px; color: var(--ink-3); }
   .compare { --rows: repeat(2, minmax(0, 1fr)); }
 </style>

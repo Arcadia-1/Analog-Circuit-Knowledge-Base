@@ -137,6 +137,7 @@
   .hint { font-size: 12.5px; color: var(--ink-3); }
   .group { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 20px; }
   .group .label { color: var(--ink-3); }
+  .group.accent2 :global(.range) { --range-output-width: 13ch; }
   .compare { --rows: minmax(0, 1fr) minmax(0, 1fr); }
   button { font: 500 13px/1 var(--sans); color: var(--ink-2); background: var(--plot); border: 1px solid var(--rule); border-radius: 7px; padding: 5px 10px; cursor: pointer; }
   button:hover { color: var(--ink); border-color: var(--ink-3); }
