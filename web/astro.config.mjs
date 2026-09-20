@@ -11,7 +11,7 @@ const publicPages = new Set(['/', ...publicLessonPaths]);
 // and the copied analytics module (analytics/) is React. The reference manual is built into dist/doc by the deploy
 // workflow, from the Sphinx source in the ADCToolbox repository.
 export default defineConfig({
-  site: 'https://adctoolbox.tokenzhang.com',
+  site: 'https://circuits-and-systems.tokenzhang.com',
   output: 'static',
   trailingSlash: 'always',
   integrations: [svelte(), react(), sitemap({ filter: (page) => publicPages.has(new URL(page).pathname) })],

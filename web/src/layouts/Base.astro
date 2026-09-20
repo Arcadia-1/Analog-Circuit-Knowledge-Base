@@ -13,13 +13,14 @@ interface Props {
 const { title, description, visits = true } = Astro.props;
 const canonical = new URL(Astro.url.pathname, Astro.site);
 const holdFromIndex = isLessonPath(Astro.url.pathname) && !isPublicLessonPath(Astro.url.pathname);
+const siteName = 'Circuits & Systems Classroom';
 ---
 <!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{title === 'ADC Toolbox' ? `${title} · ADC tutorials & experiments` : `${title} · ADC Toolbox`}</title>
+    <title>{title === siteName ? `${title} · Interactive lessons` : `${title} · ${siteName}`}</title>
     <meta name="description" content={description} />
     {holdFromIndex && <meta name="robots" content="noindex, follow" />}
     <link rel="icon" href="/adc-toolbox-logo.svg?v=20260918" type="image/svg+xml" />
@@ -27,7 +28,7 @@ const holdFromIndex = isLessonPath(Astro.url.pathname) && !isPublicLessonPath(As
     <link rel="canonical" href={canonical} />
     <link rel="sitemap" href="/sitemap-index.xml" />
     <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="ADC Toolbox" />
+    <meta property="og:site_name" content={siteName} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonical} />

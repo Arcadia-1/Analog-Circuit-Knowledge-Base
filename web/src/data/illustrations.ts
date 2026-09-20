@@ -14,7 +14,7 @@ export interface Topic {
   items: Illustration[];
 }
 
-import { isPublicLessonPath } from './publication';
+import { isPublicExternalHref, isPublicLessonPath } from './publication';
 
 export const topics: Topic[] = [
   {
@@ -126,12 +126,7 @@ export const topics: Topic[] = [
   },
 ];
 
-/** The small, reviewed set shown on the public home page. */
-export const featuredLessons = topics
-  .flatMap((topic) => topic.items)
-  .filter((item) => isPublicLessonPath(item.href));
-
-/** Pages that are not ADCToolbox: the PLL one until it has a home of its own, and other people's tools. */
+/** Existing clocking lessons and a selected external analysis tool. */
 export const related: Topic = {
   name: 'More to explore',
   items: [
@@ -156,3 +151,7 @@ export const related: Topic = {
     },
   ],
 };
+
+/** The small, reviewed set shown on the public home page. */
+export const featuredLessons = [...topics.flatMap((topic) => topic.items), ...related.items]
+  .filter((item) => isPublicLessonPath(item.href) || isPublicExternalHref(item.href));

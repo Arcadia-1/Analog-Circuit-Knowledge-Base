@@ -1,8 +1,9 @@
-# ADCToolbox site
+# Circuits & Systems Classroom
 
-The tutorial companion to [ADCToolbox](https://github.com/Arcadia-1/ADCToolbox), served at <https://adctoolbox.tokenzhang.com> with
-the library's reference manual under `/doc/`. Each page runs a port of the library's models in the browser, so every control
-changes the physics you see.
+Interactive lessons on data converters, PLLs, clocking and circuit analysis, served at
+<https://circuits-and-systems.tokenzhang.com>. ADC pages run ports of
+[ADCToolbox](https://github.com/Arcadia-1/ADCToolbox) models in the browser. The library's reference manual remains at
+<https://adctoolbox.tokenzhang.com/doc/>.
 
 The site is static [Astro](https://astro.build) with [Svelte 5](https://svelte.dev) islands in strict TypeScript.
 
@@ -33,7 +34,8 @@ Run these in `web/` with Node 22.12 or newer and pnpm 11.
 | `python/` | Executable Python references for all ten lessons: nine ADC models using ADCToolbox and one PLL model using NumPy |
 | `public/` | Favicon and Cloudflare Pages response headers |
 | `analytics/` | Copied analytics module: tracking, dashboard, routes and Durable Object |
-| `worker/` | Analytics Worker that mounts the module on `adctoolbox.tokenzhang.com/api/*` |
+| `functions/` | Host-aware redirects from the former tutorial URLs to the new domain |
+| `worker/` | Analytics Worker that mounts the same historical counter on both domains at `/api/*` |
 
 ## Illustrations
 
@@ -68,20 +70,18 @@ to the source except for the page title; update it by copying the folder again. 
 ## Deploy
 
 `.github/workflows/deploy-web.yml` installs, checks and builds the site for every pull request that touches `web/`. On `main` it
-also deploys `dist/` to the Cloudflare Pages project `ams-class` (the site's first name, kept as an internal one; its only
-domain is `adctoolbox.tokenzhang.com`), using the repository secrets `CLOUDFLARE_API_TOKEN` and
-`CLOUDFLARE_ACCOUNT_ID`.
+deploys `dist/` to the existing Cloudflare Pages project `ams-class`, ensures
+`circuits-and-systems.tokenzhang.com` is attached, and deploys the analytics route on both domains. The old host keeps the
+ADCToolbox manual; its home page and tutorial paths redirect to the matching path on the new host.
 
 ## Editorial and visual direction
 
-Keep **ADC Toolbox** as the site brand. ADC tutorials are the main curriculum; PLL and Bode plots sit under
-“More to explore”. The manual remains the reference for the Python API and longer examples.
+Use **Circuits & Systems Classroom** as the site brand. The public catalog is intentionally small: four reviewed ADC
+lessons, two PLL lessons and the selected Bode-plot tool. Other experiments remain available by direct URL with `noindex`
+until they reach the same standard. The ADCToolbox manual remains the reference for the Python API and longer examples.
 
-The catalog follows a learning order: sampling, conversion, error analysis, calibration, then advanced architectures.
-Each entry has its own schematic preview with the title directly underneath; the home-page catalog does not show subtitles.
-Keep the preview visible at every screen size so readers can recognize the experiment at a glance; model provenance and
-example names belong inside the lesson notes. Use a four-column waterfall on wide screens, then three, two and one column
-as the viewport narrows.
+Each entry has its own schematic preview so readers can recognize the experiment at a glance; model provenance and example
+names belong inside the lesson notes. Keep the two-column editorial layout on wide screens and one column on phones.
 
 The shared header and footer, restrained borders, system sans font, Google Sans Code labels and green accent follow
 Analog Design Bench. Plot series use separate blue/amber colors. The theme follows the system until the reader makes

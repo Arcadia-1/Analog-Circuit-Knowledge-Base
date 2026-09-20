@@ -10,12 +10,23 @@ export const publicLessonPaths = [
   '/adc/binary-vs-redundant-sar/',
   '/adc/analog-panel/',
   '/adc/time-interleaved-adcs/',
+  '/pll/integer-vs-fractional/',
+  '/pll/fractional-divider/',
+] as const;
+
+export const publicExternalHrefs = [
+  'https://many-question.github.io/bode-sketch/',
 ] as const;
 
 const publicLessonPathSet = new Set<string>(publicLessonPaths);
+const publicExternalHrefSet = new Set<string>(publicExternalHrefs);
 
 export function isPublicLessonPath(pathname: string): boolean {
   return publicLessonPathSet.has(pathname);
+}
+
+export function isPublicExternalHref(href: string): boolean {
+  return publicExternalHrefSet.has(href);
 }
 
 export function isLessonPath(pathname: string): boolean {

@@ -6,6 +6,7 @@
   "compatibility_date": "2026-09-01",
   "workers_dev": false,
   "routes": [
+    { "pattern": "circuits-and-systems.tokenzhang.com/api/*", "zone_name": "tokenzhang.com" },
     { "pattern": "adctoolbox.tokenzhang.com/api/*", "zone_name": "tokenzhang.com" }
   ],
   "durable_objects": {

@@ -4,7 +4,10 @@ A knowledge repository for analog circuit design fundamentals, focusing on ampli
 
 ## Interactive illustrations
 
-The `web/` folder holds the ADCToolbox site, published at <https://adctoolbox.tokenzhang.com>: interactive pages that run [ADCToolbox](https://github.com/Arcadia-1/ADCToolbox)'s models in the browser, with its reference manual under `/doc/`, and a PLL page until it has a home of its own. See [`web/README.md`](web/README.md) for development and deployment.
+The `web/` folder holds **Circuits & Systems Classroom**, published at
+<https://circuits-and-systems.tokenzhang.com>. It combines selected interactive lessons on data converters and PLLs with
+an external Bode-plot tool. The [ADCToolbox](https://github.com/Arcadia-1/ADCToolbox) reference manual remains at
+<https://adctoolbox.tokenzhang.com/doc/>. See [`web/README.md`](web/README.md) for development and deployment.
 
 ## Contents
 
