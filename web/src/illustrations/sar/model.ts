@@ -16,6 +16,11 @@ export const FS = 100e6;
 export const TRAIN_BIN = 499;
 export const TEST_BIN = 613;
 export const TEST_PHASE = 0.37;
+/**
+ * A calibration has to learn the array from a finite observation, then work on a different capture. Fitting all 4096
+ * test-length samples observes every bit column hundreds of times and hides the finite-data part of the lesson.
+ */
+export const TRAIN_SAMPLES = 128;
 const AMP_DBFS = -0.5;
 /**
  * The array is terminated by one more unit capacitor, which brings the total to 2^N units so that one unit is exactly
@@ -143,12 +148,13 @@ export function capture(n: number, w: ArrayLike<number>, noise: Float64Array | n
 }
 
 /**
- * calibrate_weight_sine at a known frequency (fundamental only, src/lib/calibration.ts), then
+ * calibrate_weight_sine on the first `samples` rows at a known frequency (fundamental only, src/lib/calibration.ts), then
  * scale_calibration_output(target_weights = nominal), which rescales the weights to the nominal sum. The redundant LSB of
  * an ideal array never changes, so it comes back with a weight of zero.
  */
-export function calibrate(bits: Uint8Array, nominal: number[], bin: number): Float64Array {
-  const w = calibrateWeightSine(bits, nominal.length, bin / N_FFT).weight;
+export function calibrate(bits: Uint8Array, nominal: number[], bin: number, samples = TRAIN_SAMPLES): Float64Array {
+  const used = bits.length > samples * nominal.length ? bits.slice(0, samples * nominal.length) : bits;
+  const w = calibrateWeightSine(used, nominal.length, bin / N_FFT).weight;
   const scale = sum(nominal) / sum(w);
   return w.map((v) => v * scale);
 }

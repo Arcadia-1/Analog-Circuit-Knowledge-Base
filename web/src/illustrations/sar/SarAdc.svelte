@@ -25,20 +25,21 @@
     TEST_BIN,
     TEST_PHASE,
     TRAIN_BIN,
+    TRAIN_SAMPLES,
     type Trial,
   } from './model';
   import ResidueChart from './ResidueChart.svelte';
 
   const NAMES = ['Binary', 'Redundant'];
 
-  // defaults show a chip whose binary 4th capacitor is 3.8 LSB too large: inputs near 0.689 V fall into its gap
+  // defaults show a chip with a clear binary mid-scale gap while the redundant array keeps the same input reachable
   let n = $state(12);
-  let vin = $state(0.6888);
+  let vin = $state(0.499);
   let sigma = $state(0.1);
-  let noiseLsb = $state(0.2);
+  let noiseLsb = $state(0);
   let bin = $state(TEST_BIN);
-  let jitterPs = $state(1);
-  let chip = $state(29);
+  let jitterPs = $state(0);
+  let chip = $state(43);
   let seed = $state(1);
   let shown = $state(Infinity);
   let playing = $state(false);
@@ -64,6 +65,10 @@
       return [analyzeSpectrum(reconstruct(test, nominal), n), analyzeSpectrum(reconstruct(test, calibrated), n)];
     }),
   );
+  const calibratedGap = $derived({
+    enob: spectra[1][1].enob - spectra[0][1].enob,
+    sfdr: spectra[1][1].sfdr - spectra[0][1].sfdr,
+  });
 
   const slots = $derived(nominals[1].length);
   const at = $derived(Math.min(shown, slots));
@@ -130,7 +135,7 @@
   {@const sp = spectra[i][k]}
   <div class="chart">
     <div class="cap">
-      <span class="label"><span class="tag">{NAMES[i]}</span>{k ? 'Calibrated' : 'Uncalibrated'}</span>
+      <span class="label"><span class="tag">{NAMES[i]}</span>{k ? `${TRAIN_SAMPLES}-sample calibration` : 'Uncalibrated'}</span>
       <span>ENOB <b>{nf(sp.enob, 2)}</b> · SFDR <b>{nf(sp.sfdr, 1)} dB</b></span>
     </div>
     <SpectrumChart spectrum={sp} {n} series={i ? 2 : 1} hover={hoverBin} onhover={(b) => (hoverBin = b)} label="{NAMES[i]} SAR output spectrum, {k ? 'calibrated' : 'uncalibrated'}" />
@@ -156,7 +161,7 @@
       <p><b>What is left to lose.</b> An input counts as lost when its code comes out more than a whole LSB away from it, which no set of digital weights can put right; the sub-LSB spacing errors mismatch leaves everywhere are ordinary DNL and are not counted. With the margin held all the way down, the only inputs a redundant chip loses are at the very top, where its capacitors happen to add up short of full scale: a gain error, not a gap, and it shrinks as σ/2<sup><var>N</var>/2</sup>. A binary array has that same shortfall and, on top of it, a gap wherever mismatch let a weight outgrow everything after it.</p>
       <p><b>Capacitor mismatch.</b> Weight <var>w<sub>j</sub></var> is built from <var>w<sub>j</sub></var>/<var>w</var><sub>min</sub> unit capacitors, each with relative mismatch σ, so its relative error is σ/√units. New chip draws another set of errors.</p>
       <p><b>Comparator noise.</b> Gaussian, drawn anew for every decision. The stepped conversion uses one draw; New noise replaces it.</p>
-      <p><b>Calibration.</b> Sine-fit weight calibration: a least-squares fit of the bit columns plus an offset to a unit sine at the known frequency 499/4096 <var>f</var><sub>s</sub> = 12.18 MHz, rescaled to the nominal weight sum. The spectra use the second tone set by Input frequency, so the weights are always tested on data they were not fitted to.</p>
+      <p><b>Calibration.</b> Sine-fit weight calibration: a least-squares fit of the bit columns plus an offset to a unit sine at the known frequency 499/4096 <var>f</var><sub>s</sub> = 12.18 MHz, using {TRAIN_SAMPLES} samples and rescaled to the nominal weight sum. The spectra use a separate 4096-sample tone set by Input frequency. A digital weight fit can correct the value of observed decisions; it cannot recreate an input interval that a non-redundant search skipped.</p>
       <p><b>Spectrum.</b> 4096 conversions of a −0.5 dBFS sine, rectangular window. ENOB = (SNDR − 1.76) / 6.02. The largest spur is labelled with its harmonic order when it is one.</p>
       <p><b>Sampling.</b> <var>f</var><sub>s</sub> = 100 MS/s. Both tones sit on an odd bin of the 4096-point record, so they are coherent and the FFT needs no window.</p>
       <p><b>Input frequency and clock jitter.</b> Mismatch and comparator noise act on a held sample and do not care about the input frequency; the sampling instant does. Gaussian jitter σ<sub>t</sub> turns the slope of the input into a voltage error, so it alone limits the converter to SNR = −20 log₁₀(2π<var>f</var><sub>in</sub>σ<sub>t</sub>) — 6 dB per doubling of the input frequency. Applied as ADCToolbox's <code>siggen.apply_jitter</code> does, by sampling the sine at <var>t</var> + Δ<var>t</var>.</p>
@@ -202,6 +207,11 @@
         <ResidueChart trace={c.trace} {x} {n} {slots} shown={at} series={i ? 2 : 1} hover={hoverK} onhover={(k) => (hoverK = k)} label="{NAMES[i]} SAR residue per comparison" />
       </div>
     {/each}
+    <div class="cal-summary">
+      <span class="label">After the same {TRAIN_SAMPLES}-sample calibration</span>
+      <b>{calibratedGap.enob >= 0 ? 'Redundant' : 'Binary'} +{nf(Math.abs(calibratedGap.enob), 2)} ENOB · {calibratedGap.sfdr >= 0 ? 'Redundant' : 'Binary'} +{nf(Math.abs(calibratedGap.sfdr), 1)} dB SFDR</b>
+      <span>Digital weights cannot restore the {nf(gaps[0].fraction * 100, 2)}% of input range skipped by this binary array.</span>
+    </div>
     {#each spectra as _, i (i)}
       <div class="pair">{@render spectrumChart(i, 0)}{@render spectrumChart(i, 1)}</div>
     {/each}
@@ -209,7 +219,7 @@
 </main>
 
 <style>
-  .compare { --rows: auto auto 78px minmax(0, 1fr) minmax(0, 1fr); padding-top: 10px; }
+  .compare { --rows: auto auto 78px minmax(0, 1fr) auto minmax(0, 1fr); padding-top: 10px; }
   .imp { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 28px; }
   .imp :global(.range) { --range-width: 110px; --range-output-width: 9ch; }
   .imp .label { color: var(--ink-3); }
@@ -226,6 +236,8 @@
   .count { font-size: 12.5px; color: var(--ink-3); min-width: 5ch; }
   .keys { display: flex; align-items: center; gap: 5px; color: var(--ink-3); }
   .keys i { display: inline-block; margin-left: 9px; }
+  .cal-summary { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 18px; padding: 7px 10px; border: 1px solid var(--rule); border-radius: 8px; background: var(--plot); font-size: 12.5px; color: var(--ink-2); }
+  .cal-summary b { font: 500 14px var(--mono); color: var(--ink); font-variant-numeric: tabular-nums; }
   .sw { width: 8px; height: 11px; border-radius: 2px; background: var(--chip); }
   .sw.lost { background: color-mix(in srgb, var(--bad) 12%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--bad) 60%, transparent); }
   .sw.wrong { width: 9px; height: 9px; border-radius: 50%; background: transparent; box-shadow: inset 0 0 0 1.5px var(--bad); }

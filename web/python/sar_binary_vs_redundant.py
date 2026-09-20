@@ -7,7 +7,8 @@
 The page ports these ADCToolbox functions to TypeScript, and tests/sar-model.test.ts checks the port against the
 numbers printed here:
   models: sar_convert, sar_reconstruct, sar_apply_cap_mismatch
-  calibration: calibrate_weight_sine at the known training frequency, then scale_calibration_output(target_weights)
+  calibration: calibrate_weight_sine on a finite independent record at the known training frequency, then
+               scale_calibration_output(target_weights)
   spectrum: analyze_spectrum with a rectangular window, side_bin=0, max_harmonic=5
 
 Redundant weights come from the nominal resolution alone, see redundant_weights(). ADCToolbox's own 16-bit example
@@ -22,7 +23,7 @@ import numpy as np
 from adctoolbox import analyze_spectrum, calibrate_weight_sine, scale_calibration_output
 from adctoolbox.models import sar_apply_cap_mismatch, sar_convert, sar_reconstruct
 
-N_FFT, TRAIN_BIN, TEST_BIN, TEST_PHASE, AMP_DBFS, FS = 4096, 499, 613, 0.37, -0.5, 100e6
+N_FFT, N_TRAIN, TRAIN_BIN, TEST_BIN, TEST_PHASE, AMP_DBFS, FS = 4096, 128, 499, 613, 0.37, -0.5, 100e6
 ADCTOOLBOX_RADIX18_16BIT = [29127, 16182, 8990, 4995, 2775, 1542, 856, 476, 264, 147, 82, 45, 25, 14, 8, 4, 2, 1]
 
 
@@ -91,12 +92,12 @@ def gaussians(count, seed):
     return out
 
 
-def tone(bin_index, n, phase=0.0, jitter_ps=0.0):
+def tone(bin_index, n, phase=0.0, jitter_ps=0.0, count=N_FFT):
     """A coherent sine, sampled at t + dt when the clock jitters (ADCToolbox siggen.apply_jitter), offset by the half
     unit of the terminating capacitor so the decision levels sit half an LSB below the code levels."""
-    k = np.arange(N_FFT)
+    k = np.arange(count)
     if jitter_ps:
-        k = k + gaussians(2 * N_FFT, 7)[:N_FFT] * jitter_ps * 1e-12 * FS
+        k = k + gaussians(2 * N_FFT, 7)[:count] * jitter_ps * 1e-12 * FS
     return 0.5 + 0.5 * 2 ** -n + 0.5 * 10 ** (AMP_DBFS / 20) * np.sin(2 * math.pi * bin_index * k / N_FFT + phase)
 
 
@@ -106,11 +107,12 @@ def spectrum(trace):
                                 side_bin=0, max_harmonic=5, nf_method=3, create_plot=False)
 
 
-def case(raw, n, sigma, jitter_ps=0.0):
+def case(raw, n, sigma, jitter_ps=0.0, mismatch_normals=None):
     raw = np.array(raw, dtype=float)
     nominal = raw / (raw.sum() + raw[-1])
-    actual = sar_apply_cap_mismatch(nominal, sigma=sigma, rng=FixedNormals(z_fixed(len(raw)))) if sigma else nominal
-    train = sar_convert(tone(TRAIN_BIN, n), actual)
+    z = z_fixed(len(raw)) if mismatch_normals is None else mismatch_normals
+    actual = sar_apply_cap_mismatch(nominal, sigma=sigma, rng=FixedNormals(z)) if sigma else nominal
+    train = sar_convert(tone(TRAIN_BIN, n, count=N_TRAIN), actual)
     test = sar_convert(tone(TEST_BIN, n, TEST_PHASE, jitter_ps), actual)
     with contextlib.redirect_stdout(io.StringIO()):
         fit = calibrate_weight_sine(train, freq=TRAIN_BIN / N_FFT, nominal_weights=nominal)
@@ -130,6 +132,7 @@ if __name__ == "__main__":
         print(f"N={n:2d} redundant weights ({len(w)}, radix {2 ** (n / len(w)):.3f}): {w}")
         assert min(margins(w)[:-1]) >= 1 and w[-1] == 1 and all(w[j] >= w[j + 1] for j in range(len(w) - 1))
     print()
+    print(f"Calibration uses {N_TRAIN} samples; every result below is measured on an independent {N_FFT}-sample record.")
     print(" N  sigma  arch       | before ENOB  SFDR | after ENOB  SFDR | max |w_cal - w_actual| LSB | DC code nominal / calibrated")
     for n, sigma in ((12, 0.0), (12, 0.10), (16, 0.10)):
         for name, raw in (("binary", binary_weights(n)), ("redundant", redundant_weights(n))):
@@ -138,6 +141,11 @@ if __name__ == "__main__":
             werr = np.max(np.abs(r["calibrated"] - r["actual"]))
             print(f"{n:2d} {sigma * 100:4.0f}%  {name:9s} | {b['enob']:10.4f} {b['sfdr_dbc']:7.3f} | {a['enob']:9.4f} {a['sfdr_dbc']:7.3f} | "
                   f"{werr:12.4f} | {r['code']:.4f} / {r['code_cal']:.4f}")
+    print()
+    print("Page default, 12 bits, 10% mismatch, chip 43, no comparator noise or jitter")
+    for i, (name, raw) in enumerate((("binary", binary_weights(12)), ("redundant", redundant_weights(12)))):
+        r = case(raw, 12, 0.10, mismatch_normals=gaussians(len(raw), 43000 + i))
+        print(f"  {name:9s}: after ENOB {r['after']['enob']:.4f}, SFDR {r['after']['sfdr_dbc']:.4f} dB")
     print()
     f_in = TEST_BIN / N_FFT * FS
     print(f"clock jitter at f_in = {f_in / 1e6:.3f} MHz, 12 bits, ideal capacitors")

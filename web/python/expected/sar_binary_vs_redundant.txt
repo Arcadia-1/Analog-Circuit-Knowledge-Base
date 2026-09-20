@@ -5,13 +5,18 @@ N=12 redundant weights (15, radix 1.741): [1743, 1001, 575, 330, 190, 109, 63, 3
 N=14 redundant weights (17, radix 1.770): [7126, 4027, 2275, 1286, 726, 411, 232, 131, 74, 42, 24, 13, 8, 4, 2, 1, 1]
 N=16 redundant weights (19, radix 1.793): [28979, 16165, 9017, 5030, 2806, 1565, 873, 487, 272, 152, 85, 47, 26, 15, 8, 4, 2, 1, 1]
 
+Calibration uses 128 samples; every result below is measured on an independent 4096-sample record.
  N  sigma  arch       | before ENOB  SFDR | after ENOB  SFDR | max |w_cal - w_actual| LSB | DC code nominal / calibrated
-12    0%  binary    |    11.9289  94.777 |   11.9142  94.036 |       0.0407 | 3045.0000 / 3044.9620
-12    0%  redundant |    11.9289  94.777 |   11.9247  94.319 |       1.0000 | 3045.0000 / 3045.7838
-12   10%  binary    |     8.9173  61.796 |   11.4426  94.218 |       2.2925 | 3040.0000 / 3041.4417
-12   10%  redundant |     8.8702  63.685 |   11.9329  97.409 |       1.3975 | 3042.0000 / 3042.5956
-16   10%  binary    |    10.9269  73.727 |   14.8209 115.921 |       8.5335 | 48701.0000 / 48707.2972
-16   10%  redundant |    10.8404  74.965 |   16.2412 124.839 |       6.5679 | 48709.0000 / 48708.4358
+12    0%  binary    |    11.9289  94.777 |   11.9056  93.971 |       0.0687 | 3045.0000 / 3044.8998
+12    0%  redundant |    11.9289  94.777 |   11.8312  93.180 |       1.0000 | 3045.0000 / 3045.6640
+12   10%  binary    |     8.9173  61.796 |   11.3687  92.297 |       2.6081 | 3040.0000 / 3041.2416
+12   10%  redundant |     8.8702  63.685 |   11.8799  96.506 |       1.3438 | 3042.0000 / 3042.7601
+16   10%  binary    |    10.9269  73.727 |   14.7491 109.229 |       9.0448 | 48701.0000 / 48706.9999
+16   10%  redundant |    10.8404  74.965 |   16.1390 120.878 |       6.5669 | 48709.0000 / 48708.4428
+
+Page default, 12 bits, 10% mismatch, chip 43, no comparator noise or jitter
+  binary   : after ENOB 10.3802, SFDR 79.5418 dB
+  redundant: after ENOB 11.7973, SFDR 91.7245 dB
 
 clock jitter at f_in = 14.966 MHz, 12 bits, ideal capacitors
   0.0 ps: ENOB 11.9289  SNDR  73.572 dB  (jitter alone allows inf dB)

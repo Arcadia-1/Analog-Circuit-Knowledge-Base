@@ -15,6 +15,7 @@ import {
   TEST_BIN,
   TEST_PHASE,
   TRAIN_BIN,
+  TRAIN_SAMPLES,
 } from '../src/illustrations/sar/model';
 import { gaussians } from '../src/lib/rng';
 
@@ -107,12 +108,12 @@ describe('SAR ADC model, ported from ADCToolbox', () => {
 
   // [N, sigma, arch, ENOB before, SFDR before, ENOB after, SFDR after, DC code with nominal weights] from the Python reference
   const cases: [number, number, 'binary' | 'redundant', number, number, number, number, number][] = [
-    [12, 0, 'binary', 11.9289, 94.777, 11.9142, 94.036, 3045],
-    [12, 0, 'redundant', 11.9289, 94.777, 11.9247, 94.319, 3045],
-    [12, 0.1, 'binary', 8.9173, 61.796, 11.4426, 94.218, 3040],
-    [12, 0.1, 'redundant', 8.8702, 63.685, 11.9329, 97.409, 3042],
-    [16, 0.1, 'binary', 10.9269, 73.727, 14.8209, 115.921, 48701],
-    [16, 0.1, 'redundant', 10.8404, 74.965, 16.2412, 124.839, 48709],
+    [12, 0, 'binary', 11.9289, 94.777, 11.9056, 93.971, 3045],
+    [12, 0, 'redundant', 11.9289, 94.777, 11.8312, 93.18, 3045],
+    [12, 0.1, 'binary', 8.9173, 61.796, 11.3687, 92.297, 3040],
+    [12, 0.1, 'redundant', 8.8702, 63.685, 11.8799, 96.506, 3042],
+    [16, 0.1, 'binary', 10.9269, 73.727, 14.7491, 109.229, 48701],
+    [16, 0.1, 'redundant', 10.8404, 74.965, 16.139, 120.878, 48709],
   ];
   it.each(cases)('matches ADCToolbox for N=%i, sigma=%f, %s', (n, sigma, arch, enobB, sfdrB, enobA, sfdrA, code) => {
     const nominal = weightsFor(arch, n);
@@ -128,5 +129,32 @@ describe('SAR ADC model, ported from ADCToolbox', () => {
     const bits = new Uint8Array(nominal.length);
     convert(0.7434 * 2 ** n, actual, null, bits);
     expect(reconstruct(bits, nominal)[0]).toBe(code);
+  });
+
+  it('tests a finite calibration record on an independent full record', () => {
+    expect(TRAIN_SAMPLES).toBe(128);
+    const after = (['binary', 'redundant'] as const).map((arch, i) => {
+      const nominal = weightsFor(arch, 12);
+      const actual = capMismatch(nominal, 0.1, gaussians(nominal.length, 43000 + i));
+      const train = capture(12, actual, null, TRAIN_BIN, 0);
+      const test = capture(12, actual, null, TEST_BIN, TEST_PHASE);
+      return analyzeSpectrum(reconstruct(test, calibrate(train, nominal, TRAIN_BIN)), 12);
+    });
+    expect(after[0].enob).toBeCloseTo(10.3802, 3);
+    expect(after[0].sfdr).toBeCloseTo(79.5418, 2);
+    expect(after[1].enob).toBeCloseTo(11.7973, 3);
+    expect(after[1].sfdr).toBeCloseTo(91.7245, 2);
+    expect(after[1].enob - after[0].enob).toBeGreaterThan(1.4);
+  });
+
+  it('keeps the finite weight fit well-defined at every selectable resolution', () => {
+    for (const n of [8, 10, 12, 14, 16]) {
+      for (const nominal of [binaryWeights(n), redundantWeights(n)]) {
+        const actual = capMismatch(nominal, 0.1, gaussians(nominal.length, 9000 + n + nominal.length));
+        const weights = calibrate(capture(n, actual, null, TRAIN_BIN, 0), nominal, TRAIN_BIN);
+        expect(weights).toHaveLength(nominal.length);
+        expect(Array.from(weights).every(Number.isFinite)).toBe(true);
+      }
+    }
   });
 });
