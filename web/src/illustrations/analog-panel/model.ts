@@ -35,7 +35,11 @@ export interface Impairments {
   jitterPs: number;
   amNoisePpm: number;
   hd2Dbc: number;
+  /** Sign of the second-order transfer coefficient. */
+  hd2Sign: number;
   hd3Dbc: number;
+  /** Sign of the third-order transfer coefficient. */
+  hd3Sign: number;
   memoryPct: number;
   settlingTauPs: number;
   residueGainPct: number;
@@ -55,7 +59,9 @@ export const CLEAN_IMPAIRMENTS: Impairments = {
   jitterPs: 0,
   amNoisePpm: 0,
   hd2Dbc: HD_OFF,
+  hd2Sign: 1,
   hd3Dbc: HD_OFF,
+  hd3Sign: 1,
   memoryPct: 0,
   settlingTauPs: 0,
   residueGainPct: 0,
@@ -77,7 +83,9 @@ export const MAX_IMPAIRMENTS: Impairments = {
   jitterPs: 5,
   amNoisePpm: 2000,
   hd2Dbc: -40,
+  hd2Sign: 1,
   hd3Dbc: -40,
+  hd3Sign: 1,
   memoryPct: 2,
   settlingTauPs: 120,
   residueGainPct: 3,
@@ -98,7 +106,9 @@ export const DEFAULT_IMPAIRMENTS: Impairments = {
   jitterPs: 0.5,
   amNoisePpm: 100,
   hd2Dbc: -85,
+  hd2Sign: 1,
   hd3Dbc: -75,
+  hd3Sign: 1,
   memoryPct: 0.1,
   settlingTauPs: 40,
   residueGainPct: -0.15,
@@ -140,8 +150,8 @@ export function capture(settings: Impairments, bits: number, seed = 20260920, co
     for (let i = 0; i < n; i++) y[i] = DC + (y[i] - DC) * (1 + amStrength * amNoise[i]);
   }
 
-  const k2 = settings.hd2Dbc <= HD_OFF ? 0 : (2 * 10 ** (settings.hd2Dbc / 20)) / A;
-  const k3 = settings.hd3Dbc <= HD_OFF ? 0 : (4 * 10 ** (settings.hd3Dbc / 20)) / A ** 2;
+  const k2 = settings.hd2Dbc <= HD_OFF ? 0 : Math.sign(settings.hd2Sign || 1) * (2 * 10 ** (settings.hd2Dbc / 20)) / A;
+  const k3 = settings.hd3Dbc <= HD_OFF ? 0 : Math.sign(settings.hd3Sign || 1) * (4 * 10 ** (settings.hd3Dbc / 20)) / A ** 2;
   if (k2 || k3) {
     for (let i = 0; i < n; i++) {
       const x = y[i] - DC;
@@ -406,9 +416,9 @@ export interface Dashboard {
   errorPhasePlane: XY;
 }
 
-export function analyze(settings: Impairments, bits: number, config = DEFAULT_PANEL_CONFIG): Dashboard {
+export function analyze(settings: Impairments, bits: number, config = DEFAULT_PANEL_CONFIG, seed = 20260920): Dashboard {
   const { finBin, points } = resolvedConfig(config);
-  const y = capture(settings, bits, 20260920, config), fit = fitSine(y, finBin);
+  const y = capture(settings, bits, seed, config), fit = fitSine(y, finBin);
   const output = outputSpectrum(y, bits), decomposition = decompose(y, 5, finBin);
   let peakError = 0;
   for (const value of fit.error) peakError = Math.max(peakError, Math.abs(value));

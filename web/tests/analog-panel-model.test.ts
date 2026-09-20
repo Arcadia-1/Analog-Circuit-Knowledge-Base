@@ -117,4 +117,25 @@ describe('ADCToolbox analog output panel', () => {
     const glitched = capture(withError({ glitchCount: 7, glitchAmplitudeMv: 100 }), 12, 41);
     expect(Array.from(glitched).filter((value, i) => Math.abs(value - clean[i]) > 1e-9)).toHaveLength(7);
   });
+
+  it.each([
+    { label: 'H2', level: 'hd2Dbc' as const, sign: 'hd2Sign' as const },
+    { label: 'H3', level: 'hd3Dbc' as const, sign: 'hd3Sign' as const },
+  ])('reverses the $label waveform contribution when its polarity changes', ({ level, sign }) => {
+    const clean = capture(CLEAN_IMPAIRMENTS, 12);
+    const positive = capture(withError({ [level]: -55, [sign]: 1 }), 12);
+    const negative = capture(withError({ [level]: -55, [sign]: -1 }), 12);
+    for (let i = 0; i < clean.length; i += 97) {
+      expect(positive[i] - clean[i]).toBeCloseTo(-(negative[i] - clean[i]), 10);
+    }
+  });
+
+  it('uses the seed only to draw a repeatable stochastic realization', () => {
+    const settings = withError({ thermalNoiseUv: 180, jitterPs: 1, driftStepUv: 20, glitchCount: 4, glitchAmplitudeMv: 50 });
+    const first = analyze(settings, 12, undefined, 41);
+    const repeat = analyze(settings, 12, undefined, 41);
+    const redrawn = analyze(settings, 12, undefined, 42);
+    expect(first.y).toEqual(repeat.y);
+    expect(differs(first.y, redrawn.y)).toBe(true);
+  });
 });
