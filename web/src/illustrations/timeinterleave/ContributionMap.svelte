@@ -9,7 +9,8 @@
   function geo(W: number, H: number) {
     const axis = frequencyAxis(W, fs, points), Y0 = 8, Y1 = H - 25;
     const sy = (i: number) => Y0 + ((i + 0.5) / rows.length) * (Y1 - Y0);
-    return { ...axis, Y0, Y1, sy };
+    const roomForNotes = (Y1 - Y0) / rows.length >= 34;
+    return { ...axis, Y0, Y1, sy, roomForNotes };
   }
 
   function grouped(row: Contribution, binOf: (frequency: number) => number, sx: (bin: number) => number) {
@@ -44,7 +45,7 @@
     {#each rows as row, i (row.id)}
       <line class="lane" x1={g.x0} x2={g.x1} y1={g.sy(i)} y2={g.sy(i)} />
       <text class="source" x="6" y={g.sy(i) - 4}>{row.label}</text>
-      {#if !g.compact}<text class="note" x="6" y={g.sy(i) + 11}>{row.note}</text>{/if}
+      {#if !g.compact && g.roomForNotes}<text class="note" x="6" y={g.sy(i) + 11}>{row.note}</text>{/if}
       <text class="level" x={width - 10} y={g.sy(i)} text-anchor="end" dominant-baseline="central">{level(row)}</text>
       {#if row.broadband && Number.isFinite(row.level)}
         <rect class="floor {row.id}" x={g.x0} y={g.sy(i) - 5} width={g.x1 - g.x0} height="10" />

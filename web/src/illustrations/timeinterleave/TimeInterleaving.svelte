@@ -43,11 +43,6 @@
 </script>
 
 <main class="page">
-  <header class="top">
-    <a class="crumb" href="/#lessons">← All lessons</a>
-    <h1>Time-interleaved ADCs</h1>
-  </header>
-
   <section class="workspace">
     <aside class="control-panel" aria-label="Converter and error settings">
       <div class="control-group">
@@ -115,11 +110,10 @@
 </main>
 
 <style>
-  .page { height: auto; min-height: calc(100dvh - 49px); grid-template-rows: auto minmax(0, 1fr); max-width: 1600px; gap: 14px; }
-  .top { padding-bottom: 10px; border-bottom: 1px solid var(--rule); }
-  .workspace { min-width: 0; display: grid; grid-template-columns: minmax(330px, 380px) minmax(0, 1fr); gap: 26px; align-items: start; }
-  .control-panel { position: sticky; top: 62px; min-width: 0; display: grid; gap: 10px; align-self: start; }
-  .control-group { min-width: 0; display: grid; gap: 6px; padding: 11px 12px 12px; border: 1px solid var(--rule); border-radius: 5px; }
+  .page { height: calc(100dvh - 103px); min-height: 0; grid-template-rows: minmax(0, 1fr); max-width: 1600px; padding-block: 10px 8px; gap: 0; }
+  .workspace { min-width: 0; min-height: 0; display: grid; grid-template-columns: minmax(330px, 380px) minmax(0, 1fr); gap: 26px; align-items: stretch; }
+  .control-panel { min-width: 0; min-height: 0; display: grid; gap: 8px; align-content: start; }
+  .control-group { min-width: 0; display: grid; gap: 4px; padding: 8px 12px; border: 1px solid var(--rule); border-radius: 5px; }
   .group-head { min-height: 19px; display: flex; align-items: baseline; justify-content: space-between; gap: 8px; color: var(--ink-3); font-size: 11.5px; }
   .group-head > :last-child { text-align: right; }
   .channel-row { display: grid; grid-template-columns: 76px minmax(0, 1fr); align-items: center; gap: 8px; min-height: 27px; color: var(--ink-2); font-size: 12.5px; }
@@ -127,13 +121,14 @@
   .sampling-readout { display: grid; gap: 2px; padding-top: 5px; border-top: 1px solid var(--rule); color: var(--ink-3); font-size: 11.5px; }
   .sampling-readout b { color: var(--ink); font: 500 11.5px var(--mono); }
   .source { --accent: var(--s1); }
-  .visuals { min-width: 0; display: grid; grid-template-rows: 300px 340px 280px; gap: 18px; }
+  .visuals { min-width: 0; min-height: 0; display: grid; grid-template-rows: minmax(160px, .9fr) minmax(220px, 1.3fr) minmax(160px, .8fr); gap: 10px; }
   .chart { min-width: 0; }
-  .cap { min-height: 22px; }
+  .cap { min-height: 20px; }
   @media (max-width: 1050px) and (min-width: 901px) {
     .workspace { grid-template-columns: 330px minmax(0, 1fr); gap: 18px; }
   }
   @media (max-width: 900px) {
+    .page { height: auto; min-height: 0; padding-block: 16px 28px; }
     .workspace { grid-template-columns: minmax(0, 1fr); }
     .control-panel { position: static; grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .control-group:first-child { grid-row: span 2; }
@@ -143,5 +138,10 @@
     .control-panel { grid-template-columns: minmax(0, 1fr); }
     .control-group:first-child { grid-row: auto; }
     .visuals { grid-template-rows: 280px 300px 260px; }
+  }
+  @media (min-width: 901px) and (max-height: 700px) {
+    .page { height: auto; min-height: 600px; }
+    .workspace { align-items: start; }
+    .visuals { grid-template-rows: 180px 230px 170px; }
   }
 </style>
