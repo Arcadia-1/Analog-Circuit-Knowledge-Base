@@ -78,9 +78,10 @@ Keep **ADC Toolbox** as the site brand. ADC tutorials are the main curriculum; P
 “More to explore”. The manual remains the reference for the Python API and longer examples.
 
 The catalog follows a learning order: sampling, conversion, error analysis, calibration, then advanced architectures.
-Each entry has its own schematic preview, a title and a single short sentence. Keep the preview visible at every screen
-size so readers can recognize the experiment at a glance; model provenance and example names belong inside the lesson notes.
-Use three columns on wide screens, two on tablets and one on narrow screens, and preserve row-major keyboard and reading order.
+Each entry has its own schematic preview with the title directly underneath; the home-page catalog does not show subtitles.
+Keep the preview visible at every screen size so readers can recognize the experiment at a glance; model provenance and
+example names belong inside the lesson notes. Use a four-column waterfall on wide screens, then three, two and one column
+as the viewport narrows.
 
 The shared header and footer, restrained borders, system sans font, Google Sans Code labels and green accent follow
 Analog Design Bench. Plot series use separate blue/amber colors. The theme follows the system until the reader makes

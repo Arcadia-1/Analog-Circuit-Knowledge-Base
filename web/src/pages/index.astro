@@ -3,39 +3,12 @@ import Base from '../layouts/Base.astro';
 import Entry from '../components/Entry.astro';
 import { related, topics } from '../data/illustrations';
 const lessons = topics.flatMap((topic) => topic.items);
-// One full sine period, with a sampled and quantized version of the same signal.
-const sineY = (phase: number) => 60 - 40 * Math.sin(2 * Math.PI * phase);
-const analogPath = Array.from({ length: 161 }, (_, i) =>
-  `${i === 0 ? 'M' : 'L'}${(310 * i / 160).toFixed(2)} ${sineY(i / 160).toFixed(2)}`,
-).join(' ');
-const digitalPath = 'M0 60 ' + Array.from({ length: 32 }, (_, i) => {
-  const sample = i + 1;
-  const y = 60 + 8 * Math.round((sineY(sample / 32) - 60) / 8);
-  return `H${(310 * sample / 32).toFixed(2)}V${y}`;
-}).join(' ');
 ---
 <Base
   title="ADC Toolbox"
   description="Learn how analog-to-digital converters work with interactive lessons on sampling, SAR conversion, calibration, spectra and noise. Explore in your browser, then go further with the ADCToolbox Python library."
 >
   <main>
-    <section class="hero" aria-labelledby="site-title">
-      <div class="hero-inner">
-        <div class="title-row">
-          <h1 id="site-title">ADC Toolbox</h1>
-          <span>Interactive Playground</span>
-        </div>
-        <div class="signal" aria-hidden="true">
-          <svg viewBox="0 0 310 120" fill="none">
-            <path class="signal-grid" d="M0 30h310M0 60h310M0 90h310M30 0v120M80 0v120M130 0v120M180 0v120M230 0v120M280 0v120" />
-            <path class="analog" d={analogPath} />
-            <path class="digital" d={digitalPath} />
-          </svg>
-          <p><span>ANALOG IN</span><span class="signal-out">DIGITAL OUT</span></p>
-        </div>
-      </div>
-    </section>
-
     <div class="content">
       <section id="lessons" aria-label="Interactive lessons">
         <div class="lesson-grid">
@@ -46,7 +19,6 @@ const digitalPath = 'M0 60 ' + Array.from({ length: 32 }, (_, i) => {
       <section id="related" aria-labelledby="related-title">
         <div class="section-head">
           <h2 id="related-title">More to explore</h2>
-          <span class="section-note">PLL & feedback systems</span>
         </div>
         <div class="lesson-grid related-grid">
           {related.items.map((item) => <Entry item={item} />)}
@@ -57,35 +29,17 @@ const digitalPath = 'M0 60 ' + Array.from({ length: 32 }, (_, i) => {
 </Base>
 
 <style>
-  .hero { position: relative; overflow: hidden; border-bottom: 1px solid var(--rule-soft); }
-  .hero::before { content: ''; position: absolute; inset: 0; pointer-events: none; background-image: linear-gradient(var(--rule-soft) 1px, transparent 1px), linear-gradient(90deg, var(--rule-soft) 1px, transparent 1px); background-size: 32px 32px; mask-image: linear-gradient(90deg, transparent 20%, #000 100%); opacity: 0.45; }
-  .hero-inner { position: relative; max-width: 1152px; margin: auto; padding: 26px 32px 24px; display: flex; justify-content: space-between; align-items: center; gap: 48px; }
-  .title-row { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px 18px; }
-  h1 { margin: 0; font-size: clamp(34px, 4vw, 46px); line-height: 1.1; font-weight: 650; letter-spacing: -0.045em; }
-  .title-row span { color: var(--ink-2); font-size: 15px; font-weight: 500; letter-spacing: -0.015em; white-space: nowrap; }
-  .signal { box-sizing: border-box; width: 280px; margin-right: 16px; padding-inline: 15px; opacity: 0.85; }
-  .signal svg { display: block; width: 100%; }
-  .signal-grid { stroke: var(--rule); stroke-width: 0.6; }
-  .analog { stroke: var(--ink-3); stroke-width: 1.3; stroke-dasharray: 3 4; opacity: 0.6; }
-  .digital { stroke: var(--brand); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-  .signal p { display: flex; justify-content: space-between; margin: 12px 0 0; color: var(--ink-3); font: 9px var(--mono); letter-spacing: 0.08em; }
-  .signal-out { color: var(--brand); }
-  .content { max-width: 1152px; margin: auto; padding: 24px 32px 40px; }
-  .section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding-bottom: 13px; border-bottom: 1px solid var(--rule); }
+  .content { max-width: 1152px; margin: auto; padding: 30px 32px 40px; }
+  .section-head { padding-bottom: 13px; margin-bottom: 20px; border-bottom: 1px solid var(--rule); }
   h2 { margin: 0; font-size: 15px; font-weight: 600; letter-spacing: -0.02em; }
-  .section-note { color: var(--ink-3); font: 10px/1.6 var(--mono); }
-  .lesson-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: 24px; }
-  #related { margin-top: 32px; }
-  .related-grid :global(.entry) { padding-inline: 0; }
-  @media (max-width: 1000px) { .lesson-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-  @media (max-width: 760px) { .signal { width: 180px; margin: 0; padding-inline: 0; } .hero-inner { gap: 24px; } .lesson-grid { column-gap: 22px; } }
+  .lesson-grid { column-count: 4; column-gap: 22px; }
+  .related-grid { column-count: 3; }
+  #related { margin-top: 20px; }
+  @media (max-width: 1000px) { .lesson-grid, .related-grid { column-count: 3; } }
+  @media (max-width: 760px) { .lesson-grid, .related-grid { column-count: 2; column-gap: 20px; } }
   @media (max-width: 600px) {
-    .hero-inner { padding: 28px 20px; }
-    .signal { display: none; }
     .content { padding: 24px 20px 32px; }
-    .section-head { gap: 12px; }
-    .section-note { font-size: 9px; }
-    .lesson-grid { grid-template-columns: minmax(0, 1fr); }
+    .lesson-grid, .related-grid { column-count: 1; }
     #related { margin-top: 26px; }
   }
 </style>
