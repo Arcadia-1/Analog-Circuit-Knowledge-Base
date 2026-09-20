@@ -69,35 +69,28 @@ const asymptote = `4,${flat} ${corner},${flat} 188,${(flat + (perDb * 20 * (188 
 <svg class="thumb" viewBox="0 0 188 100" aria-hidden="true">
   {kind === 'pll' ? (
     <>
-      <text x="0" y="10">integer-N</text>
       <line class="base" x1="0" y1="30" x2="188" y2="30" />
       {xs.map((x, i) => <g class="s1"><line x1={x} y1="30" x2={x} y2={30 + ((i % 3) - 1)} /><circle cx={x} cy={30 + ((i % 3) - 1)} r="2.2" /></g>)}
-      <text x="0" y="56">fractional-N</text>
       <line class="base" x1="0" y1="78" x2="188" y2="78" />
       {xs.map((x, i) => <g class="s2"><line x1={x} y1="78" x2={x} y2={78 + saw[i % 5]} /><circle cx={x} cy={78 + saw[i % 5]} r="2.2" /></g>)}
     </>
   ) : kind === 'divider' ? (
     <>
-      <text x="0" y="10">divider words</text>
       <line class="base" x1="0" y1="38" x2="188" y2="38" />
       {dividerAcc.map((v, i) => <line class="s1" x1={8 + i * 15.5} y1="38" x2={8 + i * 15.5} y2={38 - v * 18} />)}
       <line class="base" x1="0" y1="78" x2="188" y2="78" />
       {dividerMash.map((v, i) => <line class="s2" x1={8 + i * 15.5} y1="78" x2={8 + i * 15.5} y2={78 - v * 8} />)}
-      <text x="2" y="55">1st</text><text x="2" y="96">3rd</text>
     </>
   ) : kind === 'win' ? (
     <>
-      <text x="0" y="10">coherent</text>
       <line class="base" x1="0" y1="34" x2="188" y2="34" />
       <line class="s1" x1="94" y1="34" x2="94" y2="12" />
       {xs.map((x) => <line class="s1" x1={x} y1="34" x2={x} y2={x === 90 ? 34 : 32} opacity="0.5" />)}
-      <text x="0" y="60">spectral leakage</text>
       <line class="base" x1="0" y1="86" x2="188" y2="86" />
       <polyline class="s2 link" points={Array.from({ length: 63 }, (_, i) => `${i * 3},${skirt(i * 3)}`).join(' ')} />
     </>
   ) : kind === 'ntf' ? (
     <>
-      <text x="0" y="10">noise shaping</text>
       <rect class="win" x="0" y="18" width="46" height="76" />
       <line class="base" x1="0" y1="94" x2="188" y2="94" />
       <polyline class="s2 link" points={climb} />
@@ -105,7 +98,6 @@ const asymptote = `4,${flat} ${corner},${flat} 188,${(flat + (perDb * 20 * (188 
     </>
   ) : kind === 'ti' ? (
     <>
-      <text x="0" y="10">mismatch spurs</text>
       <line class="base" x1="0" y1="94" x2="188" y2="94" />
       <line class="s1" x1={tone} y1="94" x2={tone} y2="20" />
       {images.map((m) => <g><line class="s2 link" x1={m.x} y1="94" x2={m.x} y2={m.top} /><circle class="mark" cx={m.x} cy={m.top} r="3.4" /></g>)}
@@ -113,7 +105,6 @@ const asymptote = `4,${flat} ${corner},${flat} 188,${(flat + (perDb * 20 * (188 
     </>
   ) : kind === 'bode' ? (
     <>
-      <text x="0" y="10">poles & roll-off</text>
       <line class="base" x1="0" y1="92" x2="188" y2="92" />
       <line class="dash" x1={corner} y1="18" x2={corner} y2="92" />
       <polyline class="s1" style="fill: none" stroke-dasharray="5 4" points={asymptote} />
@@ -121,7 +112,6 @@ const asymptote = `4,${flat} ${corner},${flat} 188,${(flat + (perDb * 20 * (188 
     </>
   ) : kind === 'train' ? (
     <>
-      <text x="0" y="10">training length</text>
       <line class="base" x1="0" y1="94" x2="188" y2="94" />
       <line class="dash" x1="0" y1={target} x2="188" y2={target} />
       <polyline class="s1 link" style="stroke-width: 2" points={learns} />
@@ -131,7 +121,6 @@ const asymptote = `4,${flat} ${corner},${flat} 188,${(flat + (perDb * 20 * (188 
     </>
   ) : kind === 'record' ? (
     <>
-      <text x="0" y="10">SFDR vs record length</text>
       <line class="base" x1="0" y1="94" x2="188" y2="94" />
       <line class="dash" x1="0" y1={ceiling} x2="188" y2={ceiling} />
       <polyline class="s1 link" style="stroke-width: 2" points={climbs} />
@@ -140,7 +129,6 @@ const asymptote = `4,${flat} ${corner},${flat} 188,${(flat + (perDb * 20 * (188 
     </>
   ) : kind === 'repeat' ? (
     <>
-      <text x="0" y="10">SNDR spread vs samples</text>
       <rect class="win" x="0" y="20" width="188" height="22" />
       <line class="dash" x1="0" y1="42" x2="188" y2="42" />
       <polyline class="s2 link" style="stroke-width: 2" points={repeatability} />
@@ -148,7 +136,6 @@ const asymptote = `4,${flat} ${corner},${flat} 188,${(flat + (perDb * 20 * (188 
     </>
   ) : kind === 'short' ? (
     <>
-      <text x="0" y="10">too few phases</text>
       <line class="base" x1="0" y1="92" x2="188" y2="92" />
       <polyline class="s1 link" style="stroke-width: 2" points={shortEven} />
       <polyline class="s2 link" style="stroke-width: 2; stroke-dasharray: 5 4" points={shortOdd} />
@@ -157,7 +144,6 @@ const asymptote = `4,${flat} ${corner},${flat} 188,${(flat + (perDb * 20 * (188 
     </>
   ) : kind === 'floor' ? (
     <>
-      <text x="0" y="10">floor vs lines</text>
       <line class="base" x1="0" y1="94" x2="188" y2="94" />
       <polyline class="quiet" points={jag(88, 7)} />
       <polyline class="s2 link" points={jag(70, 11)} />
@@ -166,7 +152,6 @@ const asymptote = `4,${flat} ${corner},${flat} 188,${(flat + (perDb * 20 * (188 
     </>
   ) : kind === 'fom' ? (
     <>
-      <text x="0" y="10">energy per step</text>
       <line class="base" x1="0" y1="94" x2="188" y2="94" />
       {[18, 40, 62].map((y) => <polyline class="s1 link" points={fom(y)} />)}
       <line class="dash" x1="120" y1="12" x2="120" y2="94" />
@@ -174,7 +159,6 @@ const asymptote = `4,${flat} ${corner},${flat} 188,${(flat + (perDb * 20 * (188 
     </>
   ) : kind === 'harm' ? (
     <>
-      <text x="0" y="10">a bend, and its harmonic</text>
       <line class="base" x1="0" y1="44" x2="188" y2="44" />
       <polyline class="s1 link" style="stroke-width: 2" points={bent} />
       <line class="dash" x1="0" y1="88" x2="188" y2="88" />
@@ -182,7 +166,6 @@ const asymptote = `4,${flat} ${corner},${flat} 188,${(flat + (perDb * 20 * (188 
     </>
   ) : kind === 'polar' ? (
     <>
-      <text x="0" y="10">harmonic phase</text>
       <circle class="orbit" cx="94" cy="56" r="40" />
       <circle class="orbit" cx="94" cy="56" r="22" />
       <path class="cloud" d={cloud} />
@@ -192,14 +175,11 @@ const asymptote = `4,${flat} ${corner},${flat} 188,${(flat + (perDb * 20 * (188 
     </>
   ) : kind === 'bits' ? (
     <>
-      <text x="0" y="10">bit activity</text>
       <line class="dash" x1="0" y1="54" x2="188" y2="54" />
       {usage.map((u, j) => <rect class={j === 10 ? 's2' : 's1'} x={4 + j * 15.4} y={Math.min(54, 54 - u * 5)} width="8" height={Math.max(1.5, Math.abs(u * 5))} />)}
-      {usage.map((_, j) => <text x={8 + j * 15.4} y="98" text-anchor="middle">{j % 11 ? '' : j + 1}</text>)}
     </>
   ) : kind === 'fold' ? (
     <>
-      <text x="0" y="10">frequency folding</text>
       {[1, 3, 5].map((z) => <rect class="win" x={z * tooth} y={high} width={tooth} height={low - high} />)}
       <line class="base" x1="0" y1={low} x2="188" y2={low} />
       <polyline class="s1 link" points={teeth} />
@@ -208,23 +188,19 @@ const asymptote = `4,${flat} ${corner},${flat} 188,${(flat + (perDb * 20 * (188 
     </>
   ) : kind === 'err' ? (
     <>
-      <text x="0" y="10">residual vs phase</text>
       <line class="base" x1="0" y1="50" x2="188" y2="50" />
       <polyline class="s1 link" points={Array.from({ length: 63 }, (_, i) => `${i * 3},${pm(i * 3)}`).join(' ')} />
       {xs.map((x) => <circle class="s2" cx={x} cy={pm(x)} r="2" />)}
     </>
   ) : kind === 'inl' ? (
     <>
-      <text x="0" y="10">INL</text>
       <line class="base" x1="0" y1="34" x2="188" y2="34" />
       <polyline class="s1 link" points={xs.map((x) => `${x},${bow(x)}`).join(' ')} />
-      <text x="0" y="60">DNL</text>
       <line class="base" x1="0" y1="82" x2="188" y2="82" />
       {xs.map((x, i) => <line class="s2" x1={x} y1="82" x2={x} y2={82 - wiggle[i] * 16} />)}
     </>
   ) : (
     <>
-      <text x="0" y="10">SAR residue</text>
       <line class="base" x1="0" y1="50" x2="188" y2="50" />
       {residues.map((_, i) => <rect class="win" x={10 + i * 23 - 5} y={50 - (7 - i) * 5.5} width="10" height={(7 - i) * 11} rx="2" />)}
       <polyline class="s1 link" points={residues.map((r, i) => `${10 + i * 23},${ys(r)}`).join(' ')} />
@@ -235,7 +211,6 @@ const asymptote = `4,${flat} ${corner},${flat} 188,${(flat + (perDb * 20 * (188 
 
 <style>
   .thumb { width: 188px; height: auto; display: block; }
-  text { fill: var(--ink-3); font: 10px var(--mono); }
   .base { stroke: var(--rule); }
   .s1 { stroke: var(--s1); fill: var(--s1); stroke-width: 2; stroke-linecap: round; }
   .s2 { stroke: var(--s2); fill: var(--s2); stroke-width: 2; stroke-linecap: round; }
