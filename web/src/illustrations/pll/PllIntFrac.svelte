@@ -1,5 +1,6 @@
 <script lang="ts">
   import Notes from '../../components/ui/Notes.svelte';
+  import Range from '../../components/ui/Range.svelte';
   import Segmented from '../../components/ui/Segmented.svelte';
   import ValueField from '../../components/ui/ValueField.svelte';
   import { freqText, jitterText, nf } from '../../lib/format';
@@ -12,6 +13,7 @@
     simulate,
     type Analysis,
     type EdgeScale,
+    type Mode,
     type Sim,
   } from './model';
   import PhaseDetectorChart from './PhaseDetectorChart.svelte';
@@ -21,6 +23,9 @@
   const BW = 1e6;
   let target = $state(5.0005e9);
   let fRef = $state(40e6);
+  let mode = $state<Exclude<Mode, 'int'>>('acc');
+  let dtc = $state(false);
+  let inl = $state(1);
   let hoverCycle = $state<number | null>(null);
   let hoverF = $state<number | null>(null);
 
@@ -32,9 +37,11 @@
   const alpha = $derived(target / fRef - nBase);
 
   const intSim: Sim = $derived(simulate(integerOut, 'int', false, 0, fRef, BW, 0));
-  const fracSim: Sim = $derived(simulate(target, 'sd', false, 0, fRef, BW, 0));
+  const fracSim: Sim = $derived(simulate(target, mode, dtc, inl, fRef, BW, 0));
   const intAn: Analysis = $derived(analyze(intSim));
   const fracAn: Analysis = $derived(analyze(fracSim));
+  const dividerName = $derived(mode === 'acc' ? 'Accumulator' : 'MASH 1-1-1 ΣΔ');
+  const fracName = $derived(`${dividerName}${dtc ? ' + DTC' : ''}`);
 
   const edgeScale: EdgeScale = $derived.by(() => {
     let nMin = Infinity, nMax = -Infinity, R = 0;
@@ -44,6 +51,12 @@
         nMax = Math.max(nMax, sim.ndiv[i]);
         R = Math.max(R, Math.abs(sim.e[i]) * 1e12);
       }
+    }
+    if (dtc) {
+      let mean = 0;
+      for (let i = 0; i < N_SHOW; i++) mean += fracSim.qd[i];
+      mean /= N_SHOW;
+      for (let i = 0; i < N_SHOW; i++) R = Math.max(R, Math.abs(fracSim.qd[i] - mean) * 1e12);
     }
     return {
       nMin,
@@ -78,8 +91,9 @@
     <Notes>
       <p><b>Integer-<var>N</var>.</b> The feedback divider is one integer <var>N</var>, so <var>f</var><sub>out</sub> can only move in steps of <var>f</var><sub>ref</sub>. A requested frequency between two channels must be rounded.</p>
       <p><b>Fractional-<var>N</var>.</b> The divider changes among nearby integers. Its long-term average is <var>N</var> + <var>α</var>, so the average output can land between integer channels. The modulator is part of how that average is produced; it is not a different frequency formula.</p>
-      <p><b>The plots below show the system view.</b> Compare phase-detector timing in the time domain and the resulting output spectrum.</p>
-      <p><b>Model assumptions.</b> A reference-rate behavioral loop with a linear phase detector, type-II PI filter and two extra poles at 6 MHz is tuned to a 1 MHz closed-loop −3 dB bandwidth. White reference/PD noise uses a −228 dBc/Hz normalized floor; free-running VCO noise follows 1/f² with −120 dBc/Hz at 1 MHz. The undithered 24-bit MASH has no DTC or charge-pump mismatch here. These are illustrative assumptions, not predictions for a particular PLL circuit.</p>
+      <p><b>Choose the fractional path.</b> The accumulator is first order and emits 0 or 1. MASH 1-1-1 is third order and moves more quantisation noise away from low offset frequencies. DTC compensates the accumulated divider timing error before the phase detector; its remaining INL can add timing error of its own.</p>
+      <p><b>The plots below show the system view.</b> The block diagram, phase-detector timing and output spectrum all follow the selected divider and DTC state. With DTC enabled, the grey points show the uncompensated divider timing and the orange points show what reaches the phase detector.</p>
+      <p><b>Model assumptions.</b> A reference-rate behavioral loop with a linear phase detector, type-II PI filter and two extra poles at 6 MHz is tuned to a 1 MHz closed-loop −3 dB bandwidth. White reference/PD noise uses a −228 dBc/Hz normalized floor; free-running VCO noise follows 1/f² with −120 dBc/Hz at 1 MHz. The accumulator and MASH are undithered 24-bit models; the DTC has ideal gain plus the selected parabolic INL. Charge-pump mismatch is zero. These are illustrative assumptions, not predictions for a particular PLL circuit.</p>
       <p><b>Frequency and noise readouts.</b> Fractional resolution is f<sub>ref</sub>/2²⁴ (up to 5.96 Hz here), with at most half a step of rounding error. RMS jitter is the detrended time-record rms, including deterministic tones, over 32768 reference samples; the listed band is the record's nominal FFT span, not a brick-wall integration filter. Spectral levels average the two sidebands and are normalized to the measured carrier. “Not detected” means no tone passed the 18 dB local-floor threshold above 10 kHz; it does not prove zero spurs.</p>
     </Notes>
   </header>
@@ -110,20 +124,42 @@
     </div>
 
     <div class="head col2">
-      <div class="name-f">
-        <div class="name"><span class="key k2"></span><span>Fractional-<var>N</var></span></div>
-        <div class="formula"><var>f</var><sub>out</sub> <span class="op">=</span> (<var>N</var> <span class="op">+</span> <var>α</var>) <span class="op">·</span> <var>f</var><sub>ref</sub></div>
+      <div class="line">
+        <div class="name-f">
+          <div class="name"><span class="key k2"></span><span>Fractional-<var>N</var></span></div>
+          <div class="formula"><var>f</var><sub>out</sub> <span class="op">=</span> (<var>N</var> <span class="op">+</span> <var>α</var>) <span class="op">·</span> <var>f</var><sub>ref</sub></div>
+        </div>
+        <div class="picks accent2">
+          <Segmented
+            size="sm"
+            label="Fractional divider architecture"
+            options={[{ value: 'acc', label: 'Accumulator' }, { value: 'sd', label: 'MASH ΣΔ' }]}
+            bind:value={mode}
+          />
+          <Segmented
+            size="sm"
+            label="Digital-to-time converter"
+            options={[{ value: false, label: 'DTC off' }, { value: true, label: 'DTC on' }]}
+            bind:value={dtc}
+          />
+        </div>
       </div>
-      <div class="readout">
-        <span><var>N</var> = <span class="mono">{nBase}</span></span>
-        <span><var>α</var> = <span class="mono">{alpha.toFixed(5)}</span></span>
-        <span class="mono">{(fracSim.fOut / 1e9).toFixed(4)} GHz</span>
-        <span class="chip" title={`24-bit rounding error: ${(fracSim.fOut - target).toFixed(3)} Hz`}>within {nf(fRef / 2 ** 25, 2)} Hz</span>
+      <div class="line detail-line">
+        <div class="readout">
+          <span class="architecture">{fracName}</span>
+          <span><var>N</var> = <span class="mono">{nBase}</span></span>
+          <span><var>α</var> = <span class="mono">{alpha.toFixed(5)}</span></span>
+          <span class="mono">{(fracSim.fOut / 1e9).toFixed(4)} GHz</span>
+          <span class="chip" title={`24-bit rounding error: ${(fracSim.fOut - target).toFixed(3)} Hz`}>within {nf(fRef / 2 ** 25, 2)} Hz</span>
+        </div>
+        <div class="inl-slot accent2" class:inactive={!dtc} aria-hidden={!dtc}>
+          <Range id="dtc-inl" min={0} max={5} step={0.1} output={`${inl.toFixed(1)} ps`} bind:value={inl}>DTC INL</Range>
+        </div>
       </div>
     </div>
 
     <div class="diagram col1"><BlockDiagram kind="int" label="Integer-N PLL block diagram" /></div>
-    <div class="diagram col2"><BlockDiagram kind="sd" label="Fractional-N PLL block diagram" /></div>
+    <div class="diagram col2"><BlockDiagram kind={mode} {dtc} label={`Fractional-N PLL block diagram: ${fracName}`} /></div>
 
     <div class="chart">
       <div class="cap">
@@ -133,9 +169,10 @@
     </div>
     <div class="chart">
       <div class="cap">
-        <span class="left"><span class="label"><span class="tag">Fractional-<var>N</var></span>Time domain</span><span>divider word and phase-detector timing</span></span>
+        <span class="left"><span class="label"><span class="tag">Fractional-<var>N</var></span>Time domain</span><span>{fracName} · divider word and phase-detector timing</span></span>
+        {#if dtc}<span><span class="gk"></span>before DTC<span class="gk g2"></span>at phase detector</span>{/if}
       </div>
-      <PhaseDetectorChart sim={fracSim} series={2} scale={edgeScale} hover={hoverCycle} onhover={(i) => (hoverCycle = i)} label="Fractional-N time-domain timing" />
+      <PhaseDetectorChart sim={fracSim} series={2} scale={edgeScale} ghost={dtc} hover={hoverCycle} onhover={(i) => (hoverCycle = i)} label={`Fractional-N time-domain timing: ${fracName}`} />
     </div>
 
     <div class="chart">
@@ -147,10 +184,10 @@
     </div>
     <div class="chart">
       <div class="cap">
-        <span class="left"><span class="label"><span class="tag">Fractional-<var>N</var></span>Output spectrum</span><span>offset from carrier</span></span>
+        <span class="left"><span class="label"><span class="tag">Fractional-<var>N</var></span>Output spectrum</span><span>{fracName} · offset from carrier</span></span>
         <span>RMS jitter <b>{jitterText(fracAn.jitterFs)}</b> <span class="band">({freqText(fracAn.bandLo)}–{freqText(fracAn.bandHi)})</span> · largest spur <b>{fracSpur.value}</b>{fracSpur.offset}</span>
       </div>
-      <PhaseNoiseChart an={fracAn} series={2} bw={BW} hover={hoverF} onhover={(f) => (hoverF = f)} label="Fractional-N output spectrum" />
+      <PhaseNoiseChart an={fracAn} series={2} bw={BW} hover={hoverF} onhover={(f) => (hoverF = f)} label={`Fractional-N output spectrum: ${fracName}`} />
     </div>
   </section>
 </main>
@@ -159,6 +196,21 @@
   .tuner { grid-template-columns: 430px minmax(0, 1fr); }
   .compare { --rows: auto 78px minmax(0, 1fr) minmax(0, 1.15fr); }
   .head { gap: 8px; }
+  .picks { display: flex; flex-wrap: wrap; gap: 6px; }
+  .detail-line { min-height: 30px; }
+  .architecture { color: var(--ink); font-weight: 500; }
+  .inl-slot { min-width: 242px; transition: opacity 120ms ease; }
+  .inl-slot.inactive { visibility: hidden; opacity: 0; pointer-events: none; }
+  .gk { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin: 0 5px 0 10px; background: var(--ghost); }
+  .gk.g2 { background: var(--s2); }
   .diagram { align-self: center; padding-block: 14px; }
-  @media (max-width: 900px) { .tuner { grid-template-columns: 1fr; } }
+  @media (max-width: 1180px) {
+    .picks { width: 100%; }
+    .inl-slot { min-width: 0; }
+  }
+  @media (max-width: 900px) {
+    .tuner { grid-template-columns: 1fr; }
+    .picks { display: grid; grid-template-columns: 1fr 1fr; }
+  }
+  @media (max-width: 520px) { .picks { grid-template-columns: 1fr; } }
 </style>
