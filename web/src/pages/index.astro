@@ -32,15 +32,13 @@ const lessons = topics.flatMap((topic) => topic.items);
   .content { max-width: 1152px; margin: auto; padding: 30px 32px 40px; }
   .section-head { padding-bottom: 13px; margin-bottom: 20px; border-bottom: 1px solid var(--rule); }
   h2 { margin: 0; font-size: 15px; font-weight: 600; letter-spacing: -0.02em; }
-  .lesson-grid { column-count: 5; column-gap: 18px; }
-  .related-grid { column-count: 3; }
-  #related { margin-top: 20px; }
-  @media (max-width: 1180px) { .lesson-grid { column-count: 4; } }
-  @media (max-width: 960px) { .lesson-grid, .related-grid { column-count: 3; } }
-  @media (max-width: 760px) { .lesson-grid, .related-grid { column-count: 2; column-gap: 20px; } }
+  .lesson-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 32px; }
+  #related { margin-top: 32px; }
+  .related-grid :global(.entry) { padding-inline: 0; }
+  @media (max-width: 760px) { .lesson-grid { column-gap: 22px; } }
   @media (max-width: 600px) {
     .content { padding: 24px 20px 32px; }
-    .lesson-grid, .related-grid { column-count: 1; }
+    .lesson-grid { grid-template-columns: minmax(0, 1fr); }
     #related { margin-top: 26px; }
   }
 </style>
