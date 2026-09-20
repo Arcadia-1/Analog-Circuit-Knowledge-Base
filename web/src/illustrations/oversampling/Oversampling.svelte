@@ -4,7 +4,8 @@
   import Segmented from '../../components/ui/Segmented.svelte';
   import { freqText, nf } from '../../lib/format';
   import BandChart from './BandChart.svelte';
-  import { floorModel, FS, N, OSRS, read, rms, TONE } from './model';
+  import { floorModel, FS, N, noiseBudget, OSRS, read, rms, TONE } from './model';
+  import NoiseBudgetChart from './NoiseBudgetChart.svelte';
   import NoiseSpectrum from './NoiseSpectrum.svelte';
   import OsrChart from './OsrChart.svelte';
 
@@ -26,11 +27,15 @@
   let hoverBin = $state<number | null>(null);
   let hoverOsr = $state<number | null>(null);
   let hoverT = $state<number | null>(null);
+  let hoverBudget = $state<number | null>(null);
 
   const r = $derived(read(order, bits, osr, whiteNoiseLsb));
   const at = $derived(OSRS.indexOf(osr));
   const outside = $derived(rms(r.data.map((v, i) => v - r.inband[i])));
   const theory = $derived(floorModel(bits, order, whiteNoiseLsb));
+  const budget = $derived(noiseBudget(order, bits, whiteNoiseLsb));
+  const edge = $derived(Math.max(1, Math.floor(N / (2 * osr))));
+  const retainedDb = $derived(budget.cumulativeDb[edge - 1]);
 </script>
 
 <main class="page">
@@ -69,12 +74,20 @@
   </section>
 
   <section class="compare">
-    <div class="chart wide">
+    <div class="chart">
       <div class="cap">
         <span class="left"><span class="label">Spectrum</span><span>on a log frequency axis; dashed, the predicted shaped + white noise floor</span></span>
         <span>in band SNDR <b>{nf(r.band.sndr, 1)} dB</b> · ENOB <b>{nf(r.band.enob, 2)}</b> · whole band {nf(r.full.sndr, 1)} dB</span>
       </div>
       <NoiseSpectrum spectrum={r.band} {theory} hover={hoverBin} onhover={(b) => (hoverBin = b)} label="Output spectrum on a logarithmic frequency axis" />
+    </div>
+
+    <div class="chart">
+      <div class="cap">
+        <span class="left"><span class="label">NTF and noise budget</span><span>then integrate its output from DC upward</span></span>
+        <span>band contains <b>{nf(retainedDb, 1)} dB</b> of the total noise</span>
+      </div>
+      <NoiseBudgetChart {budget} {osr} hover={hoverBudget} onhover={(b) => (hoverBudget = b)} label="Noise transfer function and cumulative noise power from DC to each frequency" />
     </div>
 
     <div class="chart">
@@ -101,9 +114,5 @@
   .group { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px; }
   .group .label { color: var(--ink-3); }
   .about { font-size: 12.5px; color: var(--ink-3); }
-  .compare { --rows: minmax(0, 1fr) minmax(0, 1fr); }
-  .wide { grid-column: 1 / -1; }
-  @media (max-width: 900px) {
-    .wide { grid-column: auto; }
-  }
+  .compare { --rows: repeat(2, minmax(0, 1fr)); }
 </style>

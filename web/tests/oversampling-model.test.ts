@@ -6,6 +6,7 @@ import {
   ifilter,
   ntfperf,
   ntfTaps,
+  noiseBudget,
   OSRS,
   perfosr,
   predictedSnr,
@@ -132,6 +133,15 @@ describe('oversampling and noise shaping', () => {
 
   it('builds the NTF from the binomial coefficients', () => {
     expect([0, 1, 2, 3].map(ntfTaps)).toEqual([[1], [1, -1], [1, -2, 1], [1, -3, 3, -1]]);
+  });
+
+  it('accumulates shaped noise monotonically to the whole-band total', () => {
+    const budget = noiseBudget(2, 4);
+    expect(budget.ntfDb[0]).toBeLessThan(-100);
+    expect(budget.ntfDb.at(-1)).toBeCloseTo(20 * Math.log10(4), 8);
+    expect(budget.cumulativeDb.at(-1)).toBeCloseTo(0, 12);
+    for (let i = 1; i < budget.cumulativeDb.length; i++) expect(budget.cumulativeDb[i]).toBeGreaterThanOrEqual(budget.cumulativeDb[i - 1]);
+    expect(budget.cumulativeDb[127]).toBeLessThan(-70);
   });
 
   it('counts the in-band bins the way rfft_inband_bin_count does', () => {

@@ -115,6 +115,32 @@ export const floorModel = (bits: number, order: number, whiteNoiseLsb = 0) => (b
   return 10 * Math.log10((16 / N) * (lsb ** 2 / 12 * ntf + (whiteNoiseLsb * lsb) ** 2));
 };
 
+export interface NoiseBudget {
+  bins: Float64Array;
+  ntfDb: Float64Array;
+  /** Noise accumulated from DC through this bin, relative to all noise through Nyquist. */
+  cumulativeDb: Float64Array;
+}
+
+/** The NTF itself and the running integral of the shaped + unshaped noise it produces. */
+export function noiseBudget(order: number, bits: number, whiteNoiseLsb = 0): NoiseBudget {
+  const half = N / 2, lsb = 1 / 2 ** bits, quant = lsb ** 2 / 12, white = (whiteNoiseLsb * lsb) ** 2;
+  const bins = Float64Array.from({ length: half }, (_, i) => i + 1);
+  const ntfDb = bins.map((bin) => {
+    const magnitude = (2 * Math.sin((Math.PI * bin) / N)) ** order;
+    return 20 * Math.log10(Math.max(magnitude, 1e-20));
+  });
+  const power = bins.map((bin) => quant * (2 * Math.sin((Math.PI * bin) / N)) ** (2 * order) + white);
+  let total = 0;
+  for (const value of power) total += value;
+  let sum = 0;
+  const cumulativeDb = power.map((value) => {
+    sum += value;
+    return 10 * Math.log10(Math.max(sum / total, 1e-20));
+  });
+  return { bins, ntfDb, cumulativeDb };
+}
+
 /** Predicted in-band SNR when shaped quantisation noise and unshaped added white noise are independent. */
 export function predictedSnr(bits: number, order: number, osr: number, whiteNoiseLsb = 0): number {
   const lsb = 1 / 2 ** bits;
