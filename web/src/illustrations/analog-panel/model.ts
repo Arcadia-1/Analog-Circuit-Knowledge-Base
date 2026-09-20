@@ -68,16 +68,12 @@ export const CLEAN_IMPAIRMENTS: Impairments = {
   glitchAmplitudeMv: 0,
 };
 
-/** Literal lower and upper positions of every impairment slider. */
-export const MIN_IMPAIRMENTS: Impairments = {
-  ...CLEAN_IMPAIRMENTS,
-  residueGainPct: -3,
-  clipLevelMv: 250,
-};
+/** Presets describe minimum and maximum error, including controls whose error decreases as their value rises. */
+export const MIN_IMPAIRMENTS: Impairments = { ...CLEAN_IMPAIRMENTS };
 
 export const MAX_IMPAIRMENTS: Impairments = {
   thermalNoiseUv: 500,
-  quantizerBits: 16,
+  quantizerBits: 4,
   jitterPs: 5,
   amNoisePpm: 2000,
   hd2Dbc: -40,
@@ -87,7 +83,7 @@ export const MAX_IMPAIRMENTS: Impairments = {
   residueGainPct: 3,
   dynamicResiduePctPerV2: 30,
   amToneDepthPct: 10,
-  clipLevelMv: 500,
+  clipLevelMv: 250,
   driftStepUv: 100,
   referenceDroopPctPerV: 1,
   glitchCount: 32,

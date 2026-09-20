@@ -4,6 +4,8 @@ import {
   capture,
   CLEAN_IMPAIRMENTS,
   DEFAULT_IMPAIRMENTS,
+  MAX_IMPAIRMENTS,
+  MIN_IMPAIRMENTS,
   type Impairments,
 } from '../src/illustrations/analog-panel/model';
 
@@ -92,6 +94,14 @@ describe('ADCToolbox analog output panel', () => {
 
   it('has negligible fitted residual when every error is disabled', () => {
     expect(analyze(CLEAN_IMPAIRMENTS, 12).fit.rmse).toBeLessThan(1e-8);
+  });
+
+  it('orders the Minimum and Maximum presets by converter performance', () => {
+    const minimum = analyze(MIN_IMPAIRMENTS, 12).output.sndr;
+    const maximum = analyze(MAX_IMPAIRMENTS, 12).output.sndr;
+    expect(minimum).toBeGreaterThan(100);
+    expect(maximum).toBeLessThan(20);
+    expect(minimum).toBeGreaterThan(maximum);
   });
 
   it('uses the selected coherent input bin and FFT record length', () => {
