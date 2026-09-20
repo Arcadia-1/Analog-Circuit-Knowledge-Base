@@ -21,7 +21,9 @@
   const ideal = (i: number) => inputValue(i / fs, fin, harmonics);
 
   function geo(W: number, H: number) {
-    const X1 = W - 8, Y0 = 8, Y1 = H - 20;
+    // Keep a dedicated strip above the plot for the legend and channel indices.
+    // Otherwise the legend sits on the +0.5 V grid line and on high input samples.
+    const X1 = W - 8, Y0 = 26, Y1 = H - 20;
     const sx = (i: number) => X0 + ((i + .5) / COUNT) * (X1 - X0);
     const sy = (v: number) => Y0 + ((.5 - clamp(v, -.5, .5)) / 1) * (Y1 - Y0);
     let wave = '';
@@ -49,9 +51,9 @@
       {@const c = i % m}
       <line class="sample-stem" x1={g.sx(i)} x2={g.sx(i + truth.skew[c] * fs)} y1={g.sy(value)} y2={g.sy(value)} />
       <circle class="sample ch{c % 4}" cx={g.sx(i + truth.skew[c] * fs)} cy={g.sy(value)} r={hover === i ? 4.5 : 2.8} />
-      {#if i < m}<text class="tx channel" x={g.sx(i + truth.skew[c] * fs)} y={g.Y0 + 10} text-anchor="middle">{c}</text>{/if}
+      {#if i < m}<text class="tx channel" x={g.sx(i + truth.skew[c] * fs)} y="15" text-anchor="middle">{c}</text>{/if}
     {/each}
-    <text class="tx2 halo" x={X0 + 5} y={g.Y0 + 11}>input and channel samples, V</text>
+    <text class="tx2 halo" x={g.X1} y="15" text-anchor="end">input and channel samples · V</text>
     {#each [0, 12, 24, 36, 47] as i, k}
       <text class="tx" x={g.sx(i)} y={height - 5} text-anchor={k === 0 ? 'start' : k === 4 ? 'end' : 'middle'}>{k === 4 ? `${i} samples` : i}</text>
     {/each}
