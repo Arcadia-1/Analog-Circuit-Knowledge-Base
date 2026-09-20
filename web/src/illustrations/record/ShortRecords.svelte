@@ -22,9 +22,6 @@
 
 <main class="page">
   <header class="top">
-    <a class="crumb" href="/#lessons">← All lessons</a>
-    <h1>Short records near Nyquist</h1>
-    <p class="sub">A tiny record can sample only a few phases of the waveform and return a convincing wrong answer.</p>
     <div class="pick">
       <Range id="short-n" min={0} max={SHORT.length - 1} step={1} output="{n} points" bind:value={index}>Record</Range>
     </div>

@@ -62,9 +62,6 @@
 
 <main class="page">
   <header class="top">
-    <a class="crumb" href="/#lessons">← All lessons</a>
-    <h1>Choosing FFT record length</h1>
-    <p class="sub">A longer record sharpens what the FFT can see. It does not make the ADC quieter.</p>
     <div class="pick">
       <Range id="n" min={0} max={LENGTHS.length - 1} step={1} output="{n} points" bind:value={index}>Record</Range>
     </div>

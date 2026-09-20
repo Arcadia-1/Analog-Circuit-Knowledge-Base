@@ -50,9 +50,6 @@
 
 <main class="page">
   <header class="top">
-    <a class="crumb" href="/#lessons">← All lessons</a>
-    <h1>Aliasing and Nyquist zones</h1>
-    <p class="sub">Whatever goes in comes out between 0 and half the sampling rate, and so do its harmonics.</p>
     <div class="pick">
       <span class="label">Output rate</span>
       <div class="decimation" role="group" aria-label="Output-rate decimation factor" title="Use the arrows or scroll to change the decimation factor" onwheel={wheelKeep}>

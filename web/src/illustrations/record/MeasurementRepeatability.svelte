@@ -49,9 +49,6 @@
 
 <main class="page">
   <header class="top">
-    <a class="crumb" href="/#lessons">← All lessons</a>
-    <h1>Measurement repeatability</h1>
-    <p class="sub">Record length does not improve the ADC's SNDR; it reduces how much one reported reading wanders.</p>
     <div class="pick">
       <Range id="repeat-n" min={0} max={LENGTHS.length - 1} step={1} output="{n} points" bind:value={index}>Record</Range>
     </div>

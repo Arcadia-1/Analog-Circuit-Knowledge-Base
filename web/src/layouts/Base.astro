@@ -44,7 +44,7 @@ const siteName = 'Circuits & Systems Classroom';
   </head>
   <body>
     <a class="skip-link" href="#main-content">Skip to content</a>
-    <SiteHeader />
+    <SiteHeader pageTitle={isLessonPath(Astro.url.pathname) ? title : undefined} />
     <div id="main-content" tabindex="-1">
       <slot />
     </div>

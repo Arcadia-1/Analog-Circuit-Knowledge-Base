@@ -153,9 +153,6 @@
 
 <main class="page">
   <header class="top">
-    <a class="crumb" href="/#lessons">← All lessons</a>
-    <h1>Binary vs redundant SAR</h1>
-    <p class="sub">One sampled input, one comparator, one capacitor array. Only the weights differ.</p>
     <div class="pick">
       <span class="label" id="res-label">Resolution</span>
       <Segmented size="sm" mono label="Resolution in bits" options={[8, 10, 12, 14, 16].map((b) => ({ value: b, label: String(b) }))} bind:value={() => n, (b) => { n = b; reset(); }} />

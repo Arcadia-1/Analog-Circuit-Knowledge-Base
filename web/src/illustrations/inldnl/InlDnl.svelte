@@ -53,9 +53,6 @@
 
 <main class="page">
   <header class="top">
-    <a class="crumb" href="/#lessons">← All lessons</a>
-    <h1>INL and DNL</h1>
-    <p class="sub">Where the codes really sit, and what a histogram test can see of it.</p>
     <div class="pick">
       <span class="label">Resolution</span>
       <Segmented size="sm" mono label="Resolution in bits" options={[8, 10, 12].map((b) => ({ value: b, label: String(b) }))} bind:value={() => n, (b) => deal({ n: b })} />

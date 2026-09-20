@@ -57,9 +57,6 @@
 
 <main class="page">
   <header class="top">
-    <a class="crumb" href="/#lessons">← All lessons</a>
-    <h1>Choosing calibration record length</h1>
-    <p class="sub">Solve a converter's weights from a short capture and it will fit that capture perfectly. Then show it a different one.</p>
     <div class="pick">
       <Segmented size="sm" label="Capacitor array" options={NAMES.map((x) => ({ value: x.value, label: x.label }))} bind:value={name} />
     </div>

@@ -58,9 +58,6 @@
 
 <main class="page">
   <header class="top">
-    <a class="crumb" href="/#lessons">← All lessons</a>
-    <h1>ADC noise, jitter, and distortion</h1>
-    <p class="sub">Six ways to spoil a converter, one at a time: what each one looks like, what it costs, and how far it alone would let you go.</p>
     <div class="pick">
       <Range id="fin" min={51} max={2045} step={2} output={freqText(fin)} bind:value={bin}>Input</Range>
     </div>

@@ -40,9 +40,6 @@
 
 <main class="page">
   <header class="top">
-    <a class="crumb" href="/#lessons">← All lessons</a>
-    <h1>Oversampling and noise shaping</h1>
-    <p class="sub">Only the band's share of the quantisation noise counts, and shaping can push most of it out.</p>
     <div class="pick">
       <span class="label">Shaping</span>
       <Segmented size="sm" label="Noise-shaping order" options={SHAPES} bind:value={order} />

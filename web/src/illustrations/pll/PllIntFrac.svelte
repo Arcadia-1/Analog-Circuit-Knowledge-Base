@@ -64,9 +64,6 @@
 
 <main class="page">
   <header class="top">
-    <a class="crumb" href="/#lessons">← Interactive lessons</a>
-    <h1>Integer-<var>N</var> vs fractional-<var>N</var></h1>
-    <p class="sub">The difference is the set of output frequencies the divider can realise.</p>
     <div class="pick">
       <span class="label">Reference</span>
       <Segmented

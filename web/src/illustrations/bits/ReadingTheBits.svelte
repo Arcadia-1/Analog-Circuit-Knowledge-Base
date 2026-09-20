@@ -52,9 +52,6 @@
 
 <main class="page">
   <header class="top">
-    <a class="crumb" href="/#lessons">← All lessons</a>
-    <h1>Recovering SAR bit weights</h1>
-    <p class="sub">A SAR converter's raw output, read four ways before anything is added up.</p>
     <div class="pick">
       <span class="label">Array</span>
       <Segmented size="sm" label="Capacitor array" options={NAMES} bind:value={array} />

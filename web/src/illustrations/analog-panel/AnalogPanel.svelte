@@ -44,9 +44,6 @@
 
 <main class="page analog-panel">
   <header class="top">
-    <a class="crumb" href="/#lessons">← All lessons</a>
-    <h1>Analog output analysis panel</h1>
-    <p class="sub">The ADCToolbox 3 × 4 dashboard, live in the browser.</p>
     <div class="pick">
       <span class="label">Code scale</span>
       <Segmented size="sm" mono label="Code-unit scale in bits" options={[10, 12, 14].map((value) => ({ value, label: String(value) }))} bind:value={bits} />

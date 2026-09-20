@@ -1,11 +1,6 @@
 /* Shared shell of the full-screen illustration pages: top bar, input row, two-column comparison. */
 .page { max-width: 1480px; margin: 0 auto; height: calc(100dvh - 49px); min-height: 680px; padding: 20px 24px 16px; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto minmax(0, 1fr); gap: 12px; }
 .top { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 18px; }
-.top h1 { font-size: 24px; line-height: 1.2; font-weight: 500; letter-spacing: -0.01em; margin: 0; }
-.top h1 var { font-weight: 500; font-size: 1.08em; }
-.crumb { font-size: 13px; color: var(--ink-3); text-decoration: none; border-bottom: 1px solid var(--rule); align-self: center; }
-.crumb:hover { color: var(--ink); border-bottom-color: var(--ink-3); }
-.sub { margin: 0; color: var(--ink-2); font-size: 14px; }
 .pick { margin-left: auto; display: flex; align-items: center; gap: 8px; align-self: center; }
 .top .range { align-self: center; }
 .unit { font-size: 13px; color: var(--ink-2); }
@@ -40,7 +35,6 @@
 .cap .band { color: var(--ink-3); font-size: 12px; }
 .tag { display: none; }
 
-@media (min-width: 901px) and (max-width: 1559px) { .sub { display: none; } }
 @media (min-width: 901px) and (max-width: 1180px) {
   .long { display: none; }
   .short { display: inline; }
