@@ -9,8 +9,7 @@
   function geo(W: number, H: number) {
     const axis = frequencyAxis(W, fs, points), Y0 = 8, Y1 = H - 25;
     const sy = (i: number) => Y0 + ((i + 0.5) / rows.length) * (Y1 - Y0);
-    const roomForNotes = (Y1 - Y0) / rows.length >= 34;
-    return { ...axis, Y0, Y1, sy, roomForNotes };
+    return { ...axis, Y0, Y1, sy };
   }
 
   function grouped(row: Contribution, binOf: (frequency: number) => number, sx: (bin: number) => number) {
@@ -44,8 +43,7 @@
     {/each}
     {#each rows as row, i (row.id)}
       <line class="lane" x1={g.x0} x2={g.x1} y1={g.sy(i)} y2={g.sy(i)} />
-      <text class="source" x="6" y={g.sy(i) - 4}>{row.label}</text>
-      {#if !g.compact && g.roomForNotes}<text class="note" x="6" y={g.sy(i) + 11}>{row.note}</text>{/if}
+      <text class="source" x="6" y={g.sy(i)} dominant-baseline="central">{row.label}</text>
       <text class="level" x={width - 10} y={g.sy(i)} text-anchor="end" dominant-baseline="central">{level(row)}</text>
       {#if row.broadband && Number.isFinite(row.level)}
         <rect class="floor {row.id}" x={g.x0} y={g.sy(i) - 5} width={g.x1 - g.x0} height="10" />
@@ -65,7 +63,6 @@
 <style>
   .lane { stroke: var(--rule); stroke-width: 1.5; }
   .source { fill: var(--ink); font: 500 13px var(--sans); }
-  .note { fill: var(--ink-3); font: 12px var(--sans); }
   .level { fill: var(--ink-2); font: 12px var(--mono); font-variant-numeric: tabular-nums; }
   .stem { stroke-width: 1.5; }
   .tone { stroke: var(--plot); stroke-width: 1.2; }
