@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { analyzeSpectrum, N_FFT } from '../src/lib/spectrum';
+import { coherentFrequency } from '../src/lib/frequency';
 import {
   binaryWeights,
   calibrate,
@@ -145,6 +146,26 @@ describe('SAR ADC model, ported from ADCToolbox', () => {
     expect(after[1].enob).toBeCloseTo(11.7973, 3);
     expect(after[1].sfdr).toBeCloseTo(91.7245, 2);
     expect(after[1].enob - after[0].enob).toBeGreaterThan(1.4);
+  });
+
+  it('keeps training and test record lengths independent and coherent', () => {
+    const n = 12, nominal = redundantWeights(n);
+    const actual = capMismatch(nominal, 0.1, gaussians(nominal.length, 43123));
+    const testPoints = 1024;
+    const testBin = coherentFrequency(FS, (TEST_BIN / N_FFT) * FS, testPoints).bin;
+    const test = capture(n, actual, null, testBin, TEST_PHASE, null, testPoints);
+    expect(test).toHaveLength(testPoints * nominal.length);
+
+    for (const trainingPoints of [64, 128, 512, 4096]) {
+      const trainingBin = coherentFrequency(FS, (TRAIN_BIN / N_FFT) * FS, trainingPoints).bin;
+      const train = capture(n, actual, null, trainingBin, 0, null, trainingPoints);
+      const weights = calibrate(train, nominal, trainingBin, trainingPoints, trainingPoints);
+      const spectrum = analyzeSpectrum(reconstruct(test, weights), n);
+      expect(train).toHaveLength(trainingPoints * nominal.length);
+      expect(Array.from(weights).every(Number.isFinite)).toBe(true);
+      expect(spectrum.signal).toBe(testBin);
+      expect(Number.isFinite(spectrum.enob)).toBe(true);
+    }
   });
 
   it('keeps the finite weight fit well-defined at every selectable resolution', () => {

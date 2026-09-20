@@ -5,6 +5,7 @@
   import Segmented from '../../components/ui/Segmented.svelte';
   import ValueField from '../../components/ui/ValueField.svelte';
   import { nf } from '../../lib/format';
+  import { coherentFrequency } from '../../lib/frequency';
   import { gaussians } from '../../lib/rng';
   import { clamp } from '../../lib/scale';
 
@@ -38,6 +39,8 @@
   let sigma = $state(0.1);
   let noiseLsb = $state(0);
   let bin = $state(TEST_BIN);
+  let trainingPower = $state(Math.round(Math.log2(TRAIN_SAMPLES)));
+  let testPower = $state(Math.round(Math.log2(N_FFT)));
   let jitterPs = $state(0);
   let chip = $state(43);
   let seed = $state(1);
@@ -45,6 +48,11 @@
   let playing = $state(false);
   let hoverK = $state<number | null>(null);
   let hoverBin = $state<number | null>(null);
+
+  const trainingPoints = $derived(2 ** trainingPower);
+  const testPoints = $derived(2 ** testPower);
+  const trainingTone = $derived(coherentFrequency(FS, (TRAIN_BIN / N_FFT) * FS, trainingPoints));
+  const testTone = $derived(coherentFrequency(FS, (bin / N_FFT) * FS, testPoints));
 
   const nominals = $derived([binaryWeights(n), redundantWeights(n)]);
   // the capacitors one chip actually has
@@ -58,10 +66,11 @@
   // calibrate on one tone, show the spectra of another; independent of the stepped conversion
   const spectra = $derived(
     nominals.map((nominal, i) => {
-      const rows = N_FFT * nominal.length, scaled = noiseLsb ? normals[i].map((v) => v * noiseLsb) : null;
-      const test = capture(n, actuals[i], scaled?.subarray(0, rows) ?? null, bin, TEST_PHASE, clock?.subarray(0, N_FFT) ?? null);
-      const train = capture(n, actuals[i], scaled?.subarray(rows) ?? null, TRAIN_BIN, 0, clock?.subarray(N_FFT) ?? null);
-      const calibrated = calibrate(train, nominal, TRAIN_BIN);
+      const bank = N_FFT * nominal.length, testRows = testPoints * nominal.length, trainRows = trainingPoints * nominal.length;
+      const scaled = noiseLsb ? normals[i].map((v) => v * noiseLsb) : null;
+      const test = capture(n, actuals[i], scaled?.subarray(0, testRows) ?? null, testTone.bin, TEST_PHASE, clock?.subarray(0, testPoints) ?? null, testPoints);
+      const train = capture(n, actuals[i], scaled?.subarray(bank, bank + trainRows) ?? null, trainingTone.bin, 0, clock?.subarray(N_FFT, N_FFT + trainingPoints) ?? null, trainingPoints);
+      const calibrated = calibrate(train, nominal, trainingTone.bin, trainingPoints, trainingPoints);
       return [analyzeSpectrum(reconstruct(test, nominal), n), analyzeSpectrum(reconstruct(test, calibrated), n)];
     }),
   );
@@ -135,7 +144,7 @@
   {@const sp = spectra[i][k]}
   <div class="chart">
     <div class="cap">
-      <span class="label"><span class="tag">{NAMES[i]}</span>{k ? `${TRAIN_SAMPLES}-sample calibration` : 'Uncalibrated'}</span>
+      <span class="label"><span class="tag">{NAMES[i]}</span>{k ? `${trainingPoints}-point training` : 'Uncalibrated'}</span>
       <span>ENOB <b>{nf(sp.enob, 2)}</b> · SFDR <b>{nf(sp.sfdr, 1)} dB</b></span>
     </div>
     <SpectrumChart spectrum={sp} {n} series={i ? 2 : 1} hover={hoverBin} onhover={(b) => (hoverBin = b)} label="{NAMES[i]} SAR output spectrum, {k ? 'calibrated' : 'uncalibrated'}" />
@@ -161,9 +170,9 @@
       <p><b>What is left to lose.</b> An input counts as lost when its code comes out more than a whole LSB away from it, which no set of digital weights can put right; the sub-LSB spacing errors mismatch leaves everywhere are ordinary DNL and are not counted. With the margin held all the way down, the only inputs a redundant chip loses are at the very top, where its capacitors happen to add up short of full scale: a gain error, not a gap, and it shrinks as σ/2<sup><var>N</var>/2</sup>. A binary array has that same shortfall and, on top of it, a gap wherever mismatch let a weight outgrow everything after it.</p>
       <p><b>Capacitor mismatch.</b> Weight <var>w<sub>j</sub></var> is built from <var>w<sub>j</sub></var>/<var>w</var><sub>min</sub> unit capacitors, each with relative mismatch σ, so its relative error is σ/√units. New chip draws another set of errors.</p>
       <p><b>Comparator noise.</b> Gaussian, drawn anew for every decision. The stepped conversion uses one draw; New noise replaces it.</p>
-      <p><b>Calibration.</b> Sine-fit weight calibration: a least-squares fit of the bit columns plus an offset to a unit sine at the known frequency 499/4096 <var>f</var><sub>s</sub> = 12.18 MHz, using {TRAIN_SAMPLES} samples and rescaled to the nominal weight sum. The spectra use a separate 4096-sample tone set by Input frequency. A digital weight fit can correct the value of observed decisions; it cannot recreate an input interval that a non-redundant search skipped.</p>
-      <p><b>Spectrum.</b> 4096 conversions of a −0.5 dBFS sine, rectangular window. ENOB = (SNDR − 1.76) / 6.02. The largest spur is labelled with its harmonic order when it is one.</p>
-      <p><b>Sampling.</b> <var>f</var><sub>s</sub> = 100 MS/s. Both tones sit on an odd bin of the 4096-point record, so they are coherent and the FFT needs no window.</p>
+      <p><b>Calibration.</b> Sine-fit weight calibration: a least-squares fit of the bit columns plus an offset to a unit sine at the known frequency, using {trainingPoints} points and rescaled to the nominal weight sum. The fitted weights are then applied to an independent {testPoints}-point capture at a different frequency and phase. A digital weight fit can correct the value of observed decisions; it cannot recreate an input interval that a non-redundant search skipped.</p>
+      <p><b>Spectrum.</b> {testPoints} conversions of a −0.5 dBFS sine, rectangular window. ENOB = (SNDR − 1.76) / 6.02. The largest spur is labelled with its harmonic order when it is one.</p>
+      <p><b>Sampling.</b> <var>f</var><sub>s</sub> = 100 MS/s. Training and test tones are independently moved to the nearest odd coherent bin whenever either record length changes, so the FFT needs no window.</p>
       <p><b>Input frequency and clock jitter.</b> Mismatch and comparator noise act on a held sample and do not care about the input frequency; the sampling instant does. Gaussian jitter σ<sub>t</sub> turns the slope of the input into a voltage error, so it alone limits the converter to SNR = −20 log₁₀(2π<var>f</var><sub>in</sub>σ<sub>t</sub>) — 6 dB per doubling of the input frequency. Applied as ADCToolbox's <code>siggen.apply_jitter</code> does, by sampling the sine at <var>t</var> + Δ<var>t</var>.</p>
     </Notes>
   </header>
@@ -185,12 +194,19 @@
 
   <section class="compare">
     <div class="imp">
-      <span class="label">Stimulus and impairments, same for both</span>
-      <Range id="mismatch" min={0} max={0.1} step={0.001} output="{nf(sigma * 100, 1)} %" bind:value={sigma}>Unit-cap mismatch</Range>
-      <Range id="noise" min={0} max={1} step={0.05} output="{nf(noiseLsb, 2)} LSB" bind:value={noiseLsb}>Comparator noise</Range>
-      <Range id="fin" min={51} max={2045} step={2} output="{nf((bin / N_FFT) * FS * 1e-6, 2)} MHz" bind:value={bin}>Input frequency</Range>
-      <Range id="jitter" min={0} max={5} step={0.1} output="{nf(jitterPs, 1)} ps" bind:value={jitterPs}>Clock jitter</Range>
-      <button type="button" onclick={() => chip++} title="Draw another set of capacitor errors">New chip</button>
+      <div class="imp-group">
+        <span class="label group-label">Stimulus &amp; impairments</span>
+        <Range id="mismatch" min={0} max={0.1} step={0.001} output="{nf(sigma * 100, 1)} %" bind:value={sigma}>Unit-cap mismatch</Range>
+        <Range id="noise" min={0} max={1} step={0.05} output="{nf(noiseLsb, 2)} LSB" bind:value={noiseLsb}>Comparator noise</Range>
+        <Range id="fin" min={51} max={2045} step={2} output="{nf(testTone.fin * 1e-6, 2)} MHz" bind:value={bin}>Input frequency</Range>
+        <Range id="jitter" min={0} max={5} step={0.1} output="{nf(jitterPs, 1)} ps" bind:value={jitterPs}>Clock jitter</Range>
+        <button type="button" onclick={() => chip++} title="Draw another set of capacitor errors">New chip</button>
+      </div>
+      <div class="imp-group records">
+        <span class="label group-label">Calibration records</span>
+        <Range id="training-points" min={6} max={12} step={1} output="{trainingPoints} points" bind:value={trainingPower}>Training</Range>
+        <Range id="test-points" min={8} max={12} step={1} output="{testPoints} points" bind:value={() => testPower, (value) => { testPower = value; hoverBin = null; }}>Test FFT</Range>
+      </div>
     </div>
 
     {@render header(0)}
@@ -208,7 +224,7 @@
       </div>
     {/each}
     <div class="cal-summary">
-      <span class="label">After the same {TRAIN_SAMPLES}-sample calibration</span>
+      <span class="label">After the same {trainingPoints}-point training record</span>
       <b>{calibratedGap.enob >= 0 ? 'Redundant' : 'Binary'} +{nf(Math.abs(calibratedGap.enob), 2)} ENOB · {calibratedGap.sfdr >= 0 ? 'Redundant' : 'Binary'} +{nf(Math.abs(calibratedGap.sfdr), 1)} dB SFDR</b>
       <span>Digital weights cannot restore the {nf(gaps[0].fraction * 100, 2)}% of input range skipped by this binary array.</span>
     </div>
@@ -220,9 +236,12 @@
 
 <style>
   .compare { --rows: auto auto 78px minmax(0, 1fr) auto minmax(0, 1fr); padding-top: 10px; }
-  .imp { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 28px; }
-  .imp :global(.range) { --range-width: 110px; --range-output-width: 9ch; }
+  .imp { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: stretch; }
+  .imp-group { min-width: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 7px 22px; padding: 8px 10px; border: 1px solid var(--rule); border-radius: 6px; }
+  .imp :global(.range) { --range-width: 96px; --range-output-width: 9ch; }
   .imp .label { color: var(--ink-3); }
+  .group-label { flex: 0 0 100%; }
+  .records { --accent: var(--s1); align-content: center; }
   .meta { font-size: 12.5px; color: var(--ink-3); }
   .chip.off { color: var(--bad); box-shadow: inset 0 0 0 1px var(--bad); background: transparent; }
   .unreachable { display: inline-block; min-width: 28ch; font-weight: 500; color: var(--bad); font-variant-numeric: tabular-nums; }
@@ -243,6 +262,7 @@
   .sw.wrong { width: 9px; height: 9px; border-radius: 50%; background: transparent; box-shadow: inset 0 0 0 1.5px var(--bad); }
   .pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 18px; min-height: 0; }
   @media (max-width: 900px) {
+    .imp { grid-template-columns: minmax(0, 1fr); }
     .pair { order: 3; grid-template-columns: minmax(0, 1fr); row-gap: 16px; }
     .head .readout { min-height: 49.5px; align-content: center; }
     .pair .cap { min-height: 39px; }

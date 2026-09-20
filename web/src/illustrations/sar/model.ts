@@ -134,14 +134,23 @@ export function reconstruct(bits: Uint8Array, w: ArrayLike<number>): Float64Arra
 }
 
 /**
- * Bits of N_FFT conversions of a coherent −0.5 dBFS sine at `bin`. `noise` holds the comparator noise (LSB) row by row and
- * `timing` the sampling-instant error of each sample in sample periods, the way ADCToolbox's siggen applies clock jitter.
+ * Bits of `points` conversions of a coherent −0.5 dBFS sine at `bin`. `noise` holds the comparator noise (LSB) row by
+ * row and `timing` the sampling-instant error of each sample in sample periods, the way ADCToolbox's siggen applies
+ * clock jitter.
  */
-export function capture(n: number, w: ArrayLike<number>, noise: Float64Array | null, bin: number, phase: number, timing: Float64Array | null = null): Uint8Array {
+export function capture(
+  n: number,
+  w: ArrayLike<number>,
+  noise: Float64Array | null,
+  bin: number,
+  phase: number,
+  timing: Float64Array | null = null,
+  points = N_FFT,
+): Uint8Array {
   const m = w.length, half = 2 ** (n - 1), amp = half * 10 ** (AMP_DBFS / 20);
-  const bits = new Uint8Array(N_FFT * m);
-  for (let i = 0; i < N_FFT; i++) {
-    const x = half + amp * Math.sin((2 * Math.PI * bin * (i + (timing ? timing[i] : 0))) / N_FFT + phase);
+  const bits = new Uint8Array(points * m);
+  for (let i = 0; i < points; i++) {
+    const x = half + amp * Math.sin((2 * Math.PI * bin * (i + (timing ? timing[i] : 0))) / points + phase);
     convert(x, w, noise?.subarray(i * m, (i + 1) * m) ?? null, bits.subarray(i * m, (i + 1) * m));
   }
   return bits;
@@ -152,9 +161,9 @@ export function capture(n: number, w: ArrayLike<number>, noise: Float64Array | n
  * scale_calibration_output(target_weights = nominal), which rescales the weights to the nominal sum. The redundant LSB of
  * an ideal array never changes, so it comes back with a weight of zero.
  */
-export function calibrate(bits: Uint8Array, nominal: number[], bin: number, samples = TRAIN_SAMPLES): Float64Array {
+export function calibrate(bits: Uint8Array, nominal: number[], bin: number, samples = TRAIN_SAMPLES, recordPoints = N_FFT): Float64Array {
   const used = bits.length > samples * nominal.length ? bits.slice(0, samples * nominal.length) : bits;
-  const w = calibrateWeightSine(used, nominal.length, bin / N_FFT).weight;
+  const w = calibrateWeightSine(used, nominal.length, bin / recordPoints).weight;
   const scale = sum(nominal) / sum(w);
   return w.map((v) => v * scale);
 }
