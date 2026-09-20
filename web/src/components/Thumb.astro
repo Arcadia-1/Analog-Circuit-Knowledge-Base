@@ -1,6 +1,6 @@
 ---
 /** Small schematic previews for the home page. */
-interface Props { kind: 'pll' | 'divider' | 'sar' | 'inl' | 'err' | 'win' | 'fold' | 'ntf' | 'ti' | 'bits' | 'polar' | 'bode' | 'floor' | 'fom' | 'harm' | 'record' | 'repeat' | 'short' | 'train' | 'panel' }
+interface Props { kind: 'pll' | 'sar' | 'inl' | 'err' | 'win' | 'fold' | 'ntf' | 'ti' | 'bits' | 'polar' | 'bode' | 'floor' | 'fom' | 'harm' | 'record' | 'repeat' | 'short' | 'train' | 'panel' }
 const { kind } = Astro.props;
 const xs = Array.from({ length: 13 }, (_, i) => 6 + i * 14);
 const saw = [-14, -8, -2, 6, 14];
@@ -51,8 +51,6 @@ const steady = Array.from({ length: 11 }, (_, i) => `${10 + i * 17},${76 - (i < 
 const repeatability = Array.from({ length: 11 }, (_, i) => `${10 + i * 17},${(82 - 50 * (1 - 2 ** (-i / 3))).toFixed(1)}`).join(' ');
 const shortEven = Array.from({ length: 7 }, (_, i) => `${10 + i * 28},${[30, 62, 48, 69, 55, 64, 58][i]}`).join(' ');
 const shortOdd = Array.from({ length: 7 }, (_, i) => `${10 + i * 28},${[72, 44, 67, 49, 61, 46, 52][i]}`).join(' ');
-const dividerAcc = [0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1];
-const dividerMash = [0, 1, -2, 3, -2, 1, 0, 0, 1, -2, 3, -2];
 // a sine bent by a square term, and under it the harmonic the bend leaves behind
 const wave = (f: (u: number, t: number) => number, at: number, gain: number) =>
   Array.from({ length: 63 }, (_, i) => {
@@ -82,13 +80,6 @@ const asymptote = `4,${flat} ${corner},${flat} 188,${(flat + (perDb * 20 * (188 
       {xs.map((x, i) => <g class="s1"><line x1={x} y1="30" x2={x} y2={30 + ((i % 3) - 1)} /><circle cx={x} cy={30 + ((i % 3) - 1)} r="2.2" /></g>)}
       <line class="base" x1="0" y1="78" x2="188" y2="78" />
       {xs.map((x, i) => <g class="s2"><line x1={x} y1="78" x2={x} y2={78 + saw[i % 5]} /><circle cx={x} cy={78 + saw[i % 5]} r="2.2" /></g>)}
-    </>
-  ) : kind === 'divider' ? (
-    <>
-      <line class="base" x1="0" y1="38" x2="188" y2="38" />
-      {dividerAcc.map((v, i) => <line class="s1" x1={8 + i * 15.5} y1="38" x2={8 + i * 15.5} y2={38 - v * 18} />)}
-      <line class="base" x1="0" y1="78" x2="188" y2="78" />
-      {dividerMash.map((v, i) => <line class="s2" x1={8 + i * 15.5} y1="78" x2={8 + i * 15.5} y2={78 - v * 8} />)}
     </>
   ) : kind === 'win' ? (
     <>

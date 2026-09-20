@@ -11,7 +11,6 @@ export const publicLessonPaths = [
   '/adc/analog-panel/',
   '/adc/time-interleaved-adcs/',
   '/pll/integer-vs-fractional/',
-  '/pll/fractional-divider/',
 ] as const;
 
 export const publicExternalHrefs = [
