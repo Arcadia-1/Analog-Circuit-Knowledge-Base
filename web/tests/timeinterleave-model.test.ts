@@ -17,6 +17,7 @@ import {
   predictedSfdr,
   predictSpurs,
   read,
+  residualRms,
   spectrumOf,
   sweep,
   SWEEP,
@@ -327,6 +328,15 @@ describe('time-interleaved mismatch', () => {
       const measured = s.dbfs[bin] - (bin === N / 2 ? 10 * Math.log10(2) : 0);
       expect(measured).toBeCloseTo(spur.dbfs, 1);
     }
+  });
+
+  it('retains the time-domain records and reduces residual error after FFT calibration', () => {
+    const mm = mismatch(4, 0.003, 0.001, 5e-12);
+    const raw = read(4, 100e6, mm, 12, 'off');
+    const fixed = read(4, 100e6, mm, 12, 'fft');
+    expect(raw.rawData).toHaveLength(N);
+    expect(fixed.outData).toHaveLength(N);
+    expect(residualRms(fixed.outData, fixed.fin)).toBeLessThan(residualRms(raw.rawData, raw.fin) / 10);
   });
 
   it('lists each offset tone once, as large as the tone the pattern makes', () => {

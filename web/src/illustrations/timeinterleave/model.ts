@@ -285,6 +285,8 @@ export interface Reading {
   out: Spectrum;
   /** what extract_mismatch_sine still reads after calibration */
   left: Params | null;
+  rawData: Float64Array;
+  outData: Float64Array;
 }
 
 export function read(m: number, target: number, mm: Mismatch, bits: number, method: Method): Reading {
@@ -302,7 +304,17 @@ export function read(m: number, target: number, mm: Mismatch, bits: number, meth
     raw,
     out: y ? spectrumOf(y, bits) : raw,
     left: y ? extractMismatch(y, m, FS, fin) : null,
+    rawData: x,
+    outData: y ?? x,
   };
+}
+
+/** RMS error against the ideal uniformly sampled input, over the requested leading samples or the whole record. */
+export function residualRms(data: Float64Array, fin: number, count = data.length): number {
+  let power = 0;
+  const n = Math.min(count, data.length);
+  for (let i = 0; i < n; i++) power += (data[i] - AMP * Math.cos((2 * Math.PI * fin * i) / FS)) ** 2;
+  return Math.sqrt(power / n);
 }
 
 /** Where the sweep puts its tones: the middle of 40 equal steps from 0 to fs/2, each moved to its coherent bin. */

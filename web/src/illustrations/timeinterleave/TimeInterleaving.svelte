@@ -9,7 +9,8 @@
   import { clamp } from '../../lib/scale';
   import ChannelPlane from './ChannelPlane.svelte';
   import FinRuler from './FinRuler.svelte';
-  import { CHANNELS, channelNyquist, FS, mismatch, N, read, sweep, type Method, type Sweep } from './model';
+  import { CHANNELS, channelNyquist, FS, mismatch, N, read, residualRms, sweep, type Method, type Sweep } from './model';
+  import SampleTimingChart from './SampleTimingChart.svelte';
   import SpurSpectrum from './SpurSpectrum.svelte';
   import SweepChart from './SweepChart.svelte';
 
@@ -30,6 +31,7 @@
   let hoverBin = $state<number | null>(null);
   let hoverChannel = $state<number | null>(null);
   let hoverSweep = $state<number | null>(null);
+  let hoverSample = $state<number | null>(null);
 
   const mm = $derived(mismatch(m, gainPct / 100, offsetMv / 1e3, skewPs / 1e12));
   const r = $derived(read(m, target, mm, bits, method));
@@ -37,6 +39,8 @@
   const seen = $derived(foldFrequency(r.fin, FS / m));
   const zone = $derived(Math.floor(r.fin / nyquist) + 1);
   const worst = $derived(r.spurs.reduce((a, b) => (b.dbc > a.dbc ? b : a)));
+  const rawResidual = $derived(residualRms(r.rawData, r.fin) * 1e3);
+  const outResidual = $derived(residualRms(r.outData, r.fin) * 1e3);
 
   // the sweep takes a few dozen milliseconds: run it once the controls rest, and show the last one faded meanwhile
   let swept = $state<Sweep | null>(null);
@@ -101,12 +105,20 @@
   </section>
 
   <section class="compare">
-    <div class="chart wide">
+    <div class="chart">
       <div class="cap">
         <span class="left"><span class="label">Spectrum</span><span>{method === 'off' ? 'of the interleaved output' : 'after calibration, the raw one in grey'}; <span class="sym">○ □</span> where predict_spurs expects images and offset tones</span></span>
         <span>SFDR <b>{nf(r.out.sfdr, 1)} dB</b> · SNDR <b>{nf(r.out.sndr, 1)} dB</b>{method !== 'off' ? ` · raw ${nf(r.raw.sfdr, 1)}, ${nf(r.raw.sndr, 1)} dB` : ''}</span>
       </div>
       <SpurSpectrum spectrum={r.out} ghost={method === 'off' ? null : r.raw} spurs={r.spurs} {bits} hover={hoverBin} onhover={(b) => (hoverBin = b)} label="Spectrum of the interleaved output with the predicted spurs" />
+    </div>
+
+    <div class="chart">
+      <div class="cap">
+        <span class="left"><span class="label">Samples from the channel bank</span><span>marker position includes each channel's timing skew</span></span>
+        <span>error rms <b>{nf(outResidual, 2)} mV</b>{method !== 'off' ? ` · raw ${nf(rawResidual, 2)} mV` : ''}</span>
+      </div>
+      <SampleTimingChart raw={r.rawData} corrected={r.outData} truth={r.truth} fin={r.fin} {method} hover={hoverSample} onhover={(i) => (hoverSample = i)} label="Time-domain samples from each interleaved channel and the residual before and after calibration" />
     </div>
 
     <div class="chart">
@@ -144,13 +156,9 @@
   .s1 { color: var(--s1); }
   .s2 { color: var(--s2); }
   .wait { flex: 1 1 auto; display: grid; place-items: center; color: var(--ink-3); font-size: 13px; }
-  .compare { --rows: minmax(0, 0.9fr) minmax(0, 1fr); }
-  .wide { grid-column: 1 / -1; }
+  .compare { --rows: repeat(2, minmax(0, 1fr)); }
   @media (min-width: 901px) {
     .tuner { grid-template-columns: 430px minmax(0, 1fr); }
     .tuner-left { min-width: 0; }
-  }
-  @media (max-width: 900px) {
-    .wide { grid-column: auto; }
   }
 </style>
