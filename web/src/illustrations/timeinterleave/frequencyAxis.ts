@@ -2,7 +2,7 @@
 export function frequencyAxis(width: number, fs: number, points: number) {
   const compact = width < 520;
   const x0 = compact ? 94 : 150;
-  const x1 = width - (compact ? 62 : 74);
+  const x1 = width - (compact ? 70 : 120);
   const half = Math.floor(points / 2);
   const binOf = (frequency: number) => Math.max(0, Math.min(half, Math.round((frequency / fs) * points)));
   const sx = (bin: number) => x0 + (bin / half) * (x1 - x0);

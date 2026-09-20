@@ -17,6 +17,7 @@ import { fft, fftAny } from '../../lib/fft';
 import { coherentFrequency, foldFrequency } from '../../lib/frequency';
 import { gaussians } from '../../lib/rng';
 import { analyzeSpectrum, N_FFT, type Spectrum } from '../../lib/spectrum';
+import { fitSine } from '../errors/model';
 
 export const FS = 1e9;
 export const N = N_FFT;
@@ -322,6 +323,23 @@ export function calibrate(x: Float64Array, m: number, p: Params, fs: number, met
 /** analyze_spectrum on the ±0.5 V range: codes of the same resolution scale it to the full scale the port expects. */
 export const spectrumOf = (x: Float64Array, bits: number): Spectrum => analyzeSpectrum(x.map((v) => v * 2 ** bits), bits);
 
+/** A finite, noncoherent output record needs a window for display and a sine fit for total residual power. */
+export function outputSpectrum(x: Float64Array, bits: number, frequency: number, coherent: boolean): Spectrum {
+  if (coherent) return spectrumOf(x, bits);
+  const codes = x.map((v) => v * 2 ** bits);
+  const fit = fitSine(codes, frequency * x.length);
+  const spectrum = analyzeSpectrum(codes, bits, 'blackmanharris', 4);
+  // Remove the carrier before measuring a spur: its window skirt must not be counted as ADC distortion.
+  const residual = analyzeSpectrum(fit.error, bits, 'blackmanharris', 4);
+  let spurPower = 0;
+  for (let k = Math.max(1, residual.signal - 4); k <= Math.min(residual.inband - 1, residual.signal + 4); k++) {
+    spurPower += 10 ** (residual.dbfs[k] / 10);
+  }
+  const signalPower = (fit.amplitude / 2 ** (bits - 1)) ** 2;
+  const sndr = 20 * Math.log10(fit.amplitude / (Math.SQRT2 * fit.rmse));
+  return { ...spectrum, sndr, enob: (sndr - 1.76) / 6.02, sfdr: 10 * Math.log10(signalPower / spurPower), spur: residual.signal };
+}
+
 /** Direct decimation used by the lesson: no anti-alias filter, so tones fold into the reduced output band. */
 export function decimate(x: Float64Array, factor: number): Float64Array {
   if (!Number.isInteger(factor) || factor < 1 || factor > MAX_DECIMATION) throw new Error(`invalid decimation factor ${factor}`);
@@ -367,6 +385,23 @@ const zeroes = (m: number) => new Float64Array(m);
 const ones = (m: number) => new Float64Array(m).fill(1);
 const strongest = (spurs: Spur[]): number => Math.max(...spurs.map((s) => s.dbc));
 
+/** Downsampling visits c = 0, D, 2D, … modulo M. Combine channel phasors BEFORE taking magnitudes. */
+export function outputSpurs(p: Params, fs: number, factor = 1): Spur[] {
+  const channels: number[] = [];
+  for (let c = 0; !channels.includes(c); c = (c + factor) % p.gain.length) channels.push(c);
+  const take = (x: Float64Array) => Float64Array.from(channels, (c) => x[c]);
+  const sampled = { ...p, gain: take(p.gain), offset: take(p.offset), skew: take(p.skew) };
+  const fsOut = fs / factor;
+  const real = mean(sampled.gain.map((g, c) => g * Math.cos(2 * Math.PI * p.fin * sampled.skew[c])));
+  const imag = mean(sampled.gain.map((g, c) => g * Math.sin(2 * Math.PI * p.fin * sampled.skew[c])));
+  const carrierDbfs = 20 * Math.log10(p.amp * Math.hypot(real, imag) / 0.5);
+  return predictSpurs(sampled, fsOut, 0.5).filter((s) => s.amp > 1e-14).map((s) => {
+    // A Nyquist tone has twice the power of an interior sinusoid with the same peak amplitude.
+    const dbfs = s.dbfs + (Math.abs(s.freq - fsOut / 2) < fsOut * 1e-12 ? 10 * Math.log10(2) : 0);
+    return { ...s, dbfs, dbc: dbfs - carrierDbfs };
+  });
+}
+
 /** Active source harmonics, folded into the output Nyquist band. */
 export function harmonicTones(fin: number, harmonics: Partial<HarmonicLevels>, outputFs: number): HarmonicTone[] {
   return HARMONIC_ORDERS.flatMap((order) => {
@@ -385,9 +420,10 @@ export function contributions(
   outputFs = converterFs,
 ): Contribution[] {
   const m = mm.gain.length;
+  const factor = Math.round(converterFs / outputFs);
   const images = (gain: Float64Array, skew: Float64Array) =>
-    predictSpurs({ fin, amp: AMP, gain, offset: zeroes(m), skew }, converterFs, 0.5).filter((s) => s.kind === 'image');
-  const offset = predictSpurs({ fin, amp: AMP, gain: ones(m), offset: mm.offset, skew: zeroes(m) }, converterFs, 0.5).filter((s) => s.kind === 'offset');
+    outputSpurs({ fin, amp: AMP, gain, offset: zeroes(m), skew }, converterFs, factor).filter((s) => s.kind === 'image');
+  const offset = outputSpurs({ fin, amp: AMP, gain: ones(m), offset: mm.offset, skew: zeroes(m) }, converterFs, factor).filter((s) => s.kind === 'offset');
   const gain = images(mm.gain, zeroes(m));
   const skew = images(ones(m), mm.skew);
   const bwGain = new Float64Array(m), bwSkew = new Float64Array(m);
@@ -424,6 +460,9 @@ export interface Reading {
   /** Sample rate and record length after direct decimation. */
   fsOut: number;
   fftPoints: number;
+  coherent: boolean;
+  /** Windowed spur estimates need room to separate the carrier from DC and Nyquist. */
+  metricsResolved: boolean;
   raw: Spectrum;
   /** the calibrated capture, or the raw one again when calibration is off */
   out: Spectrum;
@@ -442,11 +481,10 @@ export function read(m: number, target: number, mm: Mismatch, bits: number, meth
   const measured = extractMismatch(x, m, fs, fin);
   const y = method === 'off' ? null : calibrate(x, m, measured, fs, method);
   const rawRecord = decimate(x, decimation), outRecord = y ? decimate(y, decimation) : rawRecord;
-  const raw = spectrumOf(rawRecord, bits);
-  const hasHarmonics = HARMONIC_ORDERS.some((order) => harmonicLevel(options.harmonics ?? {}, order) > -100);
-  const hasExtendedModel = Boolean(mm.bandwidth || options.jitter || hasHarmonics || options.fs);
-  const spurs = predictSpurs(hasExtendedModel ? physicalParams(mm, fin, fs) : measured, fs, 0.5)
-    .map((spur) => ({ ...spur, freq: foldFrequency(spur.freq, fsOut) }));
+  const coherent = N % decimation === 0;
+  const frequency = foldFrequency(fin, fsOut) / fsOut;
+  const raw = outputSpectrum(rawRecord, bits, frequency, coherent);
+  const spurs = outputSpurs(physicalParams(mm, fin, fs), fs, decimation);
   return {
     fin,
     bin,
@@ -456,8 +494,10 @@ export function read(m: number, target: number, mm: Mismatch, bits: number, meth
     harmonics: harmonicTones(fin, options.harmonics ?? {}, fsOut),
     fsOut,
     fftPoints: rawRecord.length,
+    coherent,
+    metricsResolved: coherent || (rawRecord.length >= 64 && frequency * rawRecord.length > 5 && (0.5 - frequency) * rawRecord.length > 5),
     raw,
-    out: y ? spectrumOf(outRecord, bits) : raw,
+    out: y ? outputSpectrum(outRecord, bits, frequency, coherent) : raw,
     left: y ? extractMismatch(y, m, fs, fin) : null,
     rawData: x,
     outData: y ?? x,

@@ -1,23 +1,19 @@
 <script lang="ts">
-  import Notes from '../../components/ui/Notes.svelte';
-  import Range from '../../components/ui/Range.svelte';
   import Segmented from '../../components/ui/Segmented.svelte';
-  import ValueField from '../../components/ui/ValueField.svelte';
   import { freqText, nf } from '../../lib/format';
   import { foldFrequency } from '../../lib/frequency';
-  import { clamp } from '../../lib/scale';
   import ContributionMap from './ContributionMap.svelte';
-  import FinRuler from './FinRuler.svelte';
-  import { CHANNELS, contributions, mismatch, N, read, residualRms, type HarmonicLevels } from './model';
+  import EditableRange from './EditableRange.svelte';
+  import { CHANNELS, contributions, mismatch, N, read, type HarmonicLevels } from './model';
   import SampleTimingChart from './SampleTimingChart.svelte';
   import SpurSpectrum from './SpurSpectrum.svelte';
 
   let m = $state(4);
-  let sampleRateGHz = $state(1);
-  let target = $state(100e6);
+  let sampleRateGHz = $state(10);
+  let inputGHz = $state(1);
   let gainPct = $state(0.3);
   let offsetMv = $state(1);
-  let skewPs = $state(5);
+  let skewPs = $state(0.1);
   let bandwidthPct = $state(2);
   let jitterPs = $state(0.5);
   let h2Dbc = $state(-65);
@@ -30,20 +26,19 @@
   let hoverSample = $state<number | null>(null);
 
   const fs = $derived(sampleRateGHz * 1e9);
+  const inputMinGHz = $derived(Math.max(0.001, sampleRateGHz / N));
+  const inputMaxGHz = $derived(sampleRateGHz / 2 - sampleRateGHz / N);
   const harmonics: HarmonicLevels = $derived({ 2: h2Dbc, 3: h3Dbc, 5: h5Dbc, 7: h7Dbc });
+
   $effect(() => {
-    const high = fs / 2 - fs / N;
-    if (target > high) target = high;
+    inputGHz = Math.max(inputMinGHz, Math.min(inputMaxGHz, inputGHz));
   });
 
   const mm = $derived(mismatch(m, gainPct / 100, offsetMv / 1e3, skewPs / 1e12, bandwidthPct / 100));
-  const r = $derived(read(m, target, mm, bits, 'off', { fs, jitter: jitterPs / 1e12, harmonics, decimation }));
+  const r = $derived(read(m, inputGHz * 1e9, mm, bits, 'off', { fs, jitter: jitterPs / 1e12, harmonics, decimation }));
   const seen = $derived(foldFrequency(r.fin, fs / m));
   const zone = $derived(Math.min(m, Math.floor(r.fin / (fs / (2 * m))) + 1));
-  const error = $derived(residualRms(r.rawData, r.fin, r.rawData.length, fs, harmonics) * 1e3);
   const sourceRows = $derived(contributions(mm, r.fin, fs, harmonics, jitterPs / 1e12, r.fsOut));
-
-  const setTarget = (hz: number) => (target = clamp(hz, Math.max(1e6, fs / N), fs / 2 - fs / N));
   const rateText = (hz: number) => freqText(hz).replace(/Hz$/, 'S/s');
 </script>
 
@@ -51,61 +46,60 @@
   <header class="top">
     <a class="crumb" href="/#lessons">← All lessons</a>
     <h1>Time-interleaved ADCs</h1>
-    <p class="sub">Slower converters take turns; every repeating channel difference leaves a distinct spectral signature.</p>
-    <div class="model-notes">
-      <Notes>
-        <p><b>Taking turns.</b> <var>M</var> converters, each running at <var>f</var><sub>s</sub>/<var>M</var>, fill the sample slots of one converter at <var>f</var><sub>s</sub>. Any channel-to-channel difference repeats every <var>M</var> samples, so it creates tones or images spaced by <var>f</var><sub>s</sub>/<var>M</var>.</p>
-        <p><b>Each error has a signature.</b> Offset creates fixed tones at multiples of <var>f</var><sub>s</sub>/<var>M</var>. Gain, timing skew, and bandwidth mismatch create shifted copies of the input around those multiples. Timing error grows with input frequency; bandwidth error contributes both gain and phase error.</p>
-        <p><b>Jitter and harmonics look different.</b> Random aperture jitter spreads energy into a broadband floor. H2, H3, H5, and H7 remain discrete tones and each has an independent level.</p>
-        <p><b>Bandwidth model.</b> Every channel has a one-pole input response whose nominal corner is <var>f</var><sub>s</sub>/2. The bandwidth control spreads those corners about their mean; the common roll-off is divided out so the page shows only mismatch.</p>
-        <p><b>Decimation.</b> The converter always captures {N} samples. Keeping every Dth sample uses no anti-alias filter here, so every tone and mismatch image folds again into the output Nyquist band. The output FFT contains ⌈{N}/D⌉ points.</p>
-      </Notes>
-    </div>
   </header>
 
-  <section class="tuner" aria-label="Input frequency">
-    <div class="tuner-left">
-      <label class="label" for="fin">Input</label>
-      <ValueField id="fin" value={r.fin / 1e6} digits={3} unit="MHz" step={1} onchange={(v) => setTarget(v * 1e6)} title="Type a frequency in MHz, or use ↑ ↓ to step 1 MHz (Shift: 10 MHz)" />
-      <div class="legend">
-        <span>each channel samples at <b class="mono">{rateText(fs / m)}</b> and sees the tone at <b class="mono">{freqText(seen)}</b></span>
-        <span>channel Nyquist zone <b class="mono">{zone}</b> of {m}</span>
+  <section class="workspace">
+    <aside class="control-panel" aria-label="Converter and error settings">
+      <div class="control-group">
+        <div class="group-head">
+          <span class="label">Sampling</span>
+          <span>{rateText(r.fsOut)} out · {r.fftPoints} FFT points</span>
+        </div>
+        <EditableRange id="input-frequency" min={inputMinGHz} max={inputMaxGHz} step={0.001} digits={3} unit="GHz" bind:value={inputGHz}>Input</EditableRange>
+        <EditableRange id="sample-rate" min={0.5} max={10} step={0.1} digits={1} unit="GS/s" bind:value={sampleRateGHz}>Sample rate</EditableRange>
+        <div class="channel-row">
+          <span>Channels</span>
+          <Segmented size="sm" mono label="Number of channels" options={CHANNELS.map((c) => ({ value: c, label: String(c) }))} bind:value={m} />
+        </div>
+        <EditableRange id="bits" min={8} max={16} step={1} digits={0} unit="bits" bind:value={bits}>Resolution</EditableRange>
+        <EditableRange id="decimation" min={1} max={255} step={1} digits={0} unit="" prefix="÷" bind:value={decimation}>Decimation</EditableRange>
+        <div class="sampling-readout">
+          <span>actual input <b>{freqText(r.fin)}</b></span>
+          <span>each channel {rateText(fs / m)} · sees {freqText(seen)}</span>
+          <span>channel Nyquist zone {zone} of {m}</span>
+        </div>
       </div>
-    </div>
-    <FinRuler f={r.fin} {fs} {m} onchange={setTarget} />
-  </section>
 
-  <section class="controls" aria-label="Converter and error settings">
-    <div class="control-card converter">
-      <div class="card-head"><span class="label">Sampling</span><span class="card-meta">output {rateText(r.fsOut)} · FFT {r.fftPoints} points</span></div>
-      <div class="channel-row"><span>Channels</span><Segmented size="sm" mono label="Number of channels" options={CHANNELS.map((c) => ({ value: c, label: String(c) }))} bind:value={m} /></div>
-      <Range id="sample-rate" min={0.5} max={10} step={0.1} output="{nf(sampleRateGHz, 1)} GS/s" bind:value={sampleRateGHz}>Sample rate</Range>
-      <Range id="bits" min={8} max={16} step={1} output="{bits} bits" bind:value={bits}>Resolution</Range>
-      <Range id="decimation" min={1} max={255} step={1} output="÷{decimation}" bind:value={decimation}>Decimation</Range>
-    </div>
-    <div class="control-card accent2">
-      <div class="card-head"><span class="label">Channel mismatch · rms</span></div>
-      <Range id="offset" min={0} max={8} step={0.1} output="{nf(offsetMv, 1)} mV" bind:value={offsetMv}>Offset</Range>
-      <Range id="gain" min={0} max={3} step={0.05} output="{nf(gainPct, 2)} %" bind:value={gainPct}>Gain</Range>
-      <Range id="skew" min={0} max={10} step={0.1} output="{nf(skewPs, 1)} ps" bind:value={skewPs}>Skew</Range>
-      <Range id="bandwidth" min={0} max={10} step={0.1} output="{nf(bandwidthPct, 1)} %" bind:value={bandwidthPct}>Bandwidth</Range>
-    </div>
-    <div class="control-card source">
-      <div class="card-head"><span class="label">Clock &amp; source</span></div>
-      <Range id="jitter" min={0} max={5} step={0.05} output="{nf(jitterPs, 2)} ps" bind:value={jitterPs}>Jitter</Range>
-      <Range id="h2" min={-100} max={-40} step={1} output={h2Dbc <= -100 ? 'off' : `${nf(h2Dbc, 0)} dBc`} bind:value={h2Dbc}>H2</Range>
-      <Range id="h3" min={-100} max={-40} step={1} output={h3Dbc <= -100 ? 'off' : `${nf(h3Dbc, 0)} dBc`} bind:value={h3Dbc}>H3</Range>
-      <Range id="h5" min={-100} max={-40} step={1} output={h5Dbc <= -100 ? 'off' : `${nf(h5Dbc, 0)} dBc`} bind:value={h5Dbc}>H5</Range>
-      <Range id="h7" min={-100} max={-40} step={1} output={h7Dbc <= -100 ? 'off' : `${nf(h7Dbc, 0)} dBc`} bind:value={h7Dbc}>H7</Range>
-    </div>
-  </section>
+      <div class="control-group accent2">
+        <div class="group-head"><span class="label">Channel mismatch · rms</span></div>
+        <EditableRange id="offset" min={0} max={8} step={0.1} digits={1} unit="mV" bind:value={offsetMv}>Offset</EditableRange>
+        <EditableRange id="gain" min={0} max={3} step={0.05} digits={2} unit="%" bind:value={gainPct}>Gain</EditableRange>
+        <EditableRange id="skew" min={0} max={2} step={0.01} digits={2} unit="ps" bind:value={skewPs}>Skew</EditableRange>
+        <EditableRange id="bandwidth" min={0} max={10} step={0.1} digits={1} unit="%" bind:value={bandwidthPct}>Bandwidth</EditableRange>
+      </div>
 
-  <section class="compare">
-    <div class="frequency-stack">
-      <div class="chart">
+      <div class="control-group source">
+        <div class="group-head"><span class="label">Clock &amp; source</span></div>
+        <EditableRange id="jitter" min={0} max={5} step={0.05} digits={2} unit="ps" bind:value={jitterPs}>Jitter</EditableRange>
+        <EditableRange id="h2" min={-100} max={-40} step={1} digits={0} unit="dBc" bind:value={h2Dbc}>H2</EditableRange>
+        <EditableRange id="h3" min={-100} max={-40} step={1} digits={0} unit="dBc" bind:value={h3Dbc}>H3</EditableRange>
+        <EditableRange id="h5" min={-100} max={-40} step={1} digits={0} unit="dBc" bind:value={h5Dbc}>H5</EditableRange>
+        <EditableRange id="h7" min={-100} max={-40} step={1} digits={0} unit="dBc" bind:value={h7Dbc}>H7</EditableRange>
+      </div>
+    </aside>
+
+    <section class="visuals" aria-label="Time and frequency views">
+      <div class="chart time-chart">
         <div class="cap">
-          <span class="left"><span class="label">Output spectrum</span><span>{r.fftPoints}-point FFT · {rateText(r.fsOut)}</span></span>
-          <span>SFDR <b>{nf(r.raw.sfdr, 1)} dB</b> · SNDR <b>{nf(r.raw.sndr, 1)} dB</b></span>
+          <span class="left"><span class="label">Time domain</span><span>{freqText(r.fin)} input · four channel turns shown</span></span>
+        </div>
+        <SampleTimingChart samples={r.rawData} truth={r.truth} fin={r.fin} {fs} {harmonics} hover={hoverSample} onhover={(i) => (hoverSample = i)} label="Time-domain input and interleaved channel samples" />
+      </div>
+
+      <div class="chart spectrum-chart">
+        <div class="cap">
+          <span class="left"><span class="label">Output spectrum</span><span>{r.fftPoints}-point FFT · {rateText(r.fsOut)} · {r.coherent ? 'rectangular' : 'Blackman–Harris'}</span></span>
+          <span title={r.metricsResolved ? 'Finite-record estimates' : 'Record too short or carrier too close to DC / Nyquist'}>SFDR <b>{r.metricsResolved ? nf(r.raw.sfdr, 1) : '—'} dB</b> · SNDR <b>{r.metricsResolved ? nf(r.raw.sndr, 1) : '—'} dB</b></span>
         </div>
         <SpurSpectrum spectrum={r.raw} spurs={r.spurs} harmonics={r.harmonics} {bits} fs={r.fsOut} points={r.fftPoints} hover={hoverBin} onhover={(b) => (hoverBin = b)} label="Spectrum of the interleaved and decimated output" />
       </div>
@@ -113,57 +107,41 @@
       <div class="chart contribution-chart">
         <div class="cap">
           <span class="left"><span class="label">Where each imperfection appears</span><span>same frequency axis as the FFT above</span></span>
-          <span><span class="sym">○ □</span> tones · band = jitter</span>
         </div>
         <ContributionMap rows={sourceRows} fs={r.fsOut} points={r.fftPoints} label="Spectral signature of offset, gain, timing, bandwidth, harmonics, and jitter" />
       </div>
-    </div>
-
-    <div class="chart sample-chart">
-      <div class="cap">
-        <span class="left"><span class="label">Samples from the channel bank</span><span>marker position includes fixed timing skew</span></span>
-        <span>error rms <b>{nf(error, 2)} mV</b></span>
-      </div>
-      <SampleTimingChart samples={r.rawData} truth={r.truth} fin={r.fin} {fs} {harmonics} hover={hoverSample} onhover={(i) => (hoverSample = i)} label="Time-domain input, interleaved channel samples, and sample error" />
-    </div>
+    </section>
   </section>
 </main>
 
 <style>
-  .page { height: auto; grid-template-rows: auto auto auto minmax(540px, 1fr); min-height: calc(100dvh - 49px); }
-  .model-notes { margin-left: auto; }
-  .tuner { border-top: 1px solid var(--rule); padding-top: 8px; }
-  .legend b { font-weight: 500; color: var(--ink); }
-  .controls { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; align-items: stretch; }
-  .control-card { min-width: 0; display: grid; gap: 7px; padding: 10px 12px; border: 1px solid var(--rule); border-radius: 4px; }
-  .card-head { min-height: 18px; display: flex; align-items: baseline; justify-content: space-between; gap: 8px; color: var(--ink-3); }
-  .card-meta { color: var(--ink-2); font: 12px var(--mono); white-space: nowrap; }
-  .channel-row { display: grid; grid-template-columns: 84px minmax(0, 1fr); align-items: center; gap: 8px; font-size: 13px; color: var(--ink-2); }
-  .control-card :global(.range) { display: grid; grid-template-columns: 84px minmax(72px, 1fr) 8.5ch; gap: 8px; --range-width: 100%; --range-output-width: 8.5ch; }
+  .page { height: auto; min-height: calc(100dvh - 49px); grid-template-rows: auto minmax(0, 1fr); max-width: 1600px; gap: 14px; }
+  .top { padding-bottom: 10px; border-bottom: 1px solid var(--rule); }
+  .workspace { min-width: 0; display: grid; grid-template-columns: minmax(330px, 380px) minmax(0, 1fr); gap: 26px; align-items: start; }
+  .control-panel { position: sticky; top: 62px; min-width: 0; display: grid; gap: 10px; align-self: start; }
+  .control-group { min-width: 0; display: grid; gap: 6px; padding: 11px 12px 12px; border: 1px solid var(--rule); border-radius: 5px; }
+  .group-head { min-height: 19px; display: flex; align-items: baseline; justify-content: space-between; gap: 8px; color: var(--ink-3); font-size: 11.5px; }
+  .group-head > :last-child { text-align: right; }
+  .channel-row { display: grid; grid-template-columns: 76px minmax(0, 1fr); align-items: center; gap: 8px; min-height: 27px; color: var(--ink-2); font-size: 12.5px; }
+  .channel-row :global(.segmented) { width: 100%; }
+  .sampling-readout { display: grid; gap: 2px; padding-top: 5px; border-top: 1px solid var(--rule); color: var(--ink-3); font-size: 11.5px; }
+  .sampling-readout b { color: var(--ink); font: 500 11.5px var(--mono); }
   .source { --accent: var(--s1); }
-  .sym { color: var(--ink-3); font-family: var(--mono); }
-  .compare { --rows: minmax(540px, 1fr); }
-  .frequency-stack { min-width: 0; min-height: 0; display: grid; grid-template-rows: minmax(290px, 1.15fr) minmax(230px, .85fr); gap: 12px; }
-  .sample-chart { min-width: 0; }
-  @media (min-width: 901px) {
-    .tuner { grid-template-columns: 430px minmax(0, 1fr); }
-    .tuner-left { min-width: 0; }
-  }
-  @media (max-width: 1120px) and (min-width: 701px) {
-    .controls { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .source { grid-column: 1 / -1; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .source .card-head { grid-column: 1 / -1; }
+  .visuals { min-width: 0; display: grid; grid-template-rows: 300px 340px 280px; gap: 18px; }
+  .chart { min-width: 0; }
+  .cap { min-height: 22px; }
+  @media (max-width: 1050px) and (min-width: 901px) {
+    .workspace { grid-template-columns: 330px minmax(0, 1fr); gap: 18px; }
   }
   @media (max-width: 900px) {
-    .model-notes { margin-left: 0; }
-    .compare { min-height: 0; }
-    .frequency-stack { grid-template-rows: 300px 260px; }
-    .sample-chart { height: 320px; }
+    .workspace { grid-template-columns: minmax(0, 1fr); }
+    .control-panel { position: static; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .control-group:first-child { grid-row: span 2; }
+    .visuals { grid-template-rows: 300px 320px 270px; }
   }
   @media (max-width: 700px) {
-    .controls { grid-template-columns: minmax(0, 1fr); }
-    .source { grid-column: auto; display: grid; }
-    .source .card-head { grid-column: auto; }
-    .control-card :global(.range) { grid-template-columns: 76px minmax(70px, 1fr) 8.5ch; }
+    .control-panel { grid-template-columns: minmax(0, 1fr); }
+    .control-group:first-child { grid-row: auto; }
+    .visuals { grid-template-rows: 280px 300px 260px; }
   }
 </style>

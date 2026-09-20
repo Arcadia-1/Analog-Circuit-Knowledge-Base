@@ -29,7 +29,7 @@
   }
 
   const level = (row: Contribution) => {
-    if (!Number.isFinite(row.level)) return 'off';
+    if (!Number.isFinite(row.level)) return row.broadband || row.id === 'harmonics' ? 'off' : 'no spur';
     return row.broadband ? `${nf(-row.level, 1)} dB SNR` : `${nf(row.level, 1)} dBc`;
   };
 </script>
@@ -45,7 +45,7 @@
       <line class="lane" x1={g.x0} x2={g.x1} y1={g.sy(i)} y2={g.sy(i)} />
       <text class="source" x="6" y={g.sy(i) - 4}>{row.label}</text>
       {#if !g.compact}<text class="note" x="6" y={g.sy(i) + 11}>{row.note}</text>{/if}
-      <text class="level" x={width - 6} y={g.sy(i)} text-anchor="end" dominant-baseline="central">{level(row)}</text>
+      <text class="level" x={width - 10} y={g.sy(i)} text-anchor="end" dominant-baseline="central">{level(row)}</text>
       {#if row.broadband && Number.isFinite(row.level)}
         <rect class="floor {row.id}" x={g.x0} y={g.sy(i) - 5} width={g.x1 - g.x0} height="10" />
       {:else}
