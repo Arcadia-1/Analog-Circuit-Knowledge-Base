@@ -14,6 +14,8 @@ export interface Topic {
   items: Illustration[];
 }
 
+import { isPublicLessonPath } from './publication';
+
 export const topics: Topic[] = [
   {
     name: 'Analog-to-digital converters',
@@ -123,6 +125,11 @@ export const topics: Topic[] = [
     ],
   },
 ];
+
+/** The small, reviewed set shown on the public home page. */
+export const featuredLessons = topics
+  .flatMap((topic) => topic.items)
+  .filter((item) => isPublicLessonPath(item.href));
 
 /** Pages that are not ADCToolbox: the PLL one until it has a home of its own, and other people's tools. */
 export const related: Topic = {

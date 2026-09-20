@@ -1,6 +1,7 @@
 ---
 import SiteHeader from '../components/SiteHeader.astro';
 import SiteFooter from '../components/SiteFooter.astro';
+import { isLessonPath, isPublicLessonPath } from '../data/publication';
 import '../styles/global.css';
 
 interface Props {
@@ -11,6 +12,7 @@ interface Props {
 }
 const { title, description, visits = true } = Astro.props;
 const canonical = new URL(Astro.url.pathname, Astro.site);
+const holdFromIndex = isLessonPath(Astro.url.pathname) && !isPublicLessonPath(Astro.url.pathname);
 ---
 <!doctype html>
 <html lang="en">
@@ -19,6 +21,7 @@ const canonical = new URL(Astro.url.pathname, Astro.site);
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title === 'ADC Toolbox' ? `${title} · ADC tutorials & experiments` : `${title} · ADC Toolbox`}</title>
     <meta name="description" content={description} />
+    {holdFromIndex && <meta name="robots" content="noindex, follow" />}
     <link rel="icon" href="/adc-toolbox-logo.svg?v=20260918" type="image/svg+xml" />
     <link rel="shortcut icon" href="/adc-toolbox-logo.svg?v=20260918" />
     <link rel="canonical" href={canonical} />

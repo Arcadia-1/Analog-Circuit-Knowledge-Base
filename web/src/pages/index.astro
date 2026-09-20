@@ -1,8 +1,7 @@
 ---
 import Base from '../layouts/Base.astro';
 import Entry from '../components/Entry.astro';
-import { related, topics } from '../data/illustrations';
-const lessons = topics.flatMap((topic) => topic.items);
+import { featuredLessons } from '../data/illustrations';
 const SIGNAL_W = 240;
 const SIGNAL_H = 180;
 const sineY = (phase: number) => SIGNAL_H / 2 - 58 * Math.sin(2 * Math.PI * phase);
@@ -39,16 +38,7 @@ const digitalPath = `M0 ${SIGNAL_H / 2} ` + Array.from({ length: 32 }, (_, i) =>
     <div class="content">
       <section id="lessons" aria-label="Interactive lessons">
         <div class="lesson-grid">
-          {lessons.map((item) => <Entry item={item} />)}
-        </div>
-      </section>
-
-      <section id="related" aria-labelledby="related-title">
-        <div class="section-head">
-          <h2 id="related-title">More to explore</h2>
-        </div>
-        <div class="lesson-grid related-grid">
-          {related.items.map((item) => <Entry item={item} />)}
+          {featuredLessons.map((item) => <Entry item={item} />)}
         </div>
       </section>
     </div>
@@ -68,17 +58,12 @@ const digitalPath = `M0 ${SIGNAL_H / 2} ` + Array.from({ length: 32 }, (_, i) =>
   .analog { stroke: var(--ink-3); stroke-width: 1.3; stroke-dasharray: 3 4; opacity: 0.6; }
   .digital { stroke: var(--brand); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
   .content { max-width: 1152px; margin: auto; padding: 24px 32px 40px; }
-  .section-head { padding-bottom: 13px; margin-bottom: 20px; border-bottom: 1px solid var(--rule); }
-  h2 { margin: 0; font-size: 15px; font-weight: 600; letter-spacing: -0.02em; }
   .lesson-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 32px; }
-  #related { margin-top: 32px; }
-  .related-grid :global(.entry) { padding-inline: 0; }
   @media (max-width: 760px) { .signal { width: 150px; margin: 0 12px 0 0; padding-inline: 0; } .hero-inner { gap: 24px; } .lesson-grid { column-gap: 22px; } }
   @media (max-width: 600px) {
     .hero-inner { padding: 26px 20px; }
     .signal { display: none; }
     .content { padding: 24px 20px 32px; }
     .lesson-grid { grid-template-columns: minmax(0, 1fr); }
-    #related { margin-top: 26px; }
   }
 </style>

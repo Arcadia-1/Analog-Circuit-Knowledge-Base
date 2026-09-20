@@ -19,7 +19,7 @@
 
 <main class="page">
   <header class="top">
-    <a class="crumb" href="/#related">← More to explore</a>
+    <a class="crumb" href="/#lessons">← Interactive lessons</a>
     <h1>Inside a fractional divider</h1>
     <p class="sub">An accumulator is the first-order case; MASH 1-1-1 shapes the same error to third order.</p>
     <div class="pick accent2">

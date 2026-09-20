@@ -3,6 +3,9 @@ import { defineConfig } from 'astro/config';
 import react from '@astrojs/react';
 import svelte from '@astrojs/svelte';
 import sitemap from '@astrojs/sitemap';
+import { publicLessonPaths } from './src/data/publication.ts';
+
+const publicPages = new Set(['/', ...publicLessonPaths]);
 
 // ADCToolbox: the interactive side of the toolbox. Every page is prerendered; the interactive parts are Svelte islands
 // and the copied analytics module (analytics/) is React. The reference manual is built into dist/doc by the deploy
@@ -11,6 +14,6 @@ export default defineConfig({
   site: 'https://adctoolbox.tokenzhang.com',
   output: 'static',
   trailingSlash: 'always',
-  integrations: [svelte(), react(), sitemap({ filter: (page) => !page.endsWith('/analytics/') })],
+  integrations: [svelte(), react(), sitemap({ filter: (page) => publicPages.has(new URL(page).pathname) })],
   build: { format: 'directory', inlineStylesheets: 'auto' },
 });
