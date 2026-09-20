@@ -71,8 +71,9 @@ to the source except for the page title; update it by copying the folder again. 
 
 `.github/workflows/deploy-web.yml` installs, checks and builds the site for every pull request that touches `web/`. On `main` it
 deploys `dist/` to the existing Cloudflare Pages project `ams-class`, ensures
-`circuits-and-systems.tokenzhang.com` is attached, and deploys the analytics route on both domains. The old host keeps the
-ADCToolbox manual; its home page and tutorial paths redirect to the matching path on the new host.
+`circuits-and-systems.tokenzhang.com` is attached, and preserves the host-aware redirects. The analytics Worker route for
+both domains is declared in `worker/wrangler.jsonc` and deployed separately with `pnpm deploy:analytics`. The old host keeps
+the ADCToolbox manual; its home page and tutorial paths redirect to the matching path on the new host.
 
 ## Editorial and visual direction
 
