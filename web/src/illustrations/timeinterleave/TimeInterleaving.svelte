@@ -146,6 +146,10 @@
   .wait { flex: 1 1 auto; display: grid; place-items: center; color: var(--ink-3); font-size: 13px; }
   .compare { --rows: minmax(0, 0.9fr) minmax(0, 1fr); }
   .wide { grid-column: 1 / -1; }
+  @media (min-width: 901px) {
+    .tuner { grid-template-columns: 430px minmax(0, 1fr); }
+    .tuner-left { min-width: 0; }
+  }
   @media (max-width: 900px) {
     .wide { grid-column: auto; }
   }
