@@ -1,6 +1,5 @@
 <script lang="ts">
   import SpectrumChart from '../../components/chart/SpectrumChart.svelte';
-  import Notes from '../../components/ui/Notes.svelte';
   import Range from '../../components/ui/Range.svelte';
   import Segmented from '../../components/ui/Segmented.svelte';
   import { freqText, nf } from '../../lib/format';
@@ -78,12 +77,6 @@
       <Segmented size="sm" mono label="Code-unit scale in bits" options={[10, 12, 14].map((value) => ({ value, label: String(value) }))} bind:value={bits} />
       <span class="unit">bits</span>
     </div>
-    <Notes>
-      <p><b>Adapted from the ADCToolbox Analog panel.</b> The twelve views follow <a href="https://github.com/Arcadia-1/ADCToolbox/blob/main/python/src/adctoolbox/examples/06_use_toolsets/exp_t01_aout_dashboard_single.py"><code>exp_t01_aout_dashboard_single.py</code></a> and <a href="/doc/api/toolset#adctoolbox.toolset.generate_aout_dashboard"><code>generate_aout_dashboard</code></a>. Choose a coherent input tone and an FFT record from 64 to 262,144 samples; the sine fit uses that exact frequency.</p>
-      <p><b>One composite converter.</b> Every control on the left acts on the same record, so noise, timing error, harmonics, memory, residue-stage errors, modulation, clipping, drift, reference droop and glitches can all coexist. Each slider carries its own physical unit; no shared severity factor or hidden background noise is applied. Code scale only expresses the result in LSB, while Quantizer explicitly enables conversion quantization.</p>
-      <p><b>Phase and spectra.</b> Both polar views show cosine phase φ<sub>h</sub> − hφ<sub>1</sub>, with conjugation undone for a harmonic above Nyquist; radii are dBFS in the spectrum and dBc in decomposition. FFT plots use a rectangular window: noncoherent modulation and drift can spread over bins. The AM/PM readouts are a phase-dependent error-variance diagnostic, not a unique separation of all noise sources.</p>
-      <p><b>How to read it.</b> A spectral line identifies periodic distortion; error by value exposes a static transfer curve; error by phase separates amplitude and timing effects; the PDF and autocorrelation show statistics and memory; the envelope spectrum isolates modulation; phase planes expose trajectories and rare escapes that are easy to miss in an FFT.</p>
-    </Notes>
   </header>
 
   <section class="workspace">
