@@ -32,8 +32,8 @@ export const topics: Topic[] = [
       },
       {
         href: '/adc/how-long-a-record/',
-        title: 'How long a record',
-        summary: 'See how many samples a measurement needs before it settles.',
+        title: 'How long a record?',
+        summary: 'Choose record length from frequency resolution, spur visibility and repeatability.',
         thumb: 'record',
       },
       {
