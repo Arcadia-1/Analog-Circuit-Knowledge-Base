@@ -1,0 +1,11 @@
+---
+import Base from '../../layouts/Base.astro';
+import AnalogPanel from '../../illustrations/analog-panel/AnalogPanel.svelte';
+import '../../styles/illustration.css';
+---
+<Base
+  title="Analog output analysis panel"
+  description="Run the ADCToolbox 3 by 4 analog output dashboard interactively: twelve synchronized views of spectrum, residual error, statistics, modulation and phase-plane behavior."
+>
+  <AnalogPanel client:load />
+</Base>

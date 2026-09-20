@@ -2,7 +2,7 @@ export interface Illustration {
   href: string;
   title: string;
   summary: string;
-  thumb: 'pll' | 'divider' | 'sar' | 'inl' | 'err' | 'win' | 'fold' | 'ntf' | 'ti' | 'bits' | 'polar' | 'bode' | 'floor' | 'fom' | 'harm' | 'record' | 'repeat' | 'short' | 'train';
+  thumb: 'pll' | 'divider' | 'sar' | 'inl' | 'err' | 'win' | 'fold' | 'ntf' | 'ti' | 'bits' | 'polar' | 'bode' | 'floor' | 'fom' | 'harm' | 'record' | 'repeat' | 'short' | 'train' | 'panel';
   /** Whose site this is, for a page that is not on this one; it opens in a tab of its own. */
   external?: string;
 }
@@ -59,6 +59,12 @@ export const topics: Topic[] = [
         title: 'ADC noise, jitter, and distortion',
         summary: 'Weigh noise, resolution, jitter and distortion against each other.',
         thumb: 'floor',
+      },
+      {
+        href: '/adc/analog-panel/',
+        title: 'Analog output analysis panel',
+        summary: 'Read one ADC capture through twelve synchronized diagnostic views.',
+        thumb: 'panel',
       },
       {
         href: '/adc/reading-the-error/',

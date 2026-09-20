@@ -1,6 +1,6 @@
 ---
 /** Small schematic previews for the home page. */
-interface Props { kind: 'pll' | 'divider' | 'sar' | 'inl' | 'err' | 'win' | 'fold' | 'ntf' | 'ti' | 'bits' | 'polar' | 'bode' | 'floor' | 'fom' | 'harm' | 'record' | 'repeat' | 'short' | 'train' }
+interface Props { kind: 'pll' | 'divider' | 'sar' | 'inl' | 'err' | 'win' | 'fold' | 'ntf' | 'ti' | 'bits' | 'polar' | 'bode' | 'floor' | 'fom' | 'harm' | 'record' | 'repeat' | 'short' | 'train' | 'panel' }
 const { kind } = Astro.props;
 const xs = Array.from({ length: 13 }, (_, i) => 6 + i * 14);
 const saw = [-14, -8, -2, 6, 14];
@@ -67,7 +67,16 @@ const jag = (base: number, seed: number) => Array.from({ length: 47 }, (_, i) =>
 const asymptote = `4,${flat} ${corner},${flat} 188,${(flat + (perDb * 20 * (188 - corner)) / decade).toFixed(1)}`;
 ---
 <svg class="thumb" viewBox="0 0 188 100" aria-hidden="true">
-  {kind === 'pll' ? (
+  {kind === 'panel' ? (
+    <>
+      {Array.from({ length: 12 }, (_, i) => {
+        const col = i % 4, row = Math.floor(i / 4), x = 2 + col * 47, y = 3 + row * 32;
+        const mid = y + 14, phase = i * 0.55;
+        const points = Array.from({ length: 8 }, (_, j) => `${x + j * 5.8},${mid - (6 + (i % 3) * 1.5) * Math.sin(j * 0.92 + phase)}`).join(' ');
+        return <g><rect class="mini" x={x} y={y} width="42" height="27" /><polyline class={i % 2 ? 's2 link' : 's1 link'} points={points} /></g>;
+      })}
+    </>
+  ) : kind === 'pll' ? (
     <>
       <line class="base" x1="0" y1="30" x2="188" y2="30" />
       {xs.map((x, i) => <g class="s1"><line x1={x} y1="30" x2={x} y2={30 + ((i % 3) - 1)} /><circle cx={x} cy={30 + ((i % 3) - 1)} r="2.2" /></g>)}
@@ -222,4 +231,5 @@ const asymptote = `4,${flat} ${corner},${flat} 188,${(flat + (perDb * 20 * (188 
   .orbit { fill: none; stroke: var(--rule); }
   .quiet { fill: none; stroke: var(--rule); stroke-width: 1.1; }
   .cloud { stroke: var(--ink-3); stroke-width: 1.5; stroke-linecap: round; opacity: 0.6; }
+  .mini { fill: none; stroke: var(--rule); stroke-width: 0.8; }
 </style>
