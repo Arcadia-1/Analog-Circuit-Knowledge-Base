@@ -1,16 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import { fft } from '../src/lib/fft';
-import { coherentFrequency } from '../src/lib/frequency';
+import { coherentFrequency, foldFrequency } from '../src/lib/frequency';
 import {
   calibrate,
   capture,
   channelNyquist,
   contributions,
+  decimate,
   deinterleave,
   delayFarrow,
   delayFft,
   extractMismatch,
   FS,
+  HARMONIC_ORDERS,
   interleave,
   mismatch,
   N,
@@ -23,6 +25,7 @@ import {
   sweep,
   SWEEP,
   unwrap,
+  type HarmonicLevels,
   type Params,
 } from '../src/illustrations/timeinterleave/model';
 
@@ -395,17 +398,57 @@ describe('time-interleaved mismatch', () => {
 
   it('runs the expanded page model at 10 GS/s and keeps each new source distinct', () => {
     const fs = 10e9, fin = 1e9, jitter = 0.5e-12;
+    const harmonics: HarmonicLevels = { 2: -65, 3: -71, 5: -80, 7: -86 };
     const mm = mismatch(4, 0.003, 0.001, 5e-12, 0.02);
-    const r = read(4, fin, mm, 12, 'off', { fs, jitter, harmonicDbc: -65 });
+    const r = read(4, fin, mm, 12, 'off', { fs, jitter, harmonics });
     expect(r.rawData).toHaveLength(N);
     expect(Math.abs(r.fin - fin)).toBeLessThanOrEqual(fs / N);
     expect(Number.isFinite(r.raw.sndr)).toBe(true);
 
-    const rows = contributions(mm, fin, fs, -65, jitter);
+    const rows = contributions(mm, fin, fs, harmonics, jitter);
     expect(rows.map((row) => row.id)).toEqual(['offset', 'gain', 'skew', 'bandwidth', 'harmonics', 'jitter']);
     expect(rows.slice(0, 5).every((row) => Number.isFinite(row.level))).toBe(true);
-    expect(rows.find((row) => row.id === 'harmonics')?.frequencies).toEqual([2e9, 3e9]);
+    expect(rows.find((row) => row.id === 'harmonics')?.frequencies).toEqual([2e9, 3e9, 5e9, 3e9]);
+    expect(rows.find((row) => row.id === 'harmonics')?.toneLabels).toEqual(['H2', 'H3', 'H5', 'H7']);
     expect(rows.find((row) => row.id === 'jitter')?.level).toBeCloseTo(20 * Math.log10(2 * Math.PI * fin * jitter), 9);
+  });
+
+  it('places H2, H3, H5, and H7 independently in the decimated FFT', () => {
+    const harmonics: HarmonicLevels = { 2: -44, 3: -50, 5: -56, 7: -62 };
+    const r = read(4, 73e6, mismatch(4, 0, 0, 0, 0), 16, 'off', { harmonics, decimation: 4 });
+    expect(r.harmonics.map((tone) => tone.order)).toEqual(HARMONIC_ORDERS);
+    for (const tone of r.harmonics) {
+      const bin = Math.round((foldFrequency(tone.order * r.fin, r.fsOut) / r.fsOut) * r.fftPoints);
+      expect(tone.freq).toBeCloseTo(foldFrequency(tone.order * r.fin, r.fsOut), 8);
+      expect(r.raw.dbfs[bin] - r.raw.dbfs[r.raw.signal]).toBeCloseTo(harmonics[tone.order], 0);
+    }
+
+    const h5Only = read(4, 73e6, mismatch(4, 0, 0, 0, 0), 16, 'off', { harmonics: { 5: -46 } });
+    expect(h5Only.harmonics.map((tone) => tone.order)).toEqual([5]);
+  });
+
+  it.each([1, 2, 4, 8, 16])('decimates by %i and reports the output rate and FFT size', (factor) => {
+    const r = read(4, 97e6, mismatch(4, 0.003, 0.001, 5e-12), 12, 'off', { decimation: factor });
+    expect(r.rawData).toHaveLength(N);
+    expect(r.fftPoints).toBe(N / factor);
+    expect(r.fsOut).toBe(FS / factor);
+    expect(r.raw.dbfs).toHaveLength(N / factor / 2 + 1);
+    expect(decimate(r.rawData, factor)).toHaveLength(N / factor);
+  });
+
+  it('folds every contribution onto the same output-frequency axis as the FFT', () => {
+    const factor = 8, fsOut = FS / factor;
+    const harmonics: HarmonicLevels = { 2: -48, 3: -54, 5: -60, 7: -66 };
+    const mm = mismatch(4, 0.003, 0.001, 5e-12, 0.02);
+    const r = read(4, 91e6, mm, 14, 'off', { harmonics, decimation: factor });
+    const rows = contributions(mm, r.fin, FS, harmonics, 0, fsOut);
+    for (const row of rows) for (const frequency of row.frequencies) expect(frequency).toBeLessThanOrEqual(fsOut / 2);
+    const harmonicRow = rows.find((row) => row.id === 'harmonics');
+    expect(harmonicRow?.frequencies).toEqual(HARMONIC_ORDERS.map((order) => foldFrequency(order * r.fin, fsOut)));
+    harmonicRow?.frequencies.forEach((frequency, i) => {
+      const tone = r.harmonics[i];
+      expect(Math.round((frequency / fsOut) * r.fftPoints)).toBe(Math.round((tone.freq / r.fsOut) * r.fftPoints));
+    });
   });
 
   it('sweeps the frequency as the reference does', () => {

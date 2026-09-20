@@ -22,6 +22,11 @@ export const FS = 1e9;
 export const N = N_FFT;
 export const AMP = 0.4;
 export const CHANNELS = [2, 4, 8];
+export const DECIMATIONS = [1, 2, 4, 8, 16] as const;
+export const HARMONIC_ORDERS = [2, 3, 5, 7] as const;
+export type HarmonicOrder = (typeof HARMONIC_ORDERS)[number];
+export type HarmonicLevels = Record<HarmonicOrder, number>;
+export const HARMONIC_PHASE: HarmonicLevels = { 2: 0.31, 3: -0.47, 5: 0.83, 7: -1.11 };
 /** exp_ti01's Farrow interpolator */
 export const TAPS = 9;
 const NOISE_LSB = 0.3;
@@ -67,16 +72,20 @@ export interface CaptureOptions {
   fs?: number;
   /** RMS aperture jitter in seconds. */
   jitter?: number;
-  /** H2 in dBc; H3 is 6 dB lower. Values at or below −100 dBc disable both. */
-  harmonicDbc?: number;
+  /** Independent source harmonics in dBc. Values at or below −100 dBc are disabled. */
+  harmonics?: Partial<HarmonicLevels>;
+  /** Keep every Dth converter sample, without an anti-alias filter. */
+  decimation?: number;
 }
 
-/** The source before channel mismatch: fundamental plus optional H2 and H3. */
-export function inputValue(t: number, fin: number, harmonicDbc = -Infinity): number {
+const harmonicLevel = (harmonics: Partial<HarmonicLevels>, order: HarmonicOrder): number => harmonics[order] ?? -Infinity;
+
+/** The source before channel mismatch: fundamental plus independently controlled H2, H3, H5, and H7. */
+export function inputValue(t: number, fin: number, harmonics: Partial<HarmonicLevels> = {}): number {
   let v = AMP * Math.cos(2 * Math.PI * fin * t);
-  if (harmonicDbc > -100) {
-    v += AMP * 10 ** (harmonicDbc / 20) * Math.cos(2 * Math.PI * 2 * fin * t + 0.31);
-    v += AMP * 10 ** ((harmonicDbc - 6) / 20) * Math.cos(2 * Math.PI * 3 * fin * t - 0.47);
+  for (const order of HARMONIC_ORDERS) {
+    const dbc = harmonicLevel(harmonics, order);
+    if (dbc > -100) v += AMP * 10 ** (dbc / 20) * Math.cos(2 * Math.PI * order * fin * t + HARMONIC_PHASE[order]);
   }
   return v;
 }
@@ -101,18 +110,18 @@ export function bandwidthResponse(relativeError: number, frequency: number, fs: 
  * does.
  */
 export function capture(fin: number, mm: Mismatch, bits: number, len = N, options: CaptureOptions = {}): Float64Array {
-  const fs = options.fs ?? FS, jitter = options.jitter ?? 0, harmonicDbc = options.harmonicDbc ?? -Infinity;
+  const fs = options.fs ?? FS, jitter = options.jitter ?? 0, harmonics = options.harmonics ?? {};
   const m = mm.gain.length, T = 1 / fs, lsb = 1 / 2 ** bits, top = 2 ** bits - 1;
   const z = gaussians(len, NOISE_SEED), clock = jitter ? gaussians(len, JITTER_SEED) : null;
   return Float64Array.from({ length: len }, (_, n) => {
     const c = n % m, t = n * T + mm.skew[c] + (clock?.[n] ?? 0) * jitter;
-    const harmonics = harmonicDbc > -100 ? [1, 2, 3] : [1];
-    let signal = 0;
-    for (const h of harmonics) {
-      const dbc = h === 1 ? 0 : h === 2 ? harmonicDbc : harmonicDbc - 6;
-      const phase = h === 1 ? 0 : h === 2 ? 0.31 : -0.47;
-      const bw = bandwidthResponse(mm.bandwidth?.[c] ?? 0, h * fin, fs);
-      signal += AMP * 10 ** (dbc / 20) * bw.amplitude * Math.cos(2 * Math.PI * h * fin * t + phase + bw.phase);
+    const fundamental = bandwidthResponse(mm.bandwidth?.[c] ?? 0, fin, fs);
+    let signal = AMP * fundamental.amplitude * Math.cos(2 * Math.PI * fin * t + fundamental.phase);
+    for (const order of HARMONIC_ORDERS) {
+      const dbc = harmonicLevel(harmonics, order);
+      if (dbc <= -100) continue;
+      const bw = bandwidthResponse(mm.bandwidth?.[c] ?? 0, order * fin, fs);
+      signal += AMP * 10 ** (dbc / 20) * bw.amplitude * Math.cos(2 * Math.PI * order * fin * t + HARMONIC_PHASE[order] + bw.phase);
     }
     const v = mm.gain[c] * signal + mm.offset[c] + z[n] * NOISE_LSB * lsb;
     return Math.min(top, Math.max(0, Math.floor((v - -0.5) / lsb))) * lsb + -0.5;
@@ -313,6 +322,12 @@ export function calibrate(x: Float64Array, m: number, p: Params, fs: number, met
 /** analyze_spectrum on the ±0.5 V range: codes of the same resolution scale it to the full scale the port expects. */
 export const spectrumOf = (x: Float64Array, bits: number): Spectrum => analyzeSpectrum(x.map((v) => v * 2 ** bits), bits);
 
+/** Direct decimation used by the lesson: no anti-alias filter, so tones fold into the reduced output band. */
+export function decimate(x: Float64Array, factor: number): Float64Array {
+  if (!Number.isInteger(factor) || factor < 1 || x.length % factor !== 0) throw new Error(`invalid decimation factor ${factor}`);
+  return Float64Array.from({ length: x.length / factor }, (_, i) => x[i * factor]);
+}
+
 /** The largest spur predict_spurs expects, as an SFDR. */
 export const predictedSfdr = (spurs: Spur[]): number => -Math.max(...spurs.map((s) => s.dbc));
 
@@ -337,38 +352,62 @@ export interface Contribution {
   /** Strongest result in dBc. Negative infinity means that source is off. */
   level: number;
   frequencies: number[];
+  /** Optional text attached to each frequency marker, in the same order. */
+  toneLabels?: string[];
   broadband?: boolean;
+}
+
+export interface HarmonicTone {
+  order: HarmonicOrder;
+  freq: number;
+  dbc: number;
 }
 
 const zeroes = (m: number) => new Float64Array(m);
 const ones = (m: number) => new Float64Array(m).fill(1);
 const strongest = (spurs: Spur[]): number => Math.max(...spurs.map((s) => s.dbc));
 
+/** Active source harmonics, folded into the output Nyquist band. */
+export function harmonicTones(fin: number, harmonics: Partial<HarmonicLevels>, outputFs: number): HarmonicTone[] {
+  return HARMONIC_ORDERS.flatMap((order) => {
+    const dbc = harmonicLevel(harmonics, order);
+    return dbc > -100 ? [{ order, freq: foldFrequency(order * fin, outputFs), dbc }] : [];
+  });
+}
+
 /** A source-by-source map for the explanatory chart. Periodic mismatch makes tones; random jitter raises a floor. */
-export function contributions(mm: Mismatch, fin: number, fs: number, harmonicDbc: number, jitter: number): Contribution[] {
+export function contributions(
+  mm: Mismatch,
+  fin: number,
+  converterFs: number,
+  harmonics: Partial<HarmonicLevels>,
+  jitter: number,
+  outputFs = converterFs,
+): Contribution[] {
   const m = mm.gain.length;
   const images = (gain: Float64Array, skew: Float64Array) =>
-    predictSpurs({ fin, amp: AMP, gain, offset: zeroes(m), skew }, fs, 0.5).filter((s) => s.kind === 'image');
-  const offset = predictSpurs({ fin, amp: AMP, gain: ones(m), offset: mm.offset, skew: zeroes(m) }, fs, 0.5).filter((s) => s.kind === 'offset');
+    predictSpurs({ fin, amp: AMP, gain, offset: zeroes(m), skew }, converterFs, 0.5).filter((s) => s.kind === 'image');
+  const offset = predictSpurs({ fin, amp: AMP, gain: ones(m), offset: mm.offset, skew: zeroes(m) }, converterFs, 0.5).filter((s) => s.kind === 'offset');
   const gain = images(mm.gain, zeroes(m));
   const skew = images(ones(m), mm.skew);
   const bwGain = new Float64Array(m), bwSkew = new Float64Array(m);
   for (let c = 0; c < m; c++) {
-    const bw = bandwidthResponse(mm.bandwidth?.[c] ?? 0, fin, fs);
+    const bw = bandwidthResponse(mm.bandwidth?.[c] ?? 0, fin, converterFs);
     bwGain[c] = bw.amplitude;
     bwSkew[c] = bw.phase / (2 * Math.PI * fin);
   }
   const bandwidth = images(bwGain, bwSkew);
-  const harmonicOn = harmonicDbc > -100;
+  const tones = harmonicTones(fin, harmonics, outputFs);
   const jitterLevel = jitter > 0 ? 20 * Math.log10(2 * Math.PI * fin * jitter) : -Infinity;
+  const folded = (spurs: Spur[]) => spurs.map((s) => foldFrequency(s.freq, outputFs));
   return [
-    { id: 'offset', label: 'Offset', note: 'fixed tones at k·fs/M', level: strongest(offset), frequencies: offset.map((s) => s.freq) },
-    { id: 'gain', label: 'Gain', note: 'copies around k·fs/M', level: strongest(gain), frequencies: gain.map((s) => s.freq) },
-    { id: 'skew', label: 'Timing skew', note: 'same copies, rising with fin', level: strongest(skew), frequencies: skew.map((s) => s.freq) },
-    { id: 'bandwidth', label: 'Bandwidth', note: 'frequency-dependent gain and phase', level: strongest(bandwidth), frequencies: bandwidth.map((s) => s.freq) },
+    { id: 'offset', label: 'Offset', note: 'fixed tones at k·fs/M', level: strongest(offset), frequencies: folded(offset) },
+    { id: 'gain', label: 'Gain', note: 'copies around k·fs/M', level: strongest(gain), frequencies: folded(gain) },
+    { id: 'skew', label: 'Timing skew', note: 'same copies, rising with fin', level: strongest(skew), frequencies: folded(skew) },
+    { id: 'bandwidth', label: 'Bandwidth', note: 'frequency-dependent gain and phase', level: strongest(bandwidth), frequencies: folded(bandwidth) },
     {
-      id: 'harmonics', label: 'Harmonics', note: 'H2 and H3 fold into band', level: harmonicOn ? harmonicDbc : -Infinity,
-      frequencies: harmonicOn ? [foldFrequency(2 * fin, fs), foldFrequency(3 * fin, fs)] : [],
+      id: 'harmonics', label: 'Harmonics', note: 'H2, H3, H5, H7 after folding', level: tones.length ? Math.max(...tones.map((tone) => tone.dbc)) : -Infinity,
+      frequencies: tones.map((tone) => tone.freq), toneLabels: tones.map((tone) => `H${tone.order}`),
     },
     { id: 'jitter', label: 'Jitter', note: 'broadband phase-noise floor', level: jitterLevel, frequencies: [], broadband: true },
   ];
@@ -381,6 +420,10 @@ export interface Reading {
   /** what extract_mismatch_sine reads from the capture, and what predict_spurs makes of it */
   measured: Params;
   spurs: Spur[];
+  harmonics: HarmonicTone[];
+  /** Sample rate and record length after direct decimation. */
+  fsOut: number;
+  fftPoints: number;
   raw: Spectrum;
   /** the calibrated capture, or the raw one again when calibration is off */
   out: Spectrum;
@@ -391,21 +434,30 @@ export interface Reading {
 }
 
 export function read(m: number, target: number, mm: Mismatch, bits: number, method: Method, options: CaptureOptions = {}): Reading {
-  const fs = options.fs ?? FS;
+  const fs = options.fs ?? FS, decimation = options.decimation ?? 1;
+  if (!DECIMATIONS.includes(decimation as (typeof DECIMATIONS)[number])) throw new Error(`unsupported decimation factor ${decimation}`);
+  const fsOut = fs / decimation;
   const { fin, bin } = coherentFrequency(fs, target, N);
   const x = capture(fin, mm, bits, N, options);
   const measured = extractMismatch(x, m, fs, fin);
-  const raw = spectrumOf(x, bits);
   const y = method === 'off' ? null : calibrate(x, m, measured, fs, method);
-  const hasExtendedModel = Boolean(mm.bandwidth || options.jitter || (options.harmonicDbc ?? -Infinity) > -100 || options.fs);
+  const rawRecord = decimate(x, decimation), outRecord = y ? decimate(y, decimation) : rawRecord;
+  const raw = spectrumOf(rawRecord, bits);
+  const hasHarmonics = HARMONIC_ORDERS.some((order) => harmonicLevel(options.harmonics ?? {}, order) > -100);
+  const hasExtendedModel = Boolean(mm.bandwidth || options.jitter || hasHarmonics || options.fs);
+  const spurs = predictSpurs(hasExtendedModel ? physicalParams(mm, fin, fs) : measured, fs, 0.5)
+    .map((spur) => ({ ...spur, freq: foldFrequency(spur.freq, fsOut) }));
   return {
     fin,
     bin,
     truth: mm,
     measured,
-    spurs: predictSpurs(hasExtendedModel ? physicalParams(mm, fin, fs) : measured, fs, 0.5),
+    spurs,
+    harmonics: harmonicTones(fin, options.harmonics ?? {}, fsOut),
+    fsOut,
+    fftPoints: rawRecord.length,
     raw,
-    out: y ? spectrumOf(y, bits) : raw,
+    out: y ? spectrumOf(outRecord, bits) : raw,
     left: y ? extractMismatch(y, m, fs, fin) : null,
     rawData: x,
     outData: y ?? x,
@@ -413,10 +465,10 @@ export function read(m: number, target: number, mm: Mismatch, bits: number, meth
 }
 
 /** RMS error against the ideal uniformly sampled input, over the requested leading samples or the whole record. */
-export function residualRms(data: Float64Array, fin: number, count = data.length, fs = FS, harmonicDbc = -Infinity): number {
+export function residualRms(data: Float64Array, fin: number, count = data.length, fs = FS, harmonics: Partial<HarmonicLevels> = {}): number {
   let power = 0;
   const n = Math.min(count, data.length);
-  for (let i = 0; i < n; i++) power += (data[i] - inputValue(i / fs, fin, harmonicDbc)) ** 2;
+  for (let i = 0; i < n; i++) power += (data[i] - inputValue(i / fs, fin, harmonics)) ** 2;
   return Math.sqrt(power / n);
 }
 

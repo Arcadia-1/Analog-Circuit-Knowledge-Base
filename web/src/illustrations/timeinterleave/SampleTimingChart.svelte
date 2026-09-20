@@ -3,14 +3,14 @@
   import Tip from '../../components/chart/Tip.svelte';
   import { nf } from '../../lib/format';
   import { clamp, niceStep } from '../../lib/scale';
-  import { inputValue, type Mismatch } from './model';
+  import { inputValue, type HarmonicLevels, type Mismatch } from './model';
 
-  let { samples, truth, fin, fs, harmonicDbc, hover, onhover, label }: {
+  let { samples, truth, fin, fs, harmonics, hover, onhover, label }: {
     samples: Float64Array;
     truth: Mismatch;
     fin: number;
     fs: number;
-    harmonicDbc: number;
+    harmonics: Partial<HarmonicLevels>;
     hover: number | null;
     onhover: (index: number | null) => void;
     label: string;
@@ -18,7 +18,7 @@
 
   const X0 = 45, COUNT = 48;
   const m = $derived(truth.gain.length);
-  const ideal = (i: number) => inputValue(i / fs, fin, harmonicDbc);
+  const ideal = (i: number) => inputValue(i / fs, fin, harmonics);
   const rawError = $derived(Float64Array.from({ length: COUNT }, (_, i) => (samples[i] - ideal(i)) * 1e3));
 
   function geo(W: number, H: number) {
