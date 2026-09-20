@@ -6,12 +6,14 @@ on:
     paths:
       - "web/**"
       - ".github/workflows/deploy-web.yml"
+      - ".github/configure-pages-domain.py"
       - ".github/doc-postprocess.py"
       - ".github/toolbox-drift.py"
   pull_request:
     paths:
       - "web/**"
       - ".github/workflows/deploy-web.yml"
+      - ".github/configure-pages-domain.py"
       - ".github/doc-postprocess.py"
       - ".github/toolbox-drift.py"
   # ADCToolbox does not trigger this workflow, so pick up its main once a day: its manual gets rebuilt from there, and
