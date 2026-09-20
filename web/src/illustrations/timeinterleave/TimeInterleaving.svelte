@@ -24,13 +24,12 @@
   let h3Dbc = $state(-71);
   let h5Dbc = $state(-80);
   let h7Dbc = $state(-86);
-  let decimationPower = $state(0);
+  let decimation = $state(1);
   let bits = $state(12);
   let hoverBin = $state<number | null>(null);
   let hoverSample = $state<number | null>(null);
 
   const fs = $derived(sampleRateGHz * 1e9);
-  const decimation = $derived(2 ** decimationPower);
   const harmonics: HarmonicLevels = $derived({ 2: h2Dbc, 3: h3Dbc, 5: h5Dbc, 7: h7Dbc });
   $effect(() => {
     const high = fs / 2 - fs / N;
@@ -59,7 +58,7 @@
         <p><b>Each error has a signature.</b> Offset creates fixed tones at multiples of <var>f</var><sub>s</sub>/<var>M</var>. Gain, timing skew, and bandwidth mismatch create shifted copies of the input around those multiples. Timing error grows with input frequency; bandwidth error contributes both gain and phase error.</p>
         <p><b>Jitter and harmonics look different.</b> Random aperture jitter spreads energy into a broadband floor. H2, H3, H5, and H7 remain discrete tones and each has an independent level.</p>
         <p><b>Bandwidth model.</b> Every channel has a one-pole input response whose nominal corner is <var>f</var><sub>s</sub>/2. The bandwidth control spreads those corners about their mean; the common roll-off is divided out so the page shows only mismatch.</p>
-        <p><b>Decimation.</b> The converter always captures {N} samples. Keeping every Dth sample uses no anti-alias filter here, so every tone and mismatch image folds again into the output Nyquist band. The output FFT contains {N}/D points.</p>
+        <p><b>Decimation.</b> The converter always captures {N} samples. Keeping every Dth sample uses no anti-alias filter here, so every tone and mismatch image folds again into the output Nyquist band. The output FFT contains ⌈{N}/D⌉ points.</p>
       </Notes>
     </div>
   </header>
@@ -82,7 +81,7 @@
       <div class="channel-row"><span>Channels</span><Segmented size="sm" mono label="Number of channels" options={CHANNELS.map((c) => ({ value: c, label: String(c) }))} bind:value={m} /></div>
       <Range id="sample-rate" min={0.5} max={10} step={0.1} output="{nf(sampleRateGHz, 1)} GS/s" bind:value={sampleRateGHz}>Sample rate</Range>
       <Range id="bits" min={8} max={16} step={1} output="{bits} bits" bind:value={bits}>Resolution</Range>
-      <Range id="decimation" min={0} max={4} step={1} output="÷{decimation}" bind:value={decimationPower}>Decimation</Range>
+      <Range id="decimation" min={1} max={255} step={1} output="÷{decimation}" bind:value={decimation}>Decimation</Range>
     </div>
     <div class="control-card accent2">
       <div class="card-head"><span class="label">Channel mismatch · rms</span></div>
@@ -108,7 +107,7 @@
           <span class="left"><span class="label">Output spectrum</span><span>{r.fftPoints}-point FFT · {rateText(r.fsOut)}</span></span>
           <span>SFDR <b>{nf(r.raw.sfdr, 1)} dB</b> · SNDR <b>{nf(r.raw.sndr, 1)} dB</b></span>
         </div>
-        <SpurSpectrum spectrum={r.raw} spurs={r.spurs} harmonics={r.harmonics} {bits} fs={r.fsOut} hover={hoverBin} onhover={(b) => (hoverBin = b)} label="Spectrum of the interleaved and decimated output" />
+        <SpurSpectrum spectrum={r.raw} spurs={r.spurs} harmonics={r.harmonics} {bits} fs={r.fsOut} points={r.fftPoints} hover={hoverBin} onhover={(b) => (hoverBin = b)} label="Spectrum of the interleaved and decimated output" />
       </div>
 
       <div class="chart contribution-chart">

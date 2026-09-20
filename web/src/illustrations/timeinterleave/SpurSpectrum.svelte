@@ -11,21 +11,21 @@
    * The spectrum of the interleaved output, with a mark wherever predict_spurs expects a spur and as high as it
    * expects it: circles for the images of gain, bandwidth and skew, squares for the offset tones.
    */
-  let { spectrum, spurs, harmonics, bits, fs, hover, onhover, label }: {
+  let { spectrum, spurs, harmonics, bits, fs, points, hover, onhover, label }: {
     spectrum: Spectrum;
     spurs: Spur[];
     harmonics: HarmonicTone[];
     bits: number;
     fs: number;
+    points: number;
     hover: number | null;
     onhover: (bin: number | null) => void;
     label: string;
   } = $props();
 
-  const points = $derived((spectrum.dbfs.length - 1) * 2);
-  const half = $derived(points / 2);
+  const half = $derived(Math.floor(points / 2));
   const ybot = $derived(-20 * Math.ceil((6.02 * bits + 1.76 + 10 * Math.log10(half) + 12) / 20));
-  const binOf = (f: number) => Math.round((f / fs) * points);
+  const binOf = (f: number) => Math.min(half, Math.round((f / fs) * points));
   const spurText = (bin: number) =>
     spurs
       .filter((s) => binOf(s.freq) === bin)

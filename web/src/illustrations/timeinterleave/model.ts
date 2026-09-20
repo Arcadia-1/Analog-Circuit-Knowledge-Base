@@ -22,7 +22,7 @@ export const FS = 1e9;
 export const N = N_FFT;
 export const AMP = 0.4;
 export const CHANNELS = [2, 4, 8];
-export const DECIMATIONS = [1, 2, 4, 8, 16] as const;
+export const MAX_DECIMATION = 255;
 export const HARMONIC_ORDERS = [2, 3, 5, 7] as const;
 export type HarmonicOrder = (typeof HARMONIC_ORDERS)[number];
 export type HarmonicLevels = Record<HarmonicOrder, number>;
@@ -324,8 +324,8 @@ export const spectrumOf = (x: Float64Array, bits: number): Spectrum => analyzeSp
 
 /** Direct decimation used by the lesson: no anti-alias filter, so tones fold into the reduced output band. */
 export function decimate(x: Float64Array, factor: number): Float64Array {
-  if (!Number.isInteger(factor) || factor < 1 || x.length % factor !== 0) throw new Error(`invalid decimation factor ${factor}`);
-  return Float64Array.from({ length: x.length / factor }, (_, i) => x[i * factor]);
+  if (!Number.isInteger(factor) || factor < 1 || factor > MAX_DECIMATION) throw new Error(`invalid decimation factor ${factor}`);
+  return Float64Array.from({ length: Math.ceil(x.length / factor) }, (_, i) => x[i * factor]);
 }
 
 /** The largest spur predict_spurs expects, as an SFDR. */
@@ -435,7 +435,7 @@ export interface Reading {
 
 export function read(m: number, target: number, mm: Mismatch, bits: number, method: Method, options: CaptureOptions = {}): Reading {
   const fs = options.fs ?? FS, decimation = options.decimation ?? 1;
-  if (!DECIMATIONS.includes(decimation as (typeof DECIMATIONS)[number])) throw new Error(`unsupported decimation factor ${decimation}`);
+  if (!Number.isInteger(decimation) || decimation < 1 || decimation > MAX_DECIMATION) throw new Error(`unsupported decimation factor ${decimation}`);
   const fsOut = fs / decimation;
   const { fin, bin } = coherentFrequency(fs, target, N);
   const x = capture(fin, mm, bits, N, options);

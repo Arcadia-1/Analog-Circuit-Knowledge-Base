@@ -427,13 +427,27 @@ describe('time-interleaved mismatch', () => {
     expect(h5Only.harmonics.map((tone) => tone.order)).toEqual([5]);
   });
 
-  it.each([1, 2, 4, 8, 16])('decimates by %i and reports the output rate and FFT size', (factor) => {
+  it.each([1, 2, 3, 17, 63, 127, 255])('decimates by %i and reports the output rate and FFT size', (factor) => {
     const r = read(4, 97e6, mismatch(4, 0.003, 0.001, 5e-12), 12, 'off', { decimation: factor });
     expect(r.rawData).toHaveLength(N);
-    expect(r.fftPoints).toBe(N / factor);
+    expect(r.fftPoints).toBe(Math.ceil(N / factor));
     expect(r.fsOut).toBe(FS / factor);
-    expect(r.raw.dbfs).toHaveLength(N / factor / 2 + 1);
-    expect(decimate(r.rawData, factor)).toHaveLength(N / factor);
+    expect(r.raw.dbfs).toHaveLength(Math.floor(Math.ceil(N / factor) / 2) + 1);
+    expect(decimate(r.rawData, factor)).toHaveLength(Math.ceil(N / factor));
+  });
+
+  it.each([0, 256, 1.5])('rejects invalid decimation factor %s', (factor) => {
+    expect(() => decimate(new Float64Array(N), factor)).toThrow('invalid decimation factor');
+    expect(() => read(4, 97e6, mismatch(4, 0, 0, 0), 12, 'off', { decimation: factor })).toThrow('unsupported decimation factor');
+  });
+
+  it('accepts every integer decimation factor from 1 through 255', () => {
+    const input = Float64Array.from({ length: N }, (_, i) => i);
+    for (let factor = 1; factor <= 255; factor++) {
+      const output = decimate(input, factor);
+      expect(output).toHaveLength(Math.ceil(N / factor));
+      expect(output.at(-1)).toBe((output.length - 1) * factor);
+    }
   });
 
   it('folds every contribution onto the same output-frequency axis as the FFT', () => {

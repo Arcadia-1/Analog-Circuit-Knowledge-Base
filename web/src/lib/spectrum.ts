@@ -52,12 +52,12 @@ export function fractionalPeak(P: Float64Array, bin: number, inband: number): nu
  * leakage on both sides has sunk below that floor.
  */
 export function autoSideBin(P: Float64Array, bin: number, inband: number, w: Float64Array, correction: number, kind: Window): number {
-  const len = w.length, half = len / 2, at = fractionalPeak(P, bin, inband);
+  const len = w.length, half = Math.floor(len / 2), at = fractionalPeak(P, bin, inband);
   const re = Float64Array.from(w, (v, t) => Math.sin((2 * Math.PI * at * t) / len) * v), im = new Float64Array(len);
   fftAny(re, im);
   const ideal = Float64Array.from({ length: half + 1 }, (_, k) => (re[k] ** 2 + im[k] ** 2) / len ** 2);
   ideal[0] /= 2;
-  ideal[half] /= 2;
+  if (len % 2 === 0) ideal[half] /= 2;
   const top = Math.max(P[bin], 1e-30);
   for (let k = 0; k <= half; k++) ideal[k] *= correction;
   const scale = top / Math.max(ideal[bin], 1e-30);
@@ -112,7 +112,7 @@ export function inbandBins(len: number, osr = 1): number {
  * `sides` 'auto' is what analyze_spectrum does when side_bin is left as None.
  */
 export function analyzeSpectrum(trace: Float64Array, n: number, kind: Window = 'rectangular', sides: number | 'auto' = 0, osr = 1): Spectrum {
-  const len = trace.length, half = len / 2, mean = sum(trace) / len, peak = 2 ** (n - 1);
+  const len = trace.length, half = Math.floor(len / 2), mean = sum(trace) / len, peak = 2 ** (n - 1);
   const inband = inbandBins(len, osr), top = inband - 1;
   const w = windowOf(kind, len);
   let ww = 0;
@@ -122,7 +122,7 @@ export function analyzeSpectrum(trace: Float64Array, n: number, kind: Window = '
   fftAny(re, im);
   const P = Float64Array.from({ length: half + 1 }, (_, k) => (correction * (re[k] ** 2 + im[k] ** 2)) / len ** 2);
   P[0] /= 2;
-  P[half] /= 2;
+  if (len % 2 === 0) P[half] /= 2;
   let peakBin = 1;
   for (let k = 2; k <= top; k++) if (P[k] > P[peakBin]) peakBin = k;
   const sideBin = sides === 'auto' ? autoSideBin(P, peakBin, inband, w, correction, kind) : sides;
