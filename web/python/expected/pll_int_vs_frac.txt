@@ -1,9 +1,9 @@
 loop: g_p = 0.10388, beta = 0.6103, max |pole| = 0.96145, peaking = 1.44 dB, |H(1 MHz)| = -3.01 dB, |H(5 MHz)| = -20.68 dB
 int     INL 0.0 ps: N_avg 125.000000 f_out 5.000000 GHz | jitter    188.1 fs | L(200-600k)  -109.5 dBc/Hz | L(5-10 MHz) med  -135.5 | e range [   -2.7,     2.5] ps | ndiv 125..125 | spurs: none
 acc     INL 0.0 ps: N_avg 125.125000 f_out 5.005000 GHz | jitter   4329.6 fs | L(200-600k)  -109.6 dBc/Hz | L(5-10 MHz) med  -133.7 | e range [  -90.2,    95.5] ps | ndiv 125..126 | spurs: -20.5 dBc @ 5.000 MHz, -36.8 dBc @ 10.000 MHz, -45.1 dBc @ 15.000 MHz
-sd      INL 0.0 ps: N_avg 125.125000 f_out 5.005000 GHz | jitter   2605.2 fs | L(200-600k)  -107.1 dBc/Hz | L(5-10 MHz) med   -98.1 | e range [ -382.6,   401.8] ps | ndiv 122..129 | spurs: none
-sd +dtc INL 0.0 ps: N_avg 125.125000 f_out 5.005000 GHz | jitter    188.1 fs | L(200-600k)  -109.5 dBc/Hz | L(5-10 MHz) med  -135.5 | e range [   -2.7,     2.5] ps | ndiv 122..129 | spurs: none
-sd +dtc INL 1.0 ps: N_avg 125.125000 f_out 5.005000 GHz | jitter    194.5 fs | L(200-600k)  -109.0 dBc/Hz | L(5-10 MHz) med  -135.3 | e range [   -2.8,     2.6] ps | ndiv 122..129 | spurs: none
+sd      INL 0.0 ps: N_avg 125.125000 f_out 5.005000 GHz | jitter   2681.7 fs | L(200-600k)  -109.5 dBc/Hz | L(5-10 MHz) med  -134.8 | e range [ -229.0,   254.2] ps | ndiv 123..127 | spurs: -27.6 dBc @ 5.000 MHz, -33.4 dBc @ 17.500 MHz, -33.7 dBc @ 2.500 MHz
+sd +dtc INL 0.0 ps: N_avg 125.125000 f_out 5.005000 GHz | jitter    188.1 fs | L(200-600k)  -109.5 dBc/Hz | L(5-10 MHz) med  -135.5 | e range [   -2.7,     2.5] ps | ndiv 123..127 | spurs: none
+sd +dtc INL 1.0 ps: N_avg 125.125000 f_out 5.005000 GHz | jitter    188.7 fs | L(200-600k)  -109.5 dBc/Hz | L(5-10 MHz) med  -135.5 | e range [   -2.6,     2.7] ps | ndiv 123..127 | spurs: -70.5 dBc @ 2.500 MHz, -80.8 dBc @ 7.500 MHz
 acc, noise off: -20.49 dBc @ 5.000 MHz, -36.83 dBc @ 10.000 MHz, -45.11 dBc @ 15.000 MHz
 linear prediction for the 5 MHz fundamental: 20log10(2|H|/2) = -20.68 dBc
 

@@ -1,0 +1,11 @@
+---
+import Base from '../../layouts/Base.astro';
+import MeasurementRepeatability from '../../illustrations/record/MeasurementRepeatability.svelte';
+import '../../styles/illustration.css';
+---
+<Base
+  title="ADC measurement repeatability"
+  description="See how ADC record length changes the run-to-run uncertainty of an SNDR measurement without changing the converter itself."
+>
+  <MeasurementRepeatability client:load />
+</Base>

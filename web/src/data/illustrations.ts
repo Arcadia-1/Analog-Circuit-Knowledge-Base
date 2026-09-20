@@ -2,7 +2,7 @@ export interface Illustration {
   href: string;
   title: string;
   summary: string;
-  thumb: 'pll' | 'sar' | 'inl' | 'err' | 'win' | 'fold' | 'ntf' | 'ti' | 'bits' | 'polar' | 'bode' | 'floor' | 'fom' | 'harm' | 'record' | 'train';
+  thumb: 'pll' | 'divider' | 'sar' | 'inl' | 'err' | 'win' | 'fold' | 'ntf' | 'ti' | 'bits' | 'polar' | 'bode' | 'floor' | 'fom' | 'harm' | 'record' | 'repeat' | 'short' | 'train';
   /** Whose site this is, for a page that is not on this one; it opens in a tab of its own. */
   external?: string;
 }
@@ -33,8 +33,20 @@ export const topics: Topic[] = [
       {
         href: '/adc/how-long-a-record/',
         title: 'How long a record?',
-        summary: 'Choose record length from frequency resolution, spur visibility and repeatability.',
+        summary: 'Choose record length from frequency resolution and spur visibility.',
         thumb: 'record',
+      },
+      {
+        href: '/adc/measurement-repeatability/',
+        title: 'Measurement repeatability',
+        summary: 'Choose enough samples for a stable SNDR reading.',
+        thumb: 'repeat',
+      },
+      {
+        href: '/adc/short-records-near-nyquist/',
+        title: 'Short records near Nyquist',
+        summary: 'See why a handful of samples can report misleading dynamic metrics.',
+        thumb: 'short',
       },
       {
         href: '/adc/binary-vs-redundant-sar/',
@@ -113,8 +125,14 @@ export const related: Topic = {
     {
       href: '/pll/integer-vs-fractional/',
       title: 'Integer-N vs fractional-N',
-      summary: 'Compare PLL dividers and their effects on phase noise, spurs and jitter.',
+      summary: 'See why integer-N lands on a channel grid and fractional-N does not.',
       thumb: 'pll',
+    },
+    {
+      href: '/pll/fractional-divider/',
+      title: 'Inside a fractional divider',
+      summary: 'Compare a first-order accumulator with a third-order MASH 1-1-1.',
+      thumb: 'divider',
     },
     {
       href: 'https://many-question.github.io/bode-sketch/',

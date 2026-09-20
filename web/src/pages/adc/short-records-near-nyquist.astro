@@ -1,0 +1,11 @@
+---
+import Base from '../../layouts/Base.astro';
+import ShortRecords from '../../illustrations/record/ShortRecords.svelte';
+import '../../styles/illustration.css';
+---
+<Base
+  title="Short ADC records near Nyquist"
+  description="See why coherent but very short records near Nyquist can return misleading SNDR, SFDR and ENOB values."
+>
+  <ShortRecords client:load />
+</Base>

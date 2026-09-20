@@ -80,7 +80,7 @@ Keep **ADC Toolbox** as the site brand. ADC tutorials are the main curriculum; P
 The catalog follows a learning order: sampling, conversion, error analysis, calibration, then advanced architectures.
 Each entry has its own schematic preview, a title and a single short sentence. Keep the preview visible at every screen
 size so readers can recognize the experiment at a glance; model provenance and example names belong inside the lesson notes.
-Use two columns on desktop, one on narrow screens, and preserve row-major keyboard and reading order.
+Use three columns on wide screens, two on tablets and one on narrow screens, and preserve row-major keyboard and reading order.
 
 The shared header and footer, restrained borders, system sans font, Google Sans Code labels and green accent follow
 Analog Design Bench. Plot series use separate blue/amber colors. The theme follows the system until the reader makes

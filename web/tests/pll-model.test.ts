@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { analyze, bwMaxFor, closedLoopMag, loopFor, simulate } from '../src/illustrations/pll/model';
+import { analyze, bwMaxFor, closedLoopMag, dividerSequence, loopFor, simulate } from '../src/illustrations/pll/model';
 
 // Reference values from python/pll_int_vs_frac.py (40 MHz reference, 1 MHz loop, target 5.005 GHz).
 describe('integer-N vs fractional-N PLL model', () => {
@@ -11,6 +11,22 @@ describe('integer-N vs fractional-N PLL model', () => {
         const { gp, beta } = loopFor(f, b);
         expect(closedLoopMag(b, gp, beta, f)).toBeCloseTo(Math.SQRT1_2, 6);
       }
+    }
+  });
+
+  it('implements the accumulator as first order and MASH 1-1-1 as third order', () => {
+    for (const alpha of [0.01, 0.125, 0.2875, 0.49]) {
+      const acc = dividerSequence(alpha, 'acc', 65536);
+      const mash = dividerSequence(alpha, 'sd', 65536);
+      const mean = (a: Int8Array) => a.reduce((sum, v) => sum + v, 0) / a.length;
+      expect(new Set(acc.y)).toEqual(new Set([0, 1]));
+      expect(Math.abs(mean(acc.y) - acc.alpha)).toBeLessThan(1 / acc.y.length);
+      expect(Math.abs(mean(mash.y) - mash.alpha)).toBeLessThan(4 / mash.y.length);
+      expect(Math.min(...mash.y)).toBeLessThan(0);
+      expect(Math.max(...mash.y)).toBeGreaterThan(1);
+      expect(Math.min(...acc.phase)).toBeGreaterThanOrEqual(-1);
+      expect(Math.max(...acc.phase)).toBeLessThanOrEqual(1);
+      expect(Math.max(...mash.phase.map(Math.abs))).toBeLessThanOrEqual(4);
     }
   });
 
@@ -26,6 +42,8 @@ describe('integer-N vs fractional-N PLL model', () => {
     expect(acc.spurs[0].dBc).toBeCloseTo(-20.5, 0);
     expect(sd.jitterFs / 2603.5).toBeGreaterThan(0.95);
     expect(sd.jitterFs / 2603.5).toBeLessThan(1.05);
+    // alpha = 1/8 is rational and this MASH is not dithered, so its deterministic period produces tones.
+    expect(sd.spurs.length).toBeGreaterThan(0);
     expect(Math.abs(dtc.jitterFs / intA.jitterFs - 1)).toBeLessThan(0.02);
   });
 
@@ -45,7 +63,7 @@ describe('integer-N vs fractional-N PLL model', () => {
   });
 
   // The DTC cancels the phase error the divider builds up, so what is left is its own INL, shaped like the code driving it.
-  it('turns DTC INL into spurs after an accumulator and into noise after a dithered MASH', () => {
+  it('models DTC INL for accumulator and undithered MASH sequences', () => {
     const near = 5.0005e9, offset = 5e5;
     expect(analyze(simulate(near, 'acc', true, 0, fRef, bw)).spurs).toHaveLength(0);
     // the accumulator drives the DTC with a sawtooth that repeats every 1/alpha cycles: spurs at alpha * f_ref and above
@@ -55,7 +73,7 @@ describe('integer-N vs fractional-N PLL model', () => {
     expect(spurs[3].slice(0, 3).map((p) => Math.round(p.f / offset))).toEqual([1, 2, 3]);
     // 20 dB per decade of INL
     for (const [i, inl] of [1, 2, 5].entries()) expect(spurs[i + 1][0].dBc - spurs[0][0].dBc).toBeCloseTo(20 * Math.log10(inl / 0.5), 0);
-    // a dithered MASH drives it with a random sequence instead: the same INL only raises the floor
+    // This deterministic MASH sequence has no detected line above the model's spur threshold for these settings.
     for (const inl of [1, 5]) expect(analyze(simulate(near, 'sd', true, inl, fRef, bw)).spurs).toHaveLength(0);
     expect(analyze(simulate(near, 'sd', true, 5, fRef, bw)).jitterFs / 339).toBeCloseTo(1, 1);
   });

@@ -4,7 +4,7 @@
  *
  * Loop: linear phase detector, type-II PI filter (ζ = 1) with two extra poles at 6 × BW, closed-loop −3 dB = BW.
  * Noise: white reference + phase-detector timing noise from a −228 dBc/Hz normalised floor, VCO −120 dBc/Hz at 1 MHz.
- * Divider: fixed N | first-order accumulator | MASH 1-1-1 (24-bit, LSB set), either with an ideal-gain DTC with bow INL.
+ * Divider: fixed N | first-order accumulator | MASH 1-1-1, either with an ideal-gain DTC with bow INL.
  */
 import { fft } from '../../lib/fft';
 import { gaussians } from '../../lib/rng';
@@ -79,6 +79,52 @@ export interface Sim {
   qd: Float64Array;
 }
 
+interface DividerStep {
+  y: number;
+}
+
+/**
+ * Canonical digital fractional divider cores. The accumulator is the first-order case: its carry is 0 or 1 and
+ * y-alpha = (1-z^-1)e. MASH 1-1-1 cascades three accumulators and cancels the first two errors digitally, leaving
+ * y-alpha = (1-z^-1)^3 e. Neither core is dithered; a constant rational input can therefore make periodic tones.
+ */
+function dividerCore(mode: Exclude<Mode, 'int'>, fcw: number): () => DividerStep {
+  let a1 = 0, a2 = 0, a3 = 0, c2p = 0, c3p = 0, c3pp = 0;
+  return () => {
+    const s1 = a1 + fcw, c1 = Math.floor(s1 / M);
+    a1 = s1 & MASK;
+    if (mode === 'acc') return { y: c1 };
+    const s2 = a2 + a1, c2 = Math.floor(s2 / M);
+    a2 = s2 & MASK;
+    const s3 = a3 + a2, c3 = Math.floor(s3 / M);
+    a3 = s3 & MASK;
+    const y = c1 + (c2 - c2p) + (c3 - 2 * c3p + c3pp);
+    c2p = c2; c3pp = c3p; c3p = c3;
+    return { y };
+  };
+}
+
+export interface DividerSequence {
+  alpha: number;
+  y: Int8Array;
+  /** accumulated divider error, sum(y-alpha), in VCO output periods */
+  phase: Float64Array;
+}
+
+/** A divider-only trace for the focused lesson; it is the same core used by the PLL simulation below. */
+export function dividerSequence(alpha: number, mode: Exclude<Mode, 'int'>, count = 4096): DividerSequence {
+  const fcw = Math.max(0, Math.min(M - 1, Math.round(alpha * M)));
+  const actual = fcw / M, step = dividerCore(mode, fcw);
+  const y = new Int8Array(count), phase = new Float64Array(count);
+  let q = 0;
+  for (let k = 0; k < count; k++) {
+    y[k] = step().y;
+    q += y[k] - actual;
+    phase[k] = q;
+  }
+  return { alpha: actual, y, phase };
+}
+
 export function simulate(targetHz: number, mode: Mode, dtc: boolean, inlPs: number, fRef: number, bw: number, cpMismatch = 0): Sim {
   const T_REF = 1 / fRef;
   const { gp, beta } = loopFor(fRef, bw);
@@ -89,7 +135,6 @@ export function simulate(targetHz: number, mode: Mode, dtc: boolean, inlPs: numb
   } else {
     nInt = Math.floor(targetHz / fRef + 1e-12);
     fcw = Math.round((targetHz / fRef - nInt) * M);
-    if (mode === 'sd' && fcw) fcw |= 1;
   }
   const nAvg = nInt + fcw / M, tOut = T_REF / nAvg;
   // the phase error the DTC has to cancel: one output period of sawtooth after an accumulator, four after MASH 1-1-1
@@ -97,7 +142,8 @@ export function simulate(targetHz: number, mode: Mode, dtc: boolean, inlPs: numb
   const kp = gp / nAvg, ki = (gp * gp) / 4 / nAvg;
   const sigVco = 1e6 * tOut * Math.sqrt(10 ** (L_VCO_1M / 10) / fRef);
   const x = new Float64Array(N_FFT), e = new Float64Array(N_SHOW), ndiv = new Int16Array(N_SHOW), qd = new Float64Array(N_SHOW);
-  let xo = 0, I = 0, p1 = 0, p2 = 0, Q = 0, a1 = 0, a2 = 0, a3 = 0, c2p = 0, c3p = 0, c3pp = 0;
+  const divider = mode === 'int' ? null : dividerCore(mode, fcw);
+  let xo = 0, I = 0, p1 = 0, p2 = 0, Q = 0;
   for (let k = 0; k < NTOT; k++) {
     const q = Q / M;
     let delta = 0;
@@ -111,17 +157,7 @@ export function simulate(targetHz: number, mode: Mode, dtc: boolean, inlPs: numb
     I += ki * pump;
     p1 += beta * (kp * pump + I - p1);
     p2 += beta * (p1 - p2);
-    let y = 0;
-    if (mode === 'acc') {
-      const s1 = a1 + fcw;
-      y = s1 >> W; a1 = s1 & MASK;
-    } else if (mode === 'sd') {
-      const s1 = a1 + fcw, c1 = s1 >> W; a1 = s1 & MASK;
-      const s2 = a2 + a1, c2 = s2 >> W; a2 = s2 & MASK;
-      const s3 = a3 + a2, c3 = s3 >> W; a3 = s3 & MASK;
-      y = c1 + (c2 - c2p) + (c3 - 2 * c3p + c3pp);
-      c2p = c2; c3pp = c3p; c3p = c3;
-    }
+    const y = divider?.().y ?? 0;
     const j = k - N_WARM;
     if (j >= 0) {
       x[j] = xo;

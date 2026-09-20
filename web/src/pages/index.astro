@@ -74,9 +74,10 @@ const digitalPath = 'M0 60 ' + Array.from({ length: 32 }, (_, i) => {
   .section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding-bottom: 13px; border-bottom: 1px solid var(--rule); }
   h2 { margin: 0; font-size: 15px; font-weight: 600; letter-spacing: -0.02em; }
   .section-note { color: var(--ink-3); font: 10px/1.6 var(--mono); }
-  .lesson-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 32px; }
+  .lesson-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: 24px; }
   #related { margin-top: 32px; }
   .related-grid :global(.entry) { padding-inline: 0; }
+  @media (max-width: 1000px) { .lesson-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
   @media (max-width: 760px) { .signal { width: 180px; margin: 0; padding-inline: 0; } .hero-inner { gap: 24px; } .lesson-grid { column-gap: 22px; } }
   @media (max-width: 600px) {
     .hero-inner { padding: 28px 20px; }

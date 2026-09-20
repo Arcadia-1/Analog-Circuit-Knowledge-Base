@@ -9,7 +9,7 @@ Reference-rate time-domain PLL: reference 25 / 40 / 100 MHz (default 40), type-I
 poles at 6x BW, closed-loop -3 dB bandwidth 1 MHz, linear phase detector, VCO around 5 GHz.
 Noise: white reference/PFD timing noise from a normalised floor of -228 dBc/Hz (634 fs rms per edge);
 VCO -120 dBc/Hz at 1 MHz (white FM). RMS jitter = std of the output edge-time error, f_ref/32768 .. f_ref/2.
-Divider: integer N | first-order accumulator | MASH 1-1-1 (24 bit, LSB set), either with an ideal DTC (+ bow INL).
+Divider: integer N | first-order accumulator | MASH 1-1-1 (24 bit), either with an ideal DTC (+ bow INL).
 """
 import math
 import numpy as np
@@ -39,7 +39,6 @@ def simulate(target_hz, mode, dtc=False, inl_ps=0.0, noise=True, n_warm=8192, n_
         n_int, fcw = int(round(target_hz / F_REF)), 0
     else:
         n_int = int(math.floor(target_hz / F_REF)); fcw = int(round((target_hz / F_REF - n_int) * M))
-        if mode == "sd" and fcw: fcw |= 1
     alpha = fcw / M; n_avg = n_int + alpha; t_out = T_REF / n_avg
     # phase error the DTC has to cancel: one output period of sawtooth after the accumulator, four after MASH 1-1-1
     top, span = (0.0, 1.0) if mode == "acc" else (2.0, 4.0)
