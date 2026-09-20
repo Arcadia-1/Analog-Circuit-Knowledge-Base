@@ -2,14 +2,27 @@
   import Notes from '../../components/ui/Notes.svelte';
   import Segmented from '../../components/ui/Segmented.svelte';
   import ValueField from '../../components/ui/ValueField.svelte';
-  import { freqText } from '../../lib/format';
+  import { freqText, jitterText, nf } from '../../lib/format';
   import { clamp } from '../../lib/scale';
   import BlockDiagram from './BlockDiagram.svelte';
   import FrequencyRuler from './FrequencyRuler.svelte';
+  import {
+    analyze,
+    N_SHOW,
+    simulate,
+    type Analysis,
+    type EdgeScale,
+    type Sim,
+  } from './model';
+  import PhaseDetectorChart from './PhaseDetectorChart.svelte';
+  import PhaseNoiseChart from './PhaseNoiseChart.svelte';
 
   const T_LO = 4.95e9, T_HI = 5.15e9;
+  const BW = 1e6;
   let target = $state(5.0005e9);
   let fRef = $state(40e6);
+  let hoverCycle = $state<number | null>(null);
+  let hoverF = $state<number | null>(null);
 
   const setTarget = (hz: number) => (target = Math.round(clamp(hz, T_LO, T_HI) / 1e5) * 1e5);
   const nInteger = $derived(Math.round(target / fRef));
@@ -17,6 +30,36 @@
   const miss = $derived(integerOut - target);
   const nBase = $derived(Math.floor(target / fRef));
   const alpha = $derived(target / fRef - nBase);
+
+  const intSim: Sim = $derived(simulate(integerOut, 'int', false, 0, fRef, BW, 0));
+  const fracSim: Sim = $derived(simulate(target, 'sd', false, 0, fRef, BW, 0));
+  const intAn: Analysis = $derived(analyze(intSim));
+  const fracAn: Analysis = $derived(analyze(fracSim));
+
+  const edgeScale: EdgeScale = $derived.by(() => {
+    let nMin = Infinity, nMax = -Infinity, R = 0;
+    for (const sim of [intSim, fracSim]) {
+      for (let i = 0; i < N_SHOW; i++) {
+        nMin = Math.min(nMin, sim.ndiv[i]);
+        nMax = Math.max(nMax, sim.ndiv[i]);
+        R = Math.max(R, Math.abs(sim.e[i]) * 1e12);
+      }
+    }
+    return {
+      nMin,
+      nMax,
+      R: Math.max(R * 1.12, 1.08 * intSim.tOut * 1e12),
+    };
+  });
+
+  const spurText = (an: Analysis) => {
+    const spur = an.spurs.find((p) => p.f >= 1e4);
+    return spur
+      ? { value: `${nf(spur.dBc, 1)} dBc`, offset: ` at ${freqText(spur.f)}` }
+      : { value: 'none', offset: '' };
+  };
+  const intSpur = $derived(spurText(intAn));
+  const fracSpur = $derived(spurText(fracAn));
 </script>
 
 <main class="page">
@@ -38,7 +81,7 @@
     <Notes>
       <p><b>Integer-<var>N</var>.</b> The feedback divider is one integer <var>N</var>, so <var>f</var><sub>out</sub> can only move in steps of <var>f</var><sub>ref</sub>. A requested frequency between two channels must be rounded.</p>
       <p><b>Fractional-<var>N</var>.</b> The divider changes among nearby integers. Its long-term average is <var>N</var> + <var>α</var>, so the average output can land between integer channels. The modulator is part of how that average is produced; it is not a different frequency formula.</p>
-      <p><b>This page stops at frequency choice.</b> The sequence used to realise <var>α</var>, its accumulated phase error and noise shaping are separated into <a href="/pll/fractional-divider/">Inside a fractional divider</a>.</p>
+      <p><b>The plots below show the system view.</b> Compare phase-detector timing in the time domain and the resulting output spectrum. The divider-word sequence, accumulated phase error and noise-shaping order are separated into <a href="/pll/fractional-divider/">Inside a fractional divider</a>.</p>
     </Notes>
   </header>
 
@@ -83,30 +126,40 @@
     <div class="diagram col1"><BlockDiagram kind="int" label="Integer-N PLL block diagram" /></div>
     <div class="diagram col2"><BlockDiagram kind="sd" label="Fractional-N PLL block diagram" /></div>
 
-    <div class="answer col1">
-      <span class="eyebrow">Channel grid</span>
-      <b>One divider word, one channel.</b>
-      <p>Changing <var>N</var> by one moves the output by exactly <var>f</var><sub>ref</sub>. A finer grid requires a lower reference frequency.</p>
+    <div class="chart">
+      <div class="cap">
+        <span class="left"><span class="label"><span class="tag">Integer-<var>N</var></span>Time domain</span><span>divider word and phase-detector timing</span></span>
+      </div>
+      <PhaseDetectorChart sim={intSim} series={1} scale={edgeScale} hover={hoverCycle} onhover={(i) => (hoverCycle = i)} label="Integer-N time-domain timing" />
     </div>
-    <a class="answer next col2" href="/pll/fractional-divider/">
-      <span class="eyebrow">Next lesson</span>
-      <b>How does the average become <var>N</var> + <var>α</var>? <span aria-hidden="true">↗</span></b>
-      <p>Compare the word sequence and accumulated error of a first-order accumulator and a MASH 1-1-1.</p>
-    </a>
+    <div class="chart">
+      <div class="cap">
+        <span class="left"><span class="label"><span class="tag">Fractional-<var>N</var></span>Time domain</span><span>divider word and phase-detector timing</span></span>
+      </div>
+      <PhaseDetectorChart sim={fracSim} series={2} scale={edgeScale} hover={hoverCycle} onhover={(i) => (hoverCycle = i)} label="Fractional-N time-domain timing" />
+    </div>
+
+    <div class="chart">
+      <div class="cap">
+        <span class="left"><span class="label"><span class="tag">Integer-<var>N</var></span>Output spectrum</span><span>offset from carrier</span></span>
+        <span>RMS jitter <b>{jitterText(intAn.jitterFs)}</b> <span class="band">({freqText(intAn.bandLo)}–{freqText(intAn.bandHi)})</span> · largest spur <b>{intSpur.value}</b>{intSpur.offset}</span>
+      </div>
+      <PhaseNoiseChart an={intAn} series={1} bw={BW} hover={hoverF} onhover={(f) => (hoverF = f)} label="Integer-N output spectrum" />
+    </div>
+    <div class="chart">
+      <div class="cap">
+        <span class="left"><span class="label"><span class="tag">Fractional-<var>N</var></span>Output spectrum</span><span>offset from carrier</span></span>
+        <span>RMS jitter <b>{jitterText(fracAn.jitterFs)}</b> <span class="band">({freqText(fracAn.bandLo)}–{freqText(fracAn.bandHi)})</span> · largest spur <b>{fracSpur.value}</b>{fracSpur.offset}</span>
+      </div>
+      <PhaseNoiseChart an={fracAn} series={2} bw={BW} hover={hoverF} onhover={(f) => (hoverF = f)} label="Fractional-N output spectrum" />
+    </div>
   </section>
 </main>
 
 <style>
-  .page { grid-template-rows: auto auto minmax(0, 1fr); }
   .tuner { grid-template-columns: 430px minmax(0, 1fr); }
-  .compare { --rows: auto auto minmax(0, 1fr); }
+  .compare { --rows: auto 78px minmax(0, 1fr) minmax(0, 1.15fr); }
   .head { gap: 8px; }
   .diagram { align-self: center; padding-block: 14px; }
-  .answer { align-self: stretch; padding: 24px; border: 1px solid var(--rule); background: var(--plot); display: flex; flex-direction: column; justify-content: center; gap: 7px; color: inherit; text-decoration: none; }
-  .answer .eyebrow { color: var(--ink-3); font: 11px var(--mono); text-transform: uppercase; letter-spacing: 0.08em; }
-  .answer b { font-size: 19px; line-height: 1.35; font-weight: 550; }
-  .answer p { max-width: 58ch; margin: 0; color: var(--ink-2); font-size: 14px; line-height: 1.6; }
-  .answer.next { border-color: color-mix(in srgb, var(--s2) 45%, var(--rule)); }
-  .answer.next:hover b { color: var(--brand); }
-  @media (max-width: 900px) { .tuner { grid-template-columns: 1fr; } .answer { min-height: 180px; } }
+  @media (max-width: 900px) { .tuner { grid-template-columns: 1fr; } }
 </style>
