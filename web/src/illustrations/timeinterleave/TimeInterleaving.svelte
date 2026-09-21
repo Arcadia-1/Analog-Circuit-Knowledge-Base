@@ -1,10 +1,9 @@
 <script lang="ts">
-  import Segmented from '../../components/ui/Segmented.svelte';
   import { freqText, nf } from '../../lib/format';
   import { foldFrequency } from '../../lib/frequency';
   import ContributionMap from './ContributionMap.svelte';
   import EditableRange from './EditableRange.svelte';
-  import { CHANNELS, contributions, mismatch, N, read, type HarmonicLevels } from './model';
+  import { contributions, MAX_CHANNELS, MIN_CHANNELS, mismatch, N, read, type HarmonicLevels } from './model';
   import SampleTimingChart from './SampleTimingChart.svelte';
   import SpurSpectrum from './SpurSpectrum.svelte';
 
@@ -86,11 +85,8 @@
           <span class="label">Sampling</span>
           <span>{rateText(r.fsOut)} out · {r.fftPoints} FFT points</span>
         </div>
+        <EditableRange id="channels" min={MIN_CHANNELS} max={MAX_CHANNELS} step={1} digits={0} unit="" bind:value={m}>Channels</EditableRange>
         <EditableRange id="bits" min={8} max={16} step={1} digits={0} unit="bits" bind:value={bits}>Resolution</EditableRange>
-        <div class="channel-row">
-          <span>Channels</span>
-          <Segmented size="sm" mono label="Number of channels" options={CHANNELS.map((c) => ({ value: c, label: String(c) }))} bind:value={m} />
-        </div>
         <EditableRange id="sample-rate" min={0.5} max={10} step={0.1} digits={1} unit="GS/s" bind:value={sampleRateGHz}>Sampling Rate</EditableRange>
         <EditableRange id="input-frequency" min={inputMinGHz} max={inputMaxGHz} step={0.001} digits={3} unit="GHz" bind:value={inputGHz}>Input Rate</EditableRange>
         <EditableRange id="decimation" min={1} max={255} step={1} digits={0} unit="" prefix="÷" bind:value={decimation}>Decimation</EditableRange>
@@ -156,8 +152,6 @@
   .control-group { min-width: 0; display: grid; gap: 4px; padding: 8px 12px; border: 1px solid var(--rule); border-radius: 5px; }
   .group-head { min-height: 19px; display: flex; align-items: baseline; justify-content: space-between; gap: 8px; color: var(--ink-3); font-size: 11.5px; }
   .group-head > :last-child { text-align: right; }
-  .channel-row { display: grid; grid-template-columns: 76px minmax(0, 1fr); align-items: center; gap: 8px; min-height: 27px; color: var(--ink-2); font-size: 12.5px; }
-  .channel-row :global(.segmented) { width: 100%; }
   .sampling-readout { display: grid; gap: 2px; padding-top: 5px; border-top: 1px solid var(--rule); color: var(--ink-3); font-size: 11.5px; }
   .sampling-readout b { color: var(--ink); font: 500 11.5px var(--mono); }
   .source { --accent: var(--s1); }

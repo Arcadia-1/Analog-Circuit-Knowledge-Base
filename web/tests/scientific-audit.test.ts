@@ -5,7 +5,7 @@ import { foldFrequency } from '../src/lib/frequency';
 import { read as aliasing, floorOf, KEEP } from '../src/illustrations/aliasing/model';
 import { decompose, spectrumPolar, FIN_BIN, analyze as panel, CLEAN_IMPAIRMENTS } from '../src/illustrations/analog-panel/model';
 import { binaryWeights, redundantWeights, convert, reconstruct, type Trial } from '../src/illustrations/sar/model';
-import { read, mismatch, outputSpectrum, outputSpurs, physicalParams, FS, AMP } from '../src/illustrations/timeinterleave/model';
+import { read, mismatch, outputSpectrum, outputSpurs, physicalParams, predictSpurs, FS, AMP } from '../src/illustrations/timeinterleave/model';
 import { analyze, dividerSequence, simulate, type Sim } from '../src/illustrations/pll/model';
 
 /** Analytical or independent signal identities, not snapshots copied from the implementation. */
@@ -99,6 +99,47 @@ describe('scientific audit: public lessons', () => {
       expect(s.dbfs[bin]).toBeCloseTo(spur.dbfs, 7);
       expect(s.dbfs[bin] - s.dbfs[s.signal]).toBeCloseTo(spur.dbc, 7);
       expect(spur.freq).toBeCloseTo(foldFrequency(spur.freq, FS / factor), 5);
+    }
+  });
+
+  it.each([3, 5, 17, 255, 256])('supports an arbitrary integer channel count of %i', (m) => {
+    const mm = mismatch(m, 0.01, 0.001, 2e-12, 0.02);
+    expect(mm.gain).toHaveLength(m);
+    expect(mm.offset).toHaveLength(m);
+    expect(mm.skew).toHaveLength(m);
+    expect(mm.bandwidth).toHaveLength(m);
+    for (const values of [mm.gain.map((v) => v - 1), mm.offset, mm.skew, mm.bandwidth!]) {
+      const mean = values.reduce((sum, value) => sum + value, 0) / m;
+      expect(Math.abs(mean)).toBeLessThan(1e-15);
+    }
+    const p = physicalParams(mm, 101e6, FS);
+    const spurs = outputSpurs(p, FS);
+    expect(spurs.every((spur) => Number.isFinite(spur.freq) && Number.isFinite(spur.dbc))).toBe(true);
+  });
+
+  it.each([3, 5, 17])('matches a direct DFT for an odd %i-channel mismatch pattern', (m) => {
+    const fin = 101e6;
+    const offset = Float64Array.from({ length: m }, (_, c) => 0.001 * Math.cos(2 * Math.PI * 2 * c / m + 0.2));
+    const gain = Float64Array.from({ length: m }, (_, c) => 1 + 0.01 * Math.sin(2 * Math.PI * c / m + 0.4));
+    const skew = Float64Array.from({ length: m }, (_, c) => 2e-12 * Math.cos(2 * Math.PI * 2 * c / m - 0.3));
+    const spurs = predictSpurs({ fin, amp: AMP, gain, offset, skew }, FS, 0.5);
+    const magnitude = (re: Float64Array, im: Float64Array, k: number) => {
+      let real = 0, imaginary = 0;
+      for (let c = 0; c < m; c++) {
+        const phase = 2 * Math.PI * k * c / m;
+        real += re[c] * Math.cos(phase) + im[c] * Math.sin(phase);
+        imaginary += im[c] * Math.cos(phase) - re[c] * Math.sin(phase);
+      }
+      return Math.hypot(real, imaginary);
+    };
+    const complexGain = gain.map((value, c) => value * Math.cos(2 * Math.PI * fin * skew[c]));
+    const complexPhase = gain.map((value, c) => value * Math.sin(2 * Math.PI * fin * skew[c]));
+    expect(spurs).toHaveLength(Math.floor(m / 2) + m - 1);
+    for (const spur of spurs) {
+      const expected = spur.kind === 'offset'
+        ? magnitude(offset, new Float64Array(m), spur.k) / m * (2 * spur.k === m ? 1 : 2)
+        : AMP * magnitude(complexGain, complexPhase, spur.k) / m;
+      expect(spur.amp).toBeCloseTo(expected, 12);
     }
   });
 

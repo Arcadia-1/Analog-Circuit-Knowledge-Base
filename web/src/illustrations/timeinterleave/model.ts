@@ -13,7 +13,7 @@
  *
  * Volts on a ±0.5 V range, seconds and hertz: 4096 samples at 1 GS/s.
  */
-import { fft, fftAny } from '../../lib/fft';
+import { fftAny } from '../../lib/fft';
 import { coherentFrequency, foldFrequency } from '../../lib/frequency';
 import { gaussians } from '../../lib/rng';
 import { analyzeSpectrum, N_FFT, type Spectrum } from '../../lib/spectrum';
@@ -22,7 +22,8 @@ import { fitSine } from '../errors/model';
 export const FS = 1e9;
 export const N = N_FFT;
 export const AMP = 0.4;
-export const CHANNELS = [2, 4, 8];
+export const MIN_CHANNELS = 2;
+export const MAX_CHANNELS = 256;
 export const MAX_DECIMATION = 255;
 export const HARMONIC_ORDERS = [2, 3, 5, 7] as const;
 export type HarmonicOrder = (typeof HARMONIC_ORDERS)[number];
@@ -45,12 +46,21 @@ export interface Mismatch {
   bandwidth?: Float64Array;
 }
 
-// one fixed draw per quantity and channel; the controls only scale it
-const DRAWS = gaussians(32, 2026);
+// One fixed draw per quantity and channel; the controls only scale it. Keep the original first eight values so the
+// 2/4/8-channel reference cases remain unchanged, then extend each independent pattern through the UI's full range.
+const LEGACY_DRAWS = gaussians(32, 2026);
+const DRAWS = Array.from({ length: 4 }, (_, which) => {
+  const values = gaussians(MAX_CHANNELS, 2027 + which);
+  values.set(LEGACY_DRAWS.subarray(8 * which, 8 * (which + 1)));
+  return values;
+});
 
 /** Draws `which` for the first m channels, less their mean and scaled to an rms of one. */
 export function pattern(which: number, m: number): Float64Array {
-  const z = DRAWS.slice(8 * which, 8 * which + m);
+  if (!Number.isInteger(m) || m < MIN_CHANNELS || m > MAX_CHANNELS) throw new Error(`unsupported channel count ${m}`);
+  const source = DRAWS[which];
+  if (!source) throw new Error(`unsupported mismatch pattern ${which}`);
+  const z = source.slice(0, m);
   let sum = 0, square = 0;
   for (const v of z) sum += v;
   const d = z.map((v) => v - sum / m);
@@ -217,10 +227,10 @@ export interface Spur {
   dbc: number;
 }
 
-/** |X_k| of an m-point sequence, m a power of two. */
+/** |X_k| of an m-point sequence. Bluestein's transform handles odd and other non-radix-2 channel counts. */
 function dft(re: ArrayLike<number>, im: ArrayLike<number>): Float64Array {
   const r = Float64Array.from(re), i = Float64Array.from(im);
-  fft(r, i);
+  fftAny(r, i);
   return r.map((v, k) => Math.hypot(v, i[k]));
 }
 
