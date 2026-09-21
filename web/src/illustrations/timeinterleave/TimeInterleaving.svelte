@@ -68,7 +68,7 @@
     skewPs = randomStep(0, 2, 0.01);
     bandwidthPct = randomStep(0, 10, 0.1);
     thermalNoiseLsb = randomStep(0, 4, 0.05);
-    jitterFs = randomStep(10, 1000, 10);
+    jitterFs = randomStep(10, 500, 10);
     h2Dbc = randomStep(-100, -40, 1);
     h3Dbc = randomStep(-100, -40, 1);
     h5Dbc = randomStep(-100, -40, 1);
@@ -115,7 +115,7 @@
       <div class="control-group source">
         <div class="group-head"><span class="label">Noise, clock &amp; source</span></div>
         <EditableRange id="thermal-noise" min={0} max={4} step={0.05} digits={2} unit="LSB rms" bind:value={thermalNoiseLsb}>Thermal noise</EditableRange>
-        <EditableRange id="jitter" min={0} max={1000} step={10} digits={0} unit="fs" bind:value={jitterFs}>Jitter</EditableRange>
+        <EditableRange id="jitter" min={0} max={500} step={10} digits={0} unit="fs" bind:value={jitterFs}>Jitter</EditableRange>
         <div class="noise-readout" aria-label="Expected signal-to-noise ratios from each noise source alone">
           <span title="Thermal noise only: 20 log10[(A·|H(fin)|/√2)/(σthermal·LSB)]">Thermal-only SNR <b>{snrText(thermalSnr)}</b></span>
           <span title="Aperture jitter only: −20 log10(2π·fin·σt)">Jitter-only SNR <b>{snrText(jitterSnr)}</b></span>
