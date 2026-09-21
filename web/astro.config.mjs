@@ -7,9 +7,9 @@ import { publicLessonPaths } from './src/data/publication.ts';
 
 const publicPages = new Set(['/', ...publicLessonPaths]);
 
-// ADCToolbox: the interactive side of the toolbox. Every page is prerendered; the interactive parts are Svelte islands
-// and the copied analytics module (analytics/) is React. The reference manual is built into dist/doc by the deploy
-// workflow, from the Sphinx source in the ADCToolbox repository.
+// Every page is prerendered; the interactive parts are Svelte islands and the copied analytics module (analytics/) is
+// React. ADC lessons link to the separately maintained ADCToolbox reference manual, which is built into dist/doc by
+// the deploy workflow from the Sphinx source in the ADCToolbox repository.
 export default defineConfig({
   site: 'https://circuits-and-systems.tokenzhang.com',
   output: 'static',

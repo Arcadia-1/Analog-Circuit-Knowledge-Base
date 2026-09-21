@@ -13,6 +13,7 @@ interface Props {
 const { title, description, visits = true } = Astro.props;
 const canonical = new URL(Astro.url.pathname, Astro.site);
 const holdFromIndex = isLessonPath(Astro.url.pathname) && !isPublicLessonPath(Astro.url.pathname);
+const showAdcToolbox = Astro.url.pathname.startsWith('/adc/');
 const siteName = 'Circuits & Systems Classroom';
 ---
 <!doctype html>
@@ -44,7 +45,7 @@ const siteName = 'Circuits & Systems Classroom';
   </head>
   <body>
     <a class="skip-link" href="#main-content">Skip to content</a>
-    <SiteHeader pageTitle={isLessonPath(Astro.url.pathname) ? title : undefined} />
+    <SiteHeader pageTitle={isLessonPath(Astro.url.pathname) ? title : undefined} {showAdcToolbox} />
     <div id="main-content" tabindex="-1">
       <slot />
     </div>
