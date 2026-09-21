@@ -63,10 +63,10 @@
   }
 
   function randomizeImpairments() {
-    gainPct = randomStep(0, 3, 0.05);
-    offsetMv = randomStep(0, 8, 0.1);
-    skewPs = randomStep(0, 2, 0.01);
-    bandwidthPct = randomStep(0, 10, 0.1);
+    gainPct = randomStep(0, 1, 0.05);
+    offsetMv = randomStep(0, 5, 0.1);
+    skewPs = randomStep(0, 0.5, 0.01);
+    bandwidthPct = randomStep(0, 5, 0.1);
     thermalNoiseLsb = randomStep(0, 4, 0.05);
     jitterFs = randomStep(10, 500, 10);
     h2Dbc = randomStep(-100, -40, 1);
@@ -106,10 +106,10 @@
       <div class="control-group accent2">
         <div class="group-head"><span class="label">Analog front end</span><span>mismatch · rms</span></div>
         <EditableRange id="analog-bandwidth" min={0.1} max={20} step={0.1} digits={1} unit="GHz" bind:value={analogBandwidthGHz}>Analog Bandwidth</EditableRange>
-        <EditableRange id="offset" min={0} max={8} step={0.1} digits={1} unit="mV" bind:value={offsetMv}>Offset</EditableRange>
-        <EditableRange id="gain" min={0} max={3} step={0.05} digits={2} unit="%" bind:value={gainPct}>Gain</EditableRange>
-        <EditableRange id="skew" min={0} max={2} step={0.01} digits={2} unit="ps" bind:value={skewPs}>Skew</EditableRange>
-        <EditableRange id="bandwidth" min={0} max={10} step={0.1} digits={1} unit="%" bind:value={bandwidthPct}>BW mismatch</EditableRange>
+        <EditableRange id="offset" min={0} max={5} step={0.1} digits={1} unit="mV" bind:value={offsetMv}>Offset</EditableRange>
+        <EditableRange id="gain" min={0} max={1} step={0.05} digits={2} unit="%" bind:value={gainPct}>Gain</EditableRange>
+        <EditableRange id="skew" min={0} max={0.5} step={0.01} digits={2} unit="ps" bind:value={skewPs}>Skew</EditableRange>
+        <EditableRange id="bandwidth" min={0} max={5} step={0.1} digits={1} unit="%" bind:value={bandwidthPct}>BW mismatch</EditableRange>
       </div>
 
       <div class="control-group source">
