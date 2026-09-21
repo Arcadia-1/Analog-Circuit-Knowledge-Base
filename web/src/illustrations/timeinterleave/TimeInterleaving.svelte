@@ -40,12 +40,48 @@
   const zone = $derived(Math.min(m, Math.floor(r.fin / (fs / (2 * m))) + 1));
   const sourceRows = $derived(contributions(mm, r.fin, fs, harmonics, jitterPs / 1e12, r.fsOut));
   const rateText = (hz: number) => freqText(hz).replace(/Hz$/, 'S/s');
+
+  const randomStep = (min: number, max: number, step: number) => {
+    const steps = Math.round((max - min) / step);
+    return Number((min + Math.floor(Math.random() * (steps + 1)) * step).toFixed(8));
+  };
+
+  function clearImpairments() {
+    gainPct = 0;
+    offsetMv = 0;
+    skewPs = 0;
+    bandwidthPct = 0;
+    jitterPs = 0;
+    h2Dbc = h3Dbc = h5Dbc = h7Dbc = -100;
+    hoverBin = hoverSample = null;
+  }
+
+  function randomizeImpairments() {
+    gainPct = randomStep(0, 3, 0.05);
+    offsetMv = randomStep(0, 8, 0.1);
+    skewPs = randomStep(0, 2, 0.01);
+    bandwidthPct = randomStep(0, 10, 0.1);
+    jitterPs = randomStep(0, 5, 0.05);
+    h2Dbc = randomStep(-100, -40, 1);
+    h3Dbc = randomStep(-100, -40, 1);
+    h5Dbc = randomStep(-100, -40, 1);
+    h7Dbc = randomStep(-100, -40, 1);
+    hoverBin = hoverSample = null;
+  }
 </script>
 
 <main class="page">
   <section class="workspace">
     <aside class="control-panel" aria-label="Converter and error settings">
-      <div class="control-group">
+      <div class="quick-actions">
+        <span>All impairments</span>
+        <div>
+          <button type="button" onclick={clearImpairments} title="Set channel mismatch, jitter, and source harmonics to zero; the selected ADC resolution remains active">Zero all</button>
+          <button type="button" onclick={randomizeImpairments} title="Draw every channel mismatch, jitter, and harmonic level independently over its control range">Random</button>
+        </div>
+      </div>
+
+      <div class="control-group sampling">
         <div class="group-head">
           <span class="label">Sampling</span>
           <span>{rateText(r.fsOut)} out · {r.fftPoints} FFT points</span>
@@ -113,6 +149,10 @@
   .page { height: calc(100dvh - 103px); min-height: 0; grid-template-rows: minmax(0, 1fr); max-width: 1600px; padding-block: 10px 8px; gap: 0; }
   .workspace { min-width: 0; min-height: 0; display: grid; grid-template-columns: minmax(330px, 380px) minmax(0, 1fr); gap: 26px; align-items: stretch; }
   .control-panel { min-width: 0; min-height: 0; display: grid; gap: 8px; align-content: start; }
+  .quick-actions { min-height: 27px; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 0 4px; color: var(--ink-3); font-size: 11.5px; }
+  .quick-actions > div { display: flex; gap: 5px; }
+  .quick-actions button { border: 1px solid var(--rule); border-radius: 4px; padding: 3px 8px; background: var(--plot); color: var(--ink-2); font: 11px var(--sans); cursor: pointer; }
+  .quick-actions button:hover { border-color: var(--ink-3); color: var(--ink); }
   .control-group { min-width: 0; display: grid; gap: 4px; padding: 8px 12px; border: 1px solid var(--rule); border-radius: 5px; }
   .group-head { min-height: 19px; display: flex; align-items: baseline; justify-content: space-between; gap: 8px; color: var(--ink-3); font-size: 11.5px; }
   .group-head > :last-child { text-align: right; }
@@ -131,12 +171,13 @@
     .page { height: auto; min-height: 0; padding-block: 16px 28px; }
     .workspace { grid-template-columns: minmax(0, 1fr); }
     .control-panel { position: static; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .control-group:first-child { grid-row: span 2; }
+    .quick-actions { grid-column: 1 / -1; }
+    .sampling { grid-row: span 2; }
     .visuals { grid-template-rows: 300px 320px 270px; }
   }
   @media (max-width: 700px) {
     .control-panel { grid-template-columns: minmax(0, 1fr); }
-    .control-group:first-child { grid-row: auto; }
+    .sampling { grid-row: auto; }
     .visuals { grid-template-rows: 280px 300px 260px; }
   }
   @media (min-width: 901px) and (max-height: 700px) {
