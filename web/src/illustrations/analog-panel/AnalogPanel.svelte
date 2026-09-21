@@ -142,7 +142,7 @@
             <Segmented size="sm" mono label="Code-unit scale in bits" options={[10, 12, 14].map((value) => ({ value, label: String(value) }))} bind:value={() => bits, setBits} />
             <output>bits</output>
           </div>
-          <Range onstart={beginEdit} oncommit={commitEdit} id="analog-input-frequency" min={1} max={points / 2 - 1} step={1} output={freqText(fin)} bind:value={() => finBin, setInputBin}>Input frequency</Range>
+          <Range onstart={beginEdit} oncommit={commitEdit} id="analog-input-frequency" min={1} max={points / 2 - 1} step={2} output={freqText(fin)} bind:value={() => finBin, setInputBin}>Input frequency</Range>
           <Range onstart={beginEdit} oncommit={commitEdit} id="analog-fft-points" min={6} max={18} step={1} output={points.toLocaleString('en-US')} bind:value={fftExponent}>FFT points</Range>
         </div>
       </div>
