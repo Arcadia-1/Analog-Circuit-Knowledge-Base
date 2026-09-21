@@ -22,8 +22,8 @@ import { fitSine } from '../errors/model';
 export const FS = 1e9;
 export const N = N_FFT;
 export const AMP = 0.4;
-export const MIN_CHANNELS = 2;
-export const MAX_CHANNELS = 256;
+export const MIN_CHANNELS = 1;
+export const MAX_CHANNELS = 16;
 export const MAX_DECIMATION = 255;
 export const HARMONIC_ORDERS = [2, 3, 5, 7] as const;
 export type HarmonicOrder = (typeof HARMONIC_ORDERS)[number];
@@ -58,6 +58,8 @@ const DRAWS = Array.from({ length: 4 }, (_, which) => {
 /** Draws `which` for the first m channels, less their mean and scaled to an rms of one. */
 export function pattern(which: number, m: number): Float64Array {
   if (!Number.isInteger(m) || m < MIN_CHANNELS || m > MAX_CHANNELS) throw new Error(`unsupported channel count ${m}`);
+  // A single ADC has no channel-to-channel mismatch. It is still useful as the non-interleaved reference case.
+  if (m === 1) return new Float64Array(1);
   const source = DRAWS[which];
   if (!source) throw new Error(`unsupported mismatch pattern ${which}`);
   const z = source.slice(0, m);

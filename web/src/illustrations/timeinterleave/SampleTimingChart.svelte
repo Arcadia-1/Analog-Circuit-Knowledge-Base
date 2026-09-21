@@ -19,6 +19,12 @@
   const X0 = 45, COUNT = 48;
   const m = $derived(truth.gain.length);
   const ideal = (i: number) => inputValue(i / fs, fin, harmonics);
+  const markerShape = (channel: number) => channel % 5;
+  const channelColor = (channel: number, count: number) => {
+    const hue = (210 + channel * 360 / Math.max(1, count)) % 360;
+    return `color-mix(in srgb, hsl(${hue} 70% 50%), var(--ink) 10%)`;
+  };
+  const polygon = (points: [number, number][]) => points.map(([x, y]) => `${x.toFixed(2)},${y.toFixed(2)}`).join(' ');
 
   function geo(W: number, H: number) {
     // Keep a dedicated strip above the plot for the legend and channel indices.
@@ -49,9 +55,24 @@
     <path class="ideal" d={g.wave} />
     {#each samples.subarray(0, COUNT) as value, i}
       {@const c = i % m}
-      <line class="sample-stem ch{c % 4}" x1={g.sx(i)} x2={g.sx(i + truth.skew[c] * fs)} y1={g.sy(value)} y2={g.sy(value)} />
-      <circle class="sample ch{c % 4}" cx={g.sx(i + truth.skew[c] * fs)} cy={g.sy(value)} r={hover === i ? 4.5 : 2.8} />
-      {#if i < m}<text class="tx channel ch{c % 4}" x={g.sx(i + truth.skew[c] * fs)} y="15" text-anchor="middle">{c}</text>{/if}
+      {@const x = g.sx(i + truth.skew[c] * fs)}
+      {@const y = g.sy(value)}
+      {@const radius = hover === i ? 4.7 : 3.1}
+      <g style:--channel-color={channelColor(c, m)}>
+        <line class="sample-stem" x1={g.sx(i)} x2={x} y1={y} y2={y} />
+        {#if markerShape(c) === 0}
+          <circle class="sample" cx={x} cy={y} r={radius} />
+        {:else if markerShape(c) === 1}
+          <rect class="sample" x={x - radius} y={y - radius} width={2 * radius} height={2 * radius} />
+        {:else if markerShape(c) === 2}
+          <polygon class="sample" points={polygon([[x, y - 1.3 * radius], [x + 1.3 * radius, y], [x, y + 1.3 * radius], [x - 1.3 * radius, y]])} />
+        {:else if markerShape(c) === 3}
+          <polygon class="sample" points={polygon([[x, y - 1.35 * radius], [x + 1.2 * radius, y + radius], [x - 1.2 * radius, y + radius]])} />
+        {:else}
+          <polygon class="sample" points={polygon([[x - 1.2 * radius, y - radius], [x + 1.2 * radius, y - radius], [x, y + 1.35 * radius]])} />
+        {/if}
+        {#if i < m}<text class="tx channel" x={x} y="15" text-anchor="middle">{c}</text>{/if}
+      </g>
     {/each}
     <text class="tx2 halo" x={g.X1} y="15" text-anchor="end">input and channel samples · V</text>
     {#each [0, 12, 24, 36, 47] as i, k}
@@ -70,15 +91,7 @@
 
 <style>
   .ideal { fill: none; stroke: var(--ink-3); stroke-width: 1.2; }
-  .sample-stem { stroke: var(--ink-3); opacity: .45; }
-  .sample { stroke: var(--plot); stroke-width: 1.2; }
-  .ch0 { fill: var(--s1); }
-  .ch1 { fill: var(--s2); }
-  .ch2 { fill: var(--bad); }
-  .ch3 { fill: var(--brand); }
-  .sample-stem.ch0 { stroke: var(--s1); }
-  .sample-stem.ch1 { stroke: var(--s2); }
-  .sample-stem.ch2 { stroke: var(--bad); }
-  .sample-stem.ch3 { stroke: var(--brand); }
-  .channel { font-weight: 600; }
+  .sample-stem { stroke: var(--channel-color); opacity: .55; }
+  .sample { fill: var(--channel-color); stroke: var(--plot); stroke-width: 1.2; }
+  .channel { fill: var(--channel-color); font-weight: 650; }
 </style>
