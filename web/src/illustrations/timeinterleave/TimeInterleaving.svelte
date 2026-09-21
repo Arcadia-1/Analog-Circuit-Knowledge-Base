@@ -40,7 +40,6 @@
   const analogBandwidth = $derived(analogBandwidthGHz * 1e9);
   const r = $derived(read(m, inputGHz * 1e9, mm, bits, 'off', { fs, analogBandwidth, thermalNoiseLsb, jitter: jitterPs / 1e12, harmonics, decimation }));
   const seen = $derived(foldFrequency(r.fin, fs / m));
-  const zone = $derived(Math.min(m, Math.floor(r.fin / (fs / (2 * m))) + 1));
   const sourceRows = $derived(contributions(mm, r.fin, fs, harmonics, jitterPs / 1e12, r.fsOut, analogBandwidth));
   const rateText = (hz: number) => freqText(hz).replace(/Hz$/, 'S/s');
 
@@ -97,9 +96,7 @@
         <EditableRange id="input-frequency" min={inputMinGHz} max={inputMaxGHz} step={0.001} digits={3} unit="GHz" bind:value={inputGHz}>Input Rate</EditableRange>
         <EditableRange id="decimation" min={1} max={255} step={1} digits={0} unit="" prefix="÷" bind:value={decimation}>Decimation</EditableRange>
         <div class="sampling-readout">
-          <span>actual input <b>{freqText(r.fin)}</b></span>
-          <span>each channel {rateText(fs / m)} · sees {freqText(seen)}</span>
-          <span>channel Nyquist zone {zone} of {m}</span>
+          <span>actual input <b>{freqText(r.fin)}</b> · channel <b>{rateText(fs / m)}</b> · sees <b>{freqText(seen)}</b></span>
         </div>
       </div>
 
@@ -152,16 +149,16 @@
 <style>
   .page { height: calc(100dvh - 103px); min-height: 0; grid-template-rows: minmax(0, 1fr); max-width: 1600px; padding-block: 10px 8px; gap: 0; }
   .workspace { min-width: 0; min-height: 0; display: grid; grid-template-columns: minmax(330px, 380px) minmax(0, 1fr); gap: 26px; align-items: stretch; }
-  .control-panel { min-width: 0; min-height: 0; display: grid; gap: 8px; align-content: start; }
-  .quick-actions { min-height: 27px; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 0 4px; color: var(--ink-3); font-size: 11.5px; }
+  .control-panel { min-width: 0; min-height: 0; display: grid; gap: 6px; align-content: start; }
+  .quick-actions { min-height: 24px; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 0 4px; color: var(--ink-3); font-size: 11.5px; }
   .quick-actions > div { display: flex; gap: 5px; }
   .quick-actions button { border: 1px solid var(--rule); border-radius: 4px; padding: 3px 8px; background: var(--plot); color: var(--ink-2); font: 11px var(--sans); cursor: pointer; }
   .quick-actions button:hover { border-color: var(--ink-3); color: var(--ink); }
-  .control-group { min-width: 0; display: grid; gap: 4px; padding: 8px 12px; border: 1px solid var(--rule); border-radius: 5px; }
-  .group-head { min-height: 19px; display: flex; align-items: baseline; justify-content: space-between; gap: 8px; color: var(--ink-3); font-size: 11.5px; }
+  .control-group { min-width: 0; display: grid; gap: 2px; padding: 6px 12px; border: 1px solid var(--rule); border-radius: 5px; }
+  .group-head { min-height: 18px; display: flex; align-items: baseline; justify-content: space-between; gap: 8px; color: var(--ink-3); font-size: 11.5px; }
   .group-head > :last-child { text-align: right; }
-  .sampling-readout { display: grid; gap: 2px; padding-top: 5px; border-top: 1px solid var(--rule); color: var(--ink-3); font-size: 11.5px; }
-  .sampling-readout b { color: var(--ink); font: 500 11.5px var(--mono); }
+  .sampling-readout { min-width: 0; padding-top: 4px; border-top: 1px solid var(--rule); color: var(--ink-3); font-size: 10.5px; white-space: nowrap; }
+  .sampling-readout b { color: var(--ink); font: 500 10.5px var(--mono); }
   .source { --accent: var(--s1); }
   .visuals { min-width: 0; min-height: 0; display: grid; grid-template-rows: minmax(160px, .9fr) minmax(220px, 1.3fr) minmax(160px, .8fr); gap: 10px; }
   .chart { min-width: 0; }
