@@ -1,6 +1,6 @@
 ---
 /** Small schematic previews for the home page. */
-interface Props { kind: 'pll' | 'sar' | 'inl' | 'err' | 'win' | 'fold' | 'ntf' | 'ti' | 'bits' | 'polar' | 'bode' | 'floor' | 'fom' | 'harm' | 'record' | 'repeat' | 'short' | 'train' | 'panel' | 'amplifier' | 'two-pole-step' }
+interface Props { kind: 'pll' | 'sar' | 'inl' | 'err' | 'win' | 'fold' | 'ntf' | 'ti' | 'bits' | 'polar' | 'bode' | 'floor' | 'fom' | 'harm' | 'record' | 'repeat' | 'short' | 'train' | 'panel' | 'amplifier' }
 const { kind } = Astro.props;
 const xs = Array.from({ length: 13 }, (_, i) => 6 + i * 14);
 const saw = [-14, -8, -2, 6, 14];
@@ -69,25 +69,9 @@ const amplifierCurve = (closed: boolean) => Array.from({ length: 81 }, (_, i) =>
   const db = 20 * Math.log10(1000 / Math.hypot(closed ? 101 : 1, f / 100));
   return `${4 + i * 2.25},${84 - db * .9}`;
 }).join(' ');
-const twoPoleStep = Array.from({ length: 81 }, (_, i) => {
-  const t = i / 80 * .12, a = 2 * Math.PI * 10, b = 2 * Math.PI * 100;
-  const y = 1 - (b * Math.exp(-a * t) - a * Math.exp(-b * t)) / (b - a);
-  return `${4 + i * 2.25},${92 - 70 * y}`;
-}).join(' ');
 ---
 <svg class="thumb" viewBox="0 0 188 100" aria-hidden="true">
-  {kind === 'two-pole-step' ? (
-    <>
-      <line class="base" x1="0" x2="188" y1="92" y2="92" />
-      <line class="dash" x1="0" x2="188" y1="22" y2="22" />
-      <polyline class="link" style="stroke: var(--brand)" points={twoPoleStep} />
-      <line class="s1" x1="46" x2="46" y1="79" y2="92" />
-      <line class="s2" x1="104" x2="104" y1="79" y2="92" />
-      <circle class="s1" cx="46" cy="79" r="3.2" />
-      <circle class="s2" cx="104" cy="79" r="3.2" />
-      <text x="184" y="16" text-anchor="end" fill="var(--ink-3)" font-size="12" font-family="var(--math)">p₁ · p₂ → y(t)</text>
-    </>
-  ) : kind === 'amplifier' ? (
+  {kind === 'amplifier' ? (
     <>
       <line class="base" x1="0" x2="188" y1="84" y2="84" />
       <line class="base" x1="64" x2="64" y1="24" y2="96" />
