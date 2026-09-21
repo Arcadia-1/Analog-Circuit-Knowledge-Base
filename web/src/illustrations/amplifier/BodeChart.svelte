@@ -75,18 +75,18 @@
       {#if hasPhase(h)}
       <path class="c1" d={path('openPhase', w, h)} stroke-width="2" />
       <path class="c2" d={path('closedPhase', w, h)} stroke-width="2.5" />
-      {#if !compact(h)}<text class="tx2 halo" x={w - right} y={phaseTop(h) - 10} text-anchor="end">{model.beta === 0 ? 'L = 0 · T = A' : '∠L = ∠A'}</text>{/if}
+      {#if !compact(h)}<text class="phase-relation halo" x={w - right - 8} y={phaseTop(h) - 10} text-anchor="end">{model.beta === 0 ? 'L = 0 · T = A' : '∠L = ∠A'}</text>{/if}
       {/if}
       <line class="cross" stroke-dasharray="2 4" x1={x(probeLog, w)} x2={x(probeLog, w)} y1="22" y2={hasPhase(h) ? axisBottom(h) : bottom(h)} />
       {#each [{ value: probeResponse.openDb, cls: 'f1' }, { value: probeResponse.closedDb, cls: 'f2' }] as point}
         {#if point.value >= -40 && point.value <= 100}<circle class="{point.cls} ring" cx={x(probeLog, w)} cy={gy(point.value, h)} r="3.5" />{/if}
       {/each}
       {#if hasPhase(h)}<circle class="f2 ring" cx={x(probeLog, w)} cy={py(probeResponse.closedPhase, h)} r="3.5" />{/if}
-      <g class="chart-legend" transform="translate({Math.max(left + 10, w - right - (w < 560 ? 102 : 160))} 48)">
-        <rect class="legend-bg" x="0" y="-16" width={w < 560 ? 92 : 150} height="70" rx="4" />
-        <line class="c1" x1="10" x2="28" y1="0" y2="0" stroke-width="2.5" /><text class="lg" x="35" y="4">{w < 560 ? 'A(s)' : 'Open-loop A'}</text>
-        <line class="loop" x1="10" x2="28" y1="21" y2="21" stroke-width="2.2" stroke-dasharray="5 4" /><text class="lg" x="35" y="25">{w < 560 ? 'L(s)' : 'Loop gain L'}</text>
-        <line class="c2" x1="10" x2="28" y1="42" y2="42" stroke-width="2.8" /><text class="lg" x="35" y="46">{w < 560 ? 'T(s)' : 'Closed-loop T'}</text>
+      <g class="chart-legend" transform="translate({Math.max(left + 10, w - right - 194)} 48)">
+        <rect class="legend-bg" x="0" y="-16" width="182" height="70" rx="4" />
+        <line class="c1" x1="10" x2="28" y1="0" y2="0" stroke-width="2.5" /><text class="lg" x="35" y="4">Open-loop gain A</text>
+        <line class="loop" x1="10" x2="28" y1="21" y2="21" stroke-width="2.2" stroke-dasharray="5 4" /><text class="lg" x="35" y="25">Loop gain L</text>
+        <line class="c2" x1="10" x2="28" y1="42" y2="42" stroke-width="2.8" /><text class="lg" x="35" y="46">Closed-loop gain T</text>
       </g>
       {/if}
     {/snippet}
@@ -101,5 +101,6 @@
   .unity { fill: var(--plot); stroke-width: 2; }
   .tick { font-size: 10px; }
   .lg { fill: var(--ink-2); font: 13px var(--sans); }
+  .phase-relation { fill: var(--ink-2); font: 16px var(--math); }
   .legend-bg { fill: var(--plot); }
 </style>

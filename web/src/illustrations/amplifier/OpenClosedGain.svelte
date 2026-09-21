@@ -26,9 +26,8 @@
           <text x="12" y="17" class="diagram-label">Vin</text><text x="358" y="17" class="diagram-label">Vout</text><circle cx="302" cy="30" r="3" fill="var(--ink-3)" />
         </svg>
         <div class="equation-stack">
-          <div class="equation"><var>T</var> = <span class="fraction"><span><var>A</var></span><span>1 + <var>βA</var></span></span></div>
-          <div class="bandwidth-equation"><var>f</var><sub>CL</sub> = <var>f</var><sub>OL</sub>(1 + <var>βA</var><sub>0</sub>)</div>
-          <span class="equation-caption">single-pole · small signal</span>
+          <div class="formula equation"><var>T</var> = <span class="fraction"><span><var>A</var></span><span>1 + <var>βA</var></span></span></div>
+          <div class="formula bandwidth-equation"><var>f</var><sub>CL</sub> = <var>f</var><sub>OL</sub>(1 + <var>βA</var><sub>0</sub>)</div>
         </div>
       </div>
     {/snippet}
@@ -69,15 +68,13 @@
   .diagram-math.blue { fill: var(--s1); }
   .diagram-math.green { fill: var(--brand); }
   .diagram-label, .sign { fill: var(--ink-2); font: 12px var(--mono); }
-  .equation-stack { display: grid; justify-items: center; gap: 1px; white-space: nowrap; }
-  .equation, .bandwidth-equation { font: 21px/1.2 var(--math); }
+  .equation-stack { display: grid; justify-items: center; gap: 7px; white-space: nowrap; }
+  .formula { color: var(--ink); font: 21px/1.2 var(--math); font-weight: 400; }
   .equation { display: flex; align-items: center; justify-content: center; gap: 5px; }
   .fraction { display: inline-grid; text-align: center; font-size: inherit; }
   .fraction > span:first-child { border-bottom: 1px solid var(--ink-3); }
   .fraction > span { padding: 0 5px; }
-  .bandwidth-equation { color: var(--ink-2); }
   .bandwidth-equation sub { font-size: .62em; }
-  .equation-caption { font: 10px var(--sans); color: var(--ink-3); text-align: center; }
   .constraint-row { min-width: 0; display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 8px 10px; }
   .constraint-row > .label { font-size: 10px; color: var(--ink-2); text-transform: uppercase; letter-spacing: .055em; white-space: nowrap; }
   .constraint-row :global(.seg) { min-width: 0; width: 100%; justify-self: stretch; }
@@ -88,14 +85,13 @@
     .feedback { display: block; }
     .feedback svg { display: none; }
     .equation-stack { grid-template-columns: auto auto; justify-content: space-between; align-items: center; }
-    .equation-caption { display: none; }
     .mode-note { font-size: 9px; line-height: 12px; }
   }
   @media (max-width: 900px) {
     .amplifier-page { padding: 8px 16px; }
     .feedback { gap: 5px; }
     .feedback svg { height: 66px; }
-    .equation, .bandwidth-equation { font-size: 18px; }
+    .formula { font-size: 18px; }
     .constraint-row :global(.sm button) { font-size: 11px; }
   }
   @media (max-width: 820px) {
