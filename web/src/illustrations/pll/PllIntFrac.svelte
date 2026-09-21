@@ -67,7 +67,7 @@
     const spur = an.spurs.find((p) => p.f >= 1e4);
     return spur
       ? { value: `${nf(spur.dBc, 1)} dBc`, offset: ` at ${freqText(spur.f)}` }
-      : { value: 'not detected', offset: '' };
+      : { value: 'none detected', offset: ' in 32k record' };
   };
   const intSpur = $derived(spurText(intAn));
   const fracSpur = $derived(spurText(fracAn));
@@ -89,10 +89,10 @@
     <Notes>
       <p><b>Integer-<var>N</var>.</b> The feedback divider is one integer <var>N</var>, so <var>f</var><sub>out</sub> can only move in steps of <var>f</var><sub>ref</sub>. A requested frequency between two channels must be rounded.</p>
       <p><b>Fractional-<var>N</var>.</b> The divider changes among nearby integers. Its long-term average is <var>N</var> + <var>α</var>, so the average output can land between integer channels. The modulator is part of how that average is produced; it is not a different frequency formula.</p>
-      <p><b>Choose the fractional path.</b> A single accumulator is itself a first-order ΣΔ modulator: its carry emits 0 or 1, and the divider-word error <var>y</var> − <var>α</var> has one zero at DC. MASH 1-1-1 is a third-order ΣΔ modulator and gives that error three zeros at DC, moving more of it to high offset frequencies. The ideal DTC compensates the accumulated divider timing error before the phase detector.</p>
+      <p><b>Choose the fractional path.</b> A single accumulator is itself a first-order ΣΔ modulator: its carry emits 0 or 1, and the divider-word error <var>y</var> − <var>α</var> has one zero at DC. MASH 1-1-1 is a third-order ΣΔ modulator and gives that error three zeros at DC, moving more of it to high offset frequencies. Both sequences here are deterministic and undithered. A short repeating pattern can produce visible fractional spurs; a long pattern can leave no individual line above this finite record's detector even though the sequence is not random. The ideal DTC compensates the accumulated divider timing error before the phase detector.</p>
       <p><b>The plots below show the system view.</b> The block diagram, phase-detector timing and output phase-noise view all follow the selected divider and DTC state. With DTC enabled, the grey points show the uncompensated divider timing and the orange points show what reaches the phase detector.</p>
       <p><b>Model assumptions.</b> A reference-rate behavioral loop with a linear phase detector, type-II PI filter and two extra poles at 6 MHz is tuned to a 1 MHz closed-loop −3 dB bandwidth. White reference/PD noise uses a −228 dBc/Hz normalized floor; free-running VCO noise follows 1/f² with −120 dBc/Hz at 1 MHz. The accumulator and MASH are undithered 24-bit models. The DTC has ideal gain and zero INL; charge-pump mismatch is zero. These are illustrative assumptions, not predictions for a particular PLL circuit.</p>
-      <p><b>Frequency and noise readouts.</b> Fractional resolution is f<sub>ref</sub>/2²⁴ (up to 5.96 Hz here), with at most half a step of rounding error. RMS jitter is the detrended time-record rms, including deterministic tones, over 32768 reference samples; the listed band is the record's nominal FFT span, not a brick-wall integration filter. The lower plots are reference-rate baseband views of phase-noise density and discrete phase-modulation spurs around the carrier, not full RF spectra. Levels average the two sidebands and are normalized to the measured carrier. “Not detected” means no tone passed the 18 dB local-floor threshold above 10 kHz; it does not prove zero spurs.</p>
+      <p><b>Frequency and noise readouts.</b> Fractional resolution is f<sub>ref</sub>/2²⁴ (up to 5.96 Hz here), with at most half a step of rounding error. RMS jitter is the detrended time-record rms, including deterministic tones, over 32768 reference samples; the listed band is the record's nominal FFT span, not a brick-wall integration filter. The lower plots are reference-rate baseband views of phase-noise density and discrete phase-modulation spurs around the carrier, not full RF spectra. Levels average the two sidebands and are normalized to the measured carrier. “None detected in 32k record” means no tone passed the 18 dB local-floor threshold above 10 kHz; it does not prove zero spurs.</p>
     </Notes>
   </header>
 
@@ -147,6 +147,7 @@
           <span class="architecture">{fracName}</span>
           <span><var>N</var> = <span class="mono">{nBase}</span></span>
           <span><var>α</var> = <span class="mono">{alpha.toFixed(5)}</span></span>
+          <span class="chip" title="The divider modulator is deterministic; no random dither is applied">no dither</span>
           <span class="mono">{(fracSim.fOut / 1e9).toFixed(4)} GHz</span>
           <span class="chip" title={`24-bit rounding error: ${(fracSim.fOut - target).toFixed(3)} Hz`}>within {nf(fRef / 2 ** 25, 2)} Hz</span>
         </div>

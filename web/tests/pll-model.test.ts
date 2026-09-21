@@ -60,6 +60,16 @@ describe('integer-N vs fractional-N PLL model', () => {
     }
   });
 
+  it('distinguishes a resolved undithered MASH tone from a long deterministic pattern', () => {
+    const shortPattern = analyze(simulate(5.005e9, 'sd', false, 0, fRef, bw)); // alpha = 1/8
+    const longPattern = analyze(simulate(5.0064e9, 'sd', false, 0, fRef, bw)); // 24-bit alpha ~= 0.16
+    expect(shortPattern.spurs.length).toBeGreaterThan(0);
+    expect(longPattern.spurs).toHaveLength(0);
+
+    // No dither is present: rerunning the same MASH starts from the same state and gives the identical sequence.
+    expect(dividerSequence(0.16, 'sd', 4096).y).toEqual(dividerSequence(0.16, 'sd', 4096).y);
+  });
+
   it('matches the Python reference for all four dividers', () => {
     const intA = analyze(simulate(target, 'int', false, 0, fRef, bw));
     const acc = analyze(simulate(target, 'acc', false, 0, fRef, bw));
