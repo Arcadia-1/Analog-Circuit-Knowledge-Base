@@ -130,6 +130,21 @@ export function bandwidthResponse(relativeError: number, frequency: number, anal
   };
 }
 
+/** SNR imposed by input-referred white thermal noise alone; quantisation and all other errors are excluded. */
+export function thermalOnlySnr(bits: number, noiseLsb: number, frequency: number, analogBandwidth: number): number {
+  if (!Number.isFinite(noiseLsb) || noiseLsb < 0) throw new Error(`invalid thermal noise ${noiseLsb} LSB`);
+  if (noiseLsb === 0) return Infinity;
+  const signalRms = AMP * bandwidthResponse(0, frequency, analogBandwidth).amplitude / Math.SQRT2;
+  const noiseRms = noiseLsb / 2 ** bits;
+  return 20 * Math.log10(signalRms / noiseRms);
+}
+
+/** Small-jitter sine-wave limit: SNR = -20 log10(2 pi f_in sigma_t). */
+export function jitterOnlySnr(frequency: number, jitter: number): number {
+  if (!Number.isFinite(jitter) || jitter < 0) throw new Error(`invalid aperture jitter ${jitter}`);
+  return jitter === 0 || frequency === 0 ? Infinity : -20 * Math.log10(2 * Math.PI * Math.abs(frequency) * jitter);
+}
+
 /** The same memoryless converter sampled at ADC indices 0, stride, 2·stride, … . */
 function captureAtStride(fin: number, mm: Mismatch, bits: number, len: number, options: CaptureOptions, stride: number): Float64Array {
   const fs = options.fs ?? FS, jitter = options.jitter ?? 0, harmonics = options.harmonics ?? {};
@@ -397,7 +412,7 @@ export function physicalParams(mm: Mismatch, fin: number, fs: number, analogBand
 }
 
 export interface Contribution {
-  id: 'offset' | 'gain' | 'skew' | 'bandwidth' | 'harmonics' | 'jitter';
+  id: 'offset' | 'gain' | 'skew' | 'bandwidth' | 'harmonics';
   label: string;
   formula?: 'offset' | 'image' | 'harmonic';
   /** Strongest result in dBc. Negative infinity means that source is off. */
@@ -405,7 +420,6 @@ export interface Contribution {
   frequencies: number[];
   /** Optional text attached to each frequency marker, in the same order. */
   toneLabels?: string[];
-  broadband?: boolean;
 }
 
 export interface HarmonicTone {
@@ -443,13 +457,12 @@ export function harmonicTones(fin: number, harmonics: Partial<HarmonicLevels>, o
   });
 }
 
-/** A source-by-source map for the explanatory chart. Periodic mismatch makes tones; random jitter raises a floor. */
+/** A source-by-source map of deterministic errors that produce discrete spectral lines. */
 export function contributions(
   mm: Mismatch,
   fin: number,
   converterFs: number,
   harmonics: Partial<HarmonicLevels>,
-  jitter: number,
   outputFs = converterFs,
   analogBandwidth = converterFs / 2,
 ): Contribution[] {
@@ -468,7 +481,6 @@ export function contributions(
   }
   const bandwidth = images(bwGain, bwSkew);
   const tones = harmonicTones(fin, harmonics, outputFs);
-  const jitterLevel = jitter > 0 ? 20 * Math.log10(2 * Math.PI * fin * jitter) : -Infinity;
   const folded = (spurs: Spur[]) => spurs.map((s) => foldFrequency(s.freq, outputFs));
   return [
     { id: 'offset', label: 'Offset', formula: 'offset', level: strongest(offset), frequencies: folded(offset) },
@@ -479,7 +491,6 @@ export function contributions(
       id: 'harmonics', label: 'Harmonics', formula: 'harmonic', level: tones.length ? Math.max(...tones.map((tone) => tone.dbc)) : -Infinity,
       frequencies: tones.map((tone) => tone.freq), toneLabels: tones.map((tone) => `H${tone.order}`),
     },
-    { id: 'jitter', label: 'Jitter', level: jitterLevel, frequencies: [], broadband: true },
   ];
 }
 

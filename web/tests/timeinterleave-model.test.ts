@@ -16,6 +16,7 @@ import {
   FS,
   HARMONIC_ORDERS,
   interleave,
+  jitterOnlySnr,
   mismatch,
   N,
   pattern,
@@ -27,6 +28,7 @@ import {
   spectrumOf,
   sweep,
   SWEEP,
+  thermalOnlySnr,
   unwrap,
   type HarmonicLevels,
   type Params,
@@ -408,12 +410,20 @@ describe('time-interleaved mismatch', () => {
     expect(Math.abs(r.fin - fin)).toBeLessThanOrEqual(fs / N);
     expect(Number.isFinite(r.raw.sndr)).toBe(true);
 
-    const rows = contributions(mm, fin, fs, harmonics, jitter);
-    expect(rows.map((row) => row.id)).toEqual(['offset', 'gain', 'skew', 'bandwidth', 'harmonics', 'jitter']);
-    expect(rows.slice(0, 5).every((row) => Number.isFinite(row.level))).toBe(true);
+    const rows = contributions(mm, fin, fs, harmonics);
+    expect(rows.map((row) => row.id)).toEqual(['offset', 'gain', 'skew', 'bandwidth', 'harmonics']);
+    expect(rows.every((row) => Number.isFinite(row.level))).toBe(true);
     expect(rows.find((row) => row.id === 'harmonics')?.frequencies).toEqual([2e9, 3e9, 5e9, 3e9]);
     expect(rows.find((row) => row.id === 'harmonics')?.toneLabels).toEqual(['H2', 'H3', 'H5', 'H7']);
-    expect(rows.find((row) => row.id === 'jitter')?.level).toBeCloseTo(20 * Math.log10(2 * Math.PI * fin * jitter), 9);
+  });
+
+  it('reports independent thermal-noise and aperture-jitter SNR limits', () => {
+    const bits = 12, noiseLsb = 0.3, fin = 1e9, analogBandwidth = 5e9, jitter = 0.5e-12;
+    const signalRms = AMP / Math.sqrt(2 * (1 + (fin / analogBandwidth) ** 2));
+    expect(thermalOnlySnr(bits, noiseLsb, fin, analogBandwidth)).toBeCloseTo(20 * Math.log10(signalRms / (noiseLsb / 2 ** bits)), 12);
+    expect(jitterOnlySnr(fin, jitter)).toBeCloseTo(-20 * Math.log10(2 * Math.PI * fin * jitter), 12);
+    expect(thermalOnlySnr(bits, 0, fin, analogBandwidth)).toBe(Infinity);
+    expect(jitterOnlySnr(fin, 0)).toBe(Infinity);
   });
 
   it('uses an even record with complete channel turns for every selectable channel count', () => {
@@ -515,7 +525,7 @@ describe('time-interleaved mismatch', () => {
     const harmonics: HarmonicLevels = { 2: -48, 3: -54, 5: -60, 7: -66 };
     const mm = mismatch(4, 0.003, 0.001, 5e-12, 0.02);
     const r = read(4, 91e6, mm, 14, 'off', { harmonics, decimation: factor });
-    const rows = contributions(mm, r.fin, FS, harmonics, 0, fsOut);
+    const rows = contributions(mm, r.fin, FS, harmonics, fsOut);
     for (const row of rows) for (const frequency of row.frequencies) expect(frequency).toBeLessThanOrEqual(fsOut / 2);
     const harmonicRow = rows.find((row) => row.id === 'harmonics');
     expect(harmonicRow?.frequencies).toEqual(HARMONIC_ORDERS.map((order) => foldFrequency(order * r.fin, fsOut)));

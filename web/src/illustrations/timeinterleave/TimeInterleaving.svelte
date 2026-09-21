@@ -3,7 +3,7 @@
   import { foldFrequency } from '../../lib/frequency';
   import ContributionMap from './ContributionMap.svelte';
   import EditableRange from './EditableRange.svelte';
-  import { analysisPoints, contributions, MAX_CHANNELS, MIN_CHANNELS, mismatch, read, type HarmonicLevels } from './model';
+  import { analysisPoints, contributions, jitterOnlySnr, MAX_CHANNELS, MIN_CHANNELS, mismatch, read, thermalOnlySnr, type HarmonicLevels } from './model';
   import SampleTimingChart from './SampleTimingChart.svelte';
   import SpurSpectrum from './SpurSpectrum.svelte';
 
@@ -40,8 +40,11 @@
   const analogBandwidth = $derived(analogBandwidthGHz * 1e9);
   const r = $derived(read(m, inputGHz * 1e9, mm, bits, 'off', { fs, analogBandwidth, thermalNoiseLsb, jitter: jitterPs / 1e12, harmonics, decimation }));
   const seen = $derived(foldFrequency(r.fin, fs / m));
-  const sourceRows = $derived(contributions(mm, r.fin, fs, harmonics, jitterPs / 1e12, r.fsOut, analogBandwidth));
+  const sourceRows = $derived(contributions(mm, r.fin, fs, harmonics, r.fsOut, analogBandwidth));
+  const thermalSnr = $derived(thermalOnlySnr(bits, thermalNoiseLsb, r.fin, analogBandwidth));
+  const jitterSnr = $derived(jitterOnlySnr(r.fin, jitterPs / 1e12));
   const rateText = (hz: number) => freqText(hz).replace(/Hz$/, 'S/s');
+  const snrText = (value: number) => Number.isFinite(value) ? `${nf(value, 1)} dB` : '∞';
 
   const randomStep = (min: number, max: number, step: number) => {
     const steps = Math.round((max - min) / step);
@@ -113,6 +116,10 @@
         <div class="group-head"><span class="label">Noise, clock &amp; source</span></div>
         <EditableRange id="thermal-noise" min={0} max={4} step={0.05} digits={2} unit="LSB rms" bind:value={thermalNoiseLsb}>Thermal noise</EditableRange>
         <EditableRange id="jitter" min={0} max={5} step={0.05} digits={2} unit="ps" bind:value={jitterPs}>Jitter</EditableRange>
+        <div class="noise-readout" aria-label="Expected signal-to-noise ratios from each noise source alone">
+          <span title="Thermal noise only: 20 log10[(A·|H(fin)|/√2)/(σthermal·LSB)]">Thermal-only SNR <b>{snrText(thermalSnr)}</b></span>
+          <span title="Aperture jitter only: −20 log10(2π·fin·σt)">Jitter-only SNR <b>{snrText(jitterSnr)}</b></span>
+        </div>
         <EditableRange id="h2" min={-100} max={-40} step={1} digits={0} unit="dBc" bind:value={h2Dbc}>H2</EditableRange>
         <EditableRange id="h3" min={-100} max={-40} step={1} digits={0} unit="dBc" bind:value={h3Dbc}>H3</EditableRange>
         <EditableRange id="h5" min={-100} max={-40} step={1} digits={0} unit="dBc" bind:value={h5Dbc}>H5</EditableRange>
@@ -140,7 +147,7 @@
         <div class="cap">
           <span class="left"><span class="label">Where each imperfection appears</span><span>M = channels · k = spur index · h = harmonic order · folded to output Nyquist</span></span>
         </div>
-        <ContributionMap rows={sourceRows} fs={r.fsOut} points={r.fftPoints} label="Spectral signature of offset, gain, timing, bandwidth, harmonics, and jitter" />
+        <ContributionMap rows={sourceRows} fs={r.fsOut} points={r.fftPoints} label="Discrete spectral signatures of offset, gain, timing, bandwidth, and harmonics" />
       </div>
     </section>
   </section>
@@ -160,6 +167,8 @@
   .sampling-readout { min-width: 0; padding-top: 4px; border-top: 1px solid var(--rule); color: var(--ink-3); font-size: 10.5px; white-space: nowrap; }
   .sampling-readout b { color: var(--ink); font: 500 10.5px var(--mono); }
   .source { --accent: var(--s1); }
+  .noise-readout { min-width: 0; display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding: 3px 0 4px; border-bottom: 1px solid var(--rule); color: var(--ink-3); font-size: 10.5px; white-space: nowrap; }
+  .noise-readout b { color: var(--ink); font: 500 10.5px var(--mono); }
   .visuals { min-width: 0; min-height: 0; display: grid; grid-template-rows: minmax(160px, .9fr) minmax(220px, 1.3fr) minmax(160px, .8fr); gap: 10px; }
   .chart { min-width: 0; }
   .cap { min-height: 20px; }

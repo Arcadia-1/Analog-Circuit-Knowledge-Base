@@ -29,8 +29,8 @@
   }
 
   const level = (row: Contribution) => {
-    if (!Number.isFinite(row.level)) return row.broadband || row.id === 'harmonics' ? 'off' : 'no spur';
-    return row.broadband ? `${nf(-row.level, 1)} dB SNR` : `${nf(row.level, 1)} dBc`;
+    if (!Number.isFinite(row.level)) return row.id === 'harmonics' ? 'off' : 'no spur';
+    return `${nf(row.level, 1)} dBc`;
   };
 </script>
 
@@ -42,7 +42,7 @@
       <text class="tx" x={g.sx(tick.bin)} y={height - 5} text-anchor={i === 0 ? 'start' : i === g.ticks.length - 1 ? 'end' : 'middle'}>{freqText(tick.frequency)}</text>
     {/each}
     {#each rows as row, i (row.id)}
-      {#if !row.broadband}<line class="lane" x1={g.x0} x2={g.x1} y1={g.sy(i)} y2={g.sy(i)} />{/if}
+      <line class="lane" x1={g.x0} x2={g.x1} y1={g.sy(i)} y2={g.sy(i)} />
       <text class="source" x="6" y={g.sy(i) - (g.compact ? 5 : 0)} dominant-baseline="central">{row.label}</text>
       {#if row.formula}
         <text class="note" x={g.compact ? 6 : 93} y={g.sy(i) + (g.compact ? 9 : 0)} dominant-baseline="central">
@@ -56,15 +56,13 @@
         </text>
       {/if}
       <text class="level" x={width - 10} y={g.sy(i)} text-anchor="end" dominant-baseline="central">{level(row)}</text>
-      {#if !row.broadband}
-        {#each grouped(row, g.binOf, g.sx) as group, k (`${row.id}-${k}`)}
-          {#each group.bins as bin (bin)}
-            <line class="stem {row.id}" x1={g.sx(bin)} x2={g.sx(bin)} y1={g.sy(i) - 8} y2={g.sy(i) + 8} />
-            <circle class="tone {row.id}" cx={g.sx(bin)} cy={g.sy(i)} r="3.2" />
-          {/each}
-          {#if group.label}<text class="tone-label" x={g.sx(group.labelBin)} y={g.sy(i) - 9} text-anchor="middle">{group.label}</text>{/if}
+      {#each grouped(row, g.binOf, g.sx) as group, k (`${row.id}-${k}`)}
+        {#each group.bins as bin (bin)}
+          <line class="stem {row.id}" x1={g.sx(bin)} x2={g.sx(bin)} y1={g.sy(i) - 8} y2={g.sy(i) + 8} />
+          <circle class="tone {row.id}" cx={g.sx(bin)} cy={g.sy(i)} r="3.2" />
         {/each}
-      {/if}
+        {#if group.label}<text class="tone-label" x={g.sx(group.labelBin)} y={g.sy(i) - 9} text-anchor="middle">{group.label}</text>{/if}
+      {/each}
     {/each}
   {/snippet}
 </Plot>
