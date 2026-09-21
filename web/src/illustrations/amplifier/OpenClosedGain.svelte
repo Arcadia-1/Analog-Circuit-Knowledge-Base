@@ -1,34 +1,22 @@
 <script lang="ts">
-  import Notes from '../../components/ui/Notes.svelte';
   import Range from '../../components/ui/Range.svelte';
+  import Segmented from '../../components/ui/Segmented.svelte';
   import GainCase from './GainCase.svelte';
-  import { amplifier, frequency } from './model';
+  import { frequency, type Constraint } from './model';
 
-  let leftDb = $state(60), rightDb = $state(80), gbwLog = $state(5), gainDb = $state(20), probe = $state(-1);
-  const gbw = $derived(10 ** gbwLog);
-  const ideal = $derived(10 ** (gainDb / 20));
-  const beta = $derived(1 / ideal);
-  const a = $derived(amplifier(leftDb, gbw, gainDb));
-  const b = $derived(amplifier(rightDb, gbw, gainDb));
-  const weak = $derived(Math.min(a.loopDc, b.loopDc) < 10);
-  function reset() { leftDb = 60; rightDb = 80; gbwLog = 5; gainDb = 20; probe = -1; }
+  let leftDb = $state(60), rightDb = $state(60);
+  let leftBeta = $state(-2), rightBeta = $state(-1);
+  let constraint = $state<Constraint>('open-loop');
+  let openBwLog = $state(2), closedBwLog = $state(4), probe = $state(0.5);
+  let activeCase = $state(1);
+  const bandwidthLog = $derived(constraint === 'open-loop' ? openBwLog : closedBwLog);
+  const bandwidth = $derived(10 ** bandwidthLog);
+  // Frequency axes are shared and stay fixed while either A0 or beta changes.
+  const low = $derived(bandwidthLog + (constraint === 'open-loop' ? -2 : -6));
+  const high = $derived(bandwidthLog + (constraint === 'open-loop' ? 6 : 4));
 </script>
 
 <main class="page amplifier-page">
-  <div class="top">
-    <div><h1>Open-loop &amp; closed-loop gain</h1><p class="intro">Same gain–bandwidth product. What does a higher open-loop gain actually buy?</p></div>
-    <div class="actions"><button onclick={reset}>Reset</button><Notes>
-      <p><b>Model.</b> A linear, single-pole voltage amplifier with constant, real feedback <var>β</var>: <code>A(s) = A₀ / (1 + s / (2πfOL))</code>. The input is applied to the positive summing input; β times the output is subtracted. No extra poles, loading, noise, saturation or slew-rate limits are included.</p>
-      <p><b>Three different gains.</b> A is the open-loop forward gain, L = βA is the loop gain, and T = A/(1 + βA) is the closed-loop input-to-output gain. All curves use the complex transfer functions. Since β is real and positive, ∠L = ∠A.</p>
-      <p><b>Exact one-pole identities.</b> GBW is defined as A₀fOL. Then <code>T₀ = A₀/(1 + βA₀)</code>, <code>fCL = fOL(1 + βA₀)</code> and <code>T₀ × fCL = GBW</code>. Each bandwidth is the −3.0103 dB point relative to that curve’s own DC gain.</p>
-      <p><b>Ideal gain and error.</b> The requested gain G = 1/β is approached only when βA₀ ≫ 1. The DC relative gain error <code>(G − T₀)/G = 1/(1 + βA₀)</code>. Only with strong feedback can we use <code>fCL ≈ GBW/G = βGBW</code>. G is the noninverting gain (also the noise gain); the inverting signal gain follows a different numerator.</p>
-      <p><b>Two different unity crossings.</b> A reaches unity at <code>fu = fOL √(A₀² − 1)</code>, approximately GBW. L reaches unity at <code>fc = fOL √((βA₀)² − 1)</code>, only if βA₀ &gt; 1. A loop with DC gain ≤ 1 has no positive-frequency crossing. Neither crossing is the exact closed-loop −3 dB bandwidth.</p>
-      <p><b>Read the plots.</b> Filled dots mark the two −3 dB bandwidths; hollow rings mark unity gain. The gray horizontal guide is G = 1/β. Move over either plot or use the frequency probe to inspect both cases together. The phase of L is identical to A and uses the blue curve. Values below −40 dB are clipped from the magnitude display.</p>
-      <p><b>Scope.</b> This model isolates gain accuracy and the bandwidth tradeoff. It cannot predict multistage stability, phase-margin design, PSRR or large-signal distortion.</p>
-      <p><a href="https://github.com/Arcadia-1/circuits-and-systems-classroom/blob/main/web/python/amplifier_feedback.py" target="_blank" rel="noreferrer">Executable Python reference ↗</a></p>
-    </Notes></div>
-  </div>
-
   <div class="setup">
     <div class="feedback">
       <svg viewBox="0 0 420 106" role="img" aria-label="Negative feedback: input minus beta times output drives amplifier A(s). Closed-loop gain T equals A divided by one plus beta A.">
@@ -38,45 +26,51 @@
         <text x="198" y="36" text-anchor="middle" class="diagram-math blue">A(s)</text><text x="214" y="88" text-anchor="middle" class="diagram-math green">β</text>
         <text x="12" y="17" class="diagram-label">Vin</text><text x="358" y="17" class="diagram-label">Vout</text><circle cx="302" cy="30" r="3" fill="var(--ink-3)" />
       </svg>
-      <div class="equation"><var>T</var> = <span class="fraction"><span><var>A</var></span><span>1 + <var>βA</var></span></span><span class="equation-caption">single-pole · negative feedback</span></div>
+      <div class="equation"><var>T</var> = <span class="fraction"><span><var>A</var></span><span>1 + <var>βA</var></span></span><span class="equation-caption">single-pole · small signal</span></div>
     </div>
-    <div class="shared-controls">
-      <Range id="amp-gbw" bind:value={gbwLog} min={3} max={8} step={0.05} output={frequency(gbw, 4)}>Shared GBW</Range>
-      <Range id="amp-gain" bind:value={gainDb} min={0} max={60} step={1} output="{Number(ideal.toPrecision(4))} V/V">Ideal gain · 1/β</Range>
-      <div class="control-note"><span>β = <b>{Number(beta.toPrecision(4))}</b></span><span>G = <b>{gainDb} dB</b></span><span>GBW = A₀ × fOL</span></div>
+    <div class="design-controls">
+      <div class="constraint-row"><span class="label">Hold</span><Segmented label="Bandwidth constraint" size="sm" options={[{ value: 'open-loop', label: 'Open loop · A₀ & fOL' }, { value: 'closed-loop', label: 'Closed-loop BW · fCL' }]} bind:value={constraint} /></div>
+      <div class="bandwidth-control">
+        {#if constraint === 'open-loop'}
+          <Range id="amp-bandwidth" bind:value={openBwLog} min={0} max={6} step={0.05} output={frequency(bandwidth, 4)}>Open-loop BW <var>f</var><sub>OL</sub></Range>
+        {:else}
+          <Range id="amp-bandwidth" bind:value={closedBwLog} min={1} max={8} step={0.05} output={frequency(bandwidth, 4)}>Closed-loop BW <var>f</var><sub>CL</sub></Range>
+        {/if}
+      </div>
+      <p class="mode-note">{constraint === 'open-loop' ? 'Tune β → fCL changes; A₀ and fOL stay fixed.' : 'Tune A₀ or β → required fOL / GBW change; fCL stays fixed.'}</p>
     </div>
   </div>
 
   <div class="legend-row" aria-label="Plot legend">
-    <span class="legend-item"><i class="stroke blue-line"></i>Open loop <var>A</var></span>
-    <span class="legend-item"><i class="stroke loop-line"></i>Loop <var>L = βA</var></span>
-    <span class="legend-item"><i class="stroke amber-line"></i>Closed loop <var>T</var></span>
-    <span class="marker-key">● −3 dB &nbsp; ○ Unity gain</span>
+    <span class="legend-item"><i class="stroke blue-line"></i><span class="legend-name">Open loop</span> <var>A</var></span>
+    <span class="legend-item"><i class="stroke loop-line"></i><span class="legend-name">Loop</span> <var>L = βA</var></span>
+    <span class="legend-item"><i class="stroke amber-line"></i><span class="legend-name">Closed loop</span> <var>T</var></span>
+    <span class="marker-key" title="Bandwidths are −3.0103 dB relative to each curve’s own DC gain. Hollow rings distinguish A = 1 from L = 1; the gray guide is ideal gain 1/β.">● −3 dB &nbsp; ○ Unity gain</span>
+    <div class="case-switch"><Segmented label="Visible comparison case" size="sm" options={[{ value: 1, label: 'Case 1' }, { value: 2, label: 'Case 2' }]} bind:value={activeCase} /></div>
   </div>
 
-  <div class="cases">
-    <GainCase id="case-1" title="Case 1" bind:a0Db={leftDb} {gbw} {gainDb} bind:probe />
-    <GainCase id="case-2" title="Case 2" bind:a0Db={rightDb} {gbw} {gainDb} bind:probe />
+  <div class="cases" class:show-second={activeCase === 2}>
+    <GainCase id="case-1" title="Case 1" bind:a0Db={leftDb} bind:betaLog={leftBeta} {bandwidth} {constraint} {low} {high} bind:probe />
+    <GainCase id="case-2" title="Case 2" bind:a0Db={rightDb} bind:betaLog={rightBeta} {bandwidth} {constraint} {low} {high} bind:probe />
   </div>
 
-  <div class="probe-control"><Range id="amp-probe" bind:value={probe} min={-6} max={1} step={0.01} output={frequency(gbw * 10 ** probe, 4)}>Frequency probe</Range><span>Both plots · logarithmic frequency</span></div>
-  <div class="takeaway">
-    <div class="identity"><var>T</var><sub>0</sub> × <var>f</var><sub>CL</sub> = GBW</div>
-    <p>{#if weak}Finite loop gain matters here: the requested gain is not reached. Read the actual DC gain; the exact gain × bandwidth identity still holds.{:else if leftDb === rightDb}The same A₀, GBW and β produce identical responses. Raise one A₀ to compare gain accuracy.{:else}Higher A₀ brings the DC gain closer to 1/β. At fixed GBW and β, fCL approaches β·GBW = {frequency(beta * gbw)}; it does not grow with A₀.{/if}</p>
+  <div class="bottom-row">
+    <div class="probe-control"><Range id="amp-probe" bind:value={probe} min={0} max={1} step={0.001} output={frequency(10 ** (low + probe * (high - low)), 4)}>Probe frequency</Range></div>
+    <span class="identity"><var>f</var><sub>CL</sub> = <var>f</var><sub>OL</sub>(1 + <var>βA</var><sub>0</sub>)</span>
   </div>
 </main>
 
 <style>
-  .amplifier-page { height: auto; min-height: calc(100dvh - 125px); grid-template-rows: none; gap: 14px; padding-top: 20px; }
-  .top { align-items: center; justify-content: space-between; }
-  h1 { font-size: 24px; font-weight: 500; letter-spacing: -.025em; margin: 0; }
-  .intro { color: var(--ink-2); font-size: 13px; margin: 4px 0 0; }
-  .actions { display: flex; align-items: center; gap: 10px; }
-  button { cursor: pointer; font: 13px var(--sans); color: var(--ink-2); border: 1px solid var(--rule); background: transparent; border-radius: 999px; padding: 4px 12px; }
-  button:hover { color: var(--ink); border-color: var(--ink-3); }
-  .setup { display: grid; grid-template-columns: 1fr 1fr; gap: 44px; align-items: center; border-block: 1px solid var(--rule); padding: 10px 0; }
-  .feedback { display: flex; align-items: center; gap: 16px; min-width: 0; }
-  .feedback svg { width: 67%; max-width: 390px; height: 95px; flex-shrink: 1; }
+  /* This lesson fills the space between the existing header and real visitor footer. */
+  :global(body:has(.amplifier-page)) { height: 100dvh; min-height: 0; }
+  :global(body:has(.amplifier-page) > .site-header), :global(body:has(.amplifier-page) > .site-footer) { flex-shrink: 0; }
+  :global(body:has(.amplifier-page) #main-content) { flex: 1 1 0; min-height: 0; display: flex; }
+  :global(body:has(.amplifier-page) #main-content > astro-island) { display: flex; flex: 1; min-width: 0; min-height: 0; }
+  :global(body:has(.amplifier-page) .site-footer .footer-inner) { padding-block: 9px; }
+  .amplifier-page { width: 100%; height: 100%; min-height: 0; padding: 10px 24px 8px; grid-template-rows: auto auto minmax(0, 1fr) auto; gap: 8px; }
+  .setup { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 32px; align-items: center; border-bottom: 1px solid var(--rule); padding-bottom: 8px; }
+  .feedback { display: flex; align-items: center; gap: 20px; min-width: 0; }
+  .feedback svg { width: 65%; max-width: 330px; height: 74px; }
   .wire { stroke: var(--ink-3); fill: none; stroke-width: 1.2; }
   .block { fill: var(--plot); stroke: var(--ink-3); }
   .forward { stroke: var(--s1); }
@@ -90,55 +84,69 @@
   .fraction > span:first-child { border-bottom: 1px solid var(--ink-3); }
   .fraction > span { padding: 0 5px; }
   .equation-caption { font: 10px var(--sans); color: var(--ink-3); flex-basis: 100%; text-align: center; }
-  .shared-controls { display: grid; gap: 11px; min-width: 0; }
-  .shared-controls :global(.range) { display: grid; grid-template-columns: 127px minmax(50px, 1fr) 11ch; gap: 12px; width: 100%; }
-  .shared-controls :global(input) { min-width: 0; width: 100%; }
-  .shared-controls :global(output) { width: 11ch; text-align: right; }
-  .shared-controls :global(label) { font-size: 10px; letter-spacing: .04em; }
-  .control-note { display: grid; grid-template-columns: 1fr .8fr 1.2fr; gap: 8px; color: var(--ink-3); font-size: 11px; }
-  .control-note b { font: 11px var(--mono); font-variant-numeric: tabular-nums; }
-  .control-note span { white-space: nowrap; }
-  .control-note span:last-child { text-align: right; }
-  .legend-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 24px; font-size: 12px; color: var(--ink-2); }
-  .legend-item { display: inline-flex; align-items: center; gap: 7px; }
+  .design-controls { display: grid; gap: 6px; min-width: 0; }
+  .constraint-row { display: flex; align-items: center; gap: 12px; }
+  .constraint-row > .label { font-size: 10px; }
+  .bandwidth-control :global(.range) { display: grid; grid-template-columns: 145px minmax(40px, 1fr) 11ch; gap: 10px; width: 100%; }
+  .bandwidth-control :global(input) { width: 100%; min-width: 0; }
+  .bandwidth-control :global(output) { width: 11ch; font-size: 12px; text-align: right; }
+  .bandwidth-control :global(label) { font-size: 10px; letter-spacing: .025em; }
+  .mode-note { margin: 0; color: var(--ink-3); font-size: 11px; line-height: 16px; height: 16px; }
+  .legend-row { display: flex; align-items: center; gap: 20px; font-size: 11px; color: var(--ink-2); min-width: 0; }
+  .legend-item { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
   .legend-item var { font-size: 15px; }
-  .stroke { width: 23px; border-top: 2px solid; }
+  .stroke { width: 21px; border-top: 2px solid; }
   .blue-line { color: var(--s1); }
   .amber-line { color: var(--s2); }
   .loop-line { color: var(--brand); border-top-style: dashed; }
-  .marker-key { margin-left: auto; font-size: 11px; color: var(--ink-3); }
-  .cases { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 44px; }
-  .probe-control { display: flex; align-items: center; gap: 24px; border-top: 1px solid var(--rule); padding-top: 12px; }
-  .probe-control :global(.range) { display: grid; grid-template-columns: 145px minmax(100px, 1fr) 12ch; flex: 1; width: 100%; }
+  .marker-key { margin-left: auto; font-size: 10px; color: var(--ink-3); white-space: nowrap; }
+  .case-switch { display: none; }
+  .cases { display: grid; min-height: 0; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 32px; }
+  .bottom-row { display: flex; align-items: center; gap: 24px; border-top: 1px solid var(--rule); padding-top: 6px; }
+  .probe-control { flex: 1; min-width: 0; }
+  .probe-control :global(.range) { display: grid; grid-template-columns: 122px minmax(50px, 1fr) 12ch; gap: 10px; width: 100%; }
   .probe-control :global(input) { width: 100%; min-width: 0; }
   .probe-control :global(label) { font-size: 10px; letter-spacing: .04em; }
-  .probe-control > span { font-size: 11px; color: var(--ink-3); }
-  .takeaway { display: flex; align-items: center; gap: 24px; padding: 12px 16px; border-left: 2px solid var(--brand); background: var(--chip); border-radius: 0 4px 4px 0; min-height: 64px; }
-  .identity { font: 20px var(--math); white-space: nowrap; }
-  .identity sub { font-size: 12px; }
-  .takeaway p { font-size: 12px; color: var(--ink-2); margin: 0; max-width: 780px; }
+  .probe-control :global(output) { width: 12ch; font-size: 12px; }
+  .identity { font: 17px var(--math); white-space: nowrap; }
+  .identity sub { font-size: 10px; }
   @media (max-width: 900px) {
-    .amplifier-page { gap: 16px; }
-    .setup { grid-template-columns: 1fr; gap: 12px; }
-    .feedback { max-width: 540px; }
-    .feedback svg { height: 85px; }
-    .cases { grid-template-columns: minmax(0, 1fr); gap: 24px; }
-    .cases :global(.case + .case) { border-top: 1px solid var(--rule); padding-top: 16px; }
-    .probe-control > span { display: none; }
-    .takeaway { gap: 12px; }
+    .amplifier-page { padding: 8px 16px; gap: 7px; }
+    .setup { gap: 12px; }
+    .feedback { gap: 6px; }
+    .feedback svg { width: 66%; height: 64px; }
+    .equation { font-size: 18px; }
+    .fraction { font-size: 16px; }
+    .constraint-row { gap: 6px; }
+    .constraint-row :global(.sm button) { font-size: 11px; }
+    .bandwidth-control :global(.range) { grid-template-columns: 129px minmax(30px, 1fr) 10ch; gap: 6px; }
+    .bandwidth-control :global(output) { width: 10ch; }
+    .mode-note { font-size: 10px; }
+    .cases { grid-template-columns: minmax(0, 1fr); }
+    .cases:not(.show-second) :global(.case:nth-child(2)), .cases.show-second :global(.case:first-child) { display: none; }
+    .case-switch { display: block; margin-left: auto; }
+    .marker-key { display: none; }
+    .legend-row { gap: 12px; }
+    .identity { font-size: 15px; }
   }
   @media (max-width: 600px) {
-    h1 { font-size: 22px; }
-    .actions { margin-top: 6px; }
-    .legend-row { gap: 4px 12px; font-size: 11px; }
-    .marker-key { margin-left: 0; flex-basis: 100%; }
-    .shared-controls :global(.range) { grid-template-columns: 114px minmax(40px, 1fr) 10ch; gap: 8px; }
-    .shared-controls :global(output) { width: 10ch; font-size: 12px; }
-    .control-note { font-size: 10px; }
-    .control-note b { font-size: 10px; }
-    .probe-control :global(.range) { grid-template-columns: 94px minmax(50px, 1fr) 10ch; }
-    .probe-control :global(label) { white-space: normal; }
-    .probe-control :global(output) { width: 10ch; font-size: 12px; }
-    .takeaway { flex-direction: column; align-items: start; min-height: 136px; }
+    .setup { grid-template-columns: minmax(0, 1fr); padding-bottom: 6px; }
+    .feedback { display: none; }
+    .constraint-row :global(.sm button) { font-size: 11px; }
+    .constraint-row :global(.seg) { flex: 1; }
+    .design-controls { gap: 5px; }
+    .legend-row { gap: 10px; }
+    .legend-name { display: none; }
+    .stroke { width: 16px; }
+    .legend-item { gap: 4px; }
+    .case-switch :global(.sm button) { font-size: 11px; padding: 5px 8px; }
+    .bottom-row { gap: 0; }
+    .identity { display: none; }
+    .probe-control :global(.range) { grid-template-columns: 108px minmax(40px, 1fr) 10ch; gap: 8px; }
+    .probe-control :global(output) { width: 10ch; }
+    :global(body:has(.amplifier-page) .site-footer .footer-inner) { padding: 6px 16px; gap: 3px 12px; font-size: 10px; }
+    :global(body:has(.amplifier-page) .site-footer .brand) { font-size: 11px; }
+    :global(body:has(.amplifier-page) .site-footer nav) { width: auto; }
+    :global(body:has(.amplifier-page) .site-footer .visitors) { font-size: 10px; }
   }
 </style>

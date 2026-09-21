@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { amplifier, response } from '../src/illustrations/amplifier/model';
+import { amplifier, constrainedAmplifier, response } from '../src/illustrations/amplifier/model';
 import { featuredLessons } from '../src/data/illustrations';
 import { isLessonPath, isPublicLessonPath } from '../src/data/publication';
 
@@ -67,11 +67,49 @@ describe('single-pole negative-feedback amplifier', () => {
     expect(high.relativeError).toBeGreaterThan(low.relativeError);
   });
 
+  it('changes closed-loop bandwidth with beta while the chosen amplifier stays fixed', () => {
+    const low = constrainedAmplifier(60, .01, 100, 'open-loop');
+    const high = constrainedAmplifier(60, .1, 100, 'open-loop');
+    expect(low.a0).toBe(high.a0);
+    expect(low.pole).toBe(100);
+    expect(high.pole).toBe(100);
+    expect(low.gbw).toBe(high.gbw);
+    expect(low.closedBw).toBe(1100);
+    expect(high.closedBw).toBe(10100);
+    expect(low.closedDc).toBeCloseTo(90.909090909, 8);
+    expect(high.closedDc).toBeCloseTo(9.900990099, 8);
+  });
+
+  it('solves the required open-loop pole while holding the requested closed-loop bandwidth', () => {
+    const low = constrainedAmplifier(60, .01, 10000, 'closed-loop');
+    const high = constrainedAmplifier(60, .1, 10000, 'closed-loop');
+    expect(low.a0).toBe(high.a0);
+    expect(low.closedBw).toBeCloseTo(10000, 10);
+    expect(high.closedBw).toBeCloseTo(10000, 10);
+    expect(low.pole).toBeCloseTo(10000 / 11, 10);
+    expect(high.pole).toBeCloseTo(10000 / 101, 10);
+    expect(low.gbw).toBeGreaterThan(high.gbw);
+  });
+
+  it.each(['open-loop', 'closed-loop'] as const)('preserves the %s constraint across all control extremes', (constraint) => {
+    for (const db of [20, 60, 100]) for (const beta of [.001, .01, .1, 1]) for (const target of [1, 100, 1e6, 1e8]) {
+      const m = constrainedAmplifier(db, beta, target, constraint);
+      const held = constraint === 'open-loop' ? m.pole : m.closedBw;
+      expect(held / target).toBeCloseTo(1, 12);
+      expect(m.a0).toBeCloseTo(10 ** (db / 20), 10);
+      expect(m.closedDc * m.closedBw / m.gbw).toBeCloseTo(1, 12);
+      expect(response(m, m.closedBw).closedDb - response(m, 0).closedDb).toBeCloseTo(-10 * Math.log10(2), 10);
+    }
+  });
+
   it('rejects undefined inputs rather than drawing a NaN curve', () => {
     expect(() => amplifier(60, 0, 20)).toThrow(RangeError);
     expect(() => amplifier(NaN, 1e5, 20)).toThrow(RangeError);
     expect(() => amplifier(60, 1e5, -20)).toThrow(RangeError);
     expect(() => response(amplifier(60, 1e5, 20), -1)).toThrow(RangeError);
+    expect(() => constrainedAmplifier(60, 0, 100, 'open-loop')).toThrow(RangeError);
+    expect(() => constrainedAmplifier(60, 1.1, 100, 'open-loop')).toThrow(RangeError);
+    expect(() => constrainedAmplifier(60, .1, -1, 'closed-loop')).toThrow(RangeError);
   });
 
   it('publishes the lesson in the circuit category with its own thumbnail', () => {

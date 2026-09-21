@@ -13,6 +13,19 @@ export interface Amplifier {
   crossover: number | null;
 }
 
+export type Constraint = 'open-loop' | 'closed-loop';
+
+/** Hold the chosen open-loop pole, or solve the pole required by a closed-loop BW target. */
+export function constrainedAmplifier(a0Db: number, beta: number, bandwidth: number, constraint: Constraint): Amplifier {
+  if (!Number.isFinite(beta) || beta <= 0 || beta > 1 || !Number.isFinite(bandwidth) || bandwidth <= 0) {
+    throw new RangeError('Use 0 < beta <= 1 and a positive bandwidth in Hz.');
+  }
+  if (constraint !== 'open-loop' && constraint !== 'closed-loop') throw new RangeError('Unknown bandwidth constraint.');
+  const a0 = 10 ** (a0Db / 20);
+  const pole = constraint === 'open-loop' ? bandwidth : bandwidth / (1 + beta * a0);
+  return amplifier(a0Db, a0 * pole, -20 * Math.log10(beta));
+}
+
 export function amplifier(a0Db: number, gbw: number, gainDb: number): Amplifier {
   if (![a0Db, gbw, gainDb].every(Number.isFinite) || a0Db < 0 || a0Db > 200 || gbw <= 0 || gainDb < 0 || gainDb > 200) {
     throw new RangeError('Use finite nonnegative gains up to 200 dB and a positive GBW in Hz.');

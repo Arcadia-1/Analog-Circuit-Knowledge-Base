@@ -39,9 +39,12 @@ Run these in `web/` with Node 22.12 or newer and pnpm 11.
 
 ## Illustrations
 
-- **Open-loop & closed-loop gain** at `/amplifiers/open-loop-and-closed-loop/`. Compare two single-pole amplifiers with
-  shared GBW and feedback. Adjust each open-loop DC gain, inspect synchronized magnitude/phase plots, and distinguish
-  gain error, −3 dB bandwidth and the two unity crossings. Complex-response values are checked against independent
+- **Open-loop & closed-loop gain** at `/amplifiers/open-loop-and-closed-loop/`. Adjust A₀ and β independently in two cases.
+  In **Hold open loop**, chosen A₀ and fOL remain fixed as β changes the closed-loop gain and bandwidth.
+  In **Hold closed-loop BW**, the target fCL stays fixed and the model solves `fOL = fCL/(1 + βA₀)` and the required GBW.
+  Both cases share fixed frequency axes while A₀ or β moves. The lesson fills the viewport between header and visitor
+  footer; narrow screens switch cases instead of stacking plots. No duplicate title, Reset or Model notes toolbar.
+  Synchronized magnitude/phase plots distinguish gain error, −3 dB bandwidth and the two unity crossings. Complex-response values are checked against independent
   NumPy division; tests also verify the exact `T₀ × fCL = GBW` identity and weak-feedback limits. The source figure in
   `../code/plot_bandwidth_comparison.py` uses the same complex transfer function.
 - **Integer-N vs fractional-N PLL** at `/pll/integer-vs-fractional/`. A reference-rate time-domain simulation of two loops that
