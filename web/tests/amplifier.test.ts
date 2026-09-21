@@ -92,7 +92,7 @@ describe('single-pole negative-feedback amplifier', () => {
   });
 
   it.each(['open-loop', 'closed-loop'] as const)('preserves the %s constraint across all control extremes', (constraint) => {
-    for (const db of [20, 60, 100]) for (const beta of [.001, .01, .1, 1]) for (const target of [1, 100, 1e6, 1e8]) {
+    for (const db of [20, 60, 100]) for (const beta of [0, .001, .01, .1, 1]) for (const target of [1, 100, 1e6, 1e8]) {
       const m = constrainedAmplifier(db, beta, target, constraint);
       const held = constraint === 'open-loop' ? m.pole : m.closedBw;
       expect(held / target).toBeCloseTo(1, 12);
@@ -102,12 +102,30 @@ describe('single-pole negative-feedback amplifier', () => {
     }
   });
 
+  it('reduces exactly to the open-loop amplifier when beta is zero', () => {
+    for (const constraint of ['open-loop', 'closed-loop'] as const) {
+      const m = constrainedAmplifier(60, 0, 100, constraint);
+      expect(m.beta).toBe(0);
+      expect(m.loopDc).toBe(0);
+      expect(m.idealGain).toBe(Infinity);
+      expect(m.crossover).toBeNull();
+      expect(m.closedDc).toBe(m.a0);
+      expect(m.closedBw).toBe(m.pole);
+      for (const f of [0, 1, 100, 1e5]) {
+        const r = response(m, f);
+        expect(r.closedDb).toBe(r.openDb);
+        expect(r.closedPhase).toBe(r.openPhase);
+        expect(r.loopDb).toBe(-Infinity);
+      }
+    }
+  });
+
   it('rejects undefined inputs rather than drawing a NaN curve', () => {
     expect(() => amplifier(60, 0, 20)).toThrow(RangeError);
     expect(() => amplifier(NaN, 1e5, 20)).toThrow(RangeError);
     expect(() => amplifier(60, 1e5, -20)).toThrow(RangeError);
     expect(() => response(amplifier(60, 1e5, 20), -1)).toThrow(RangeError);
-    expect(() => constrainedAmplifier(60, 0, 100, 'open-loop')).toThrow(RangeError);
+    expect(() => constrainedAmplifier(60, -.01, 100, 'open-loop')).toThrow(RangeError);
     expect(() => constrainedAmplifier(60, 1.1, 100, 'open-loop')).toThrow(RangeError);
     expect(() => constrainedAmplifier(60, .1, -1, 'closed-loop')).toThrow(RangeError);
   });

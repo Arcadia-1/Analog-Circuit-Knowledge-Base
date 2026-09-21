@@ -4,11 +4,9 @@
   import GainCase from './GainCase.svelte';
   import { frequency, type Constraint } from './model';
 
-  let leftDb = $state(60), rightDb = $state(60);
-  let leftBeta = $state(-2), rightBeta = $state(-1);
+  let a0Db = $state(60), betaDial = $state(2.01);
   let constraint = $state<Constraint>('open-loop');
   let openBwLog = $state(2), closedBwLog = $state(4), probe = $state(0.5);
-  let activeCase = $state(1);
   const bandwidthLog = $derived(constraint === 'open-loop' ? openBwLog : closedBwLog);
   const bandwidth = $derived(10 ** bandwidthLog);
   // Frequency axes are shared and stay fixed while either A0 or beta changes.
@@ -41,21 +39,12 @@
           <Range id="amp-bandwidth" bind:value={closedBwLog} min={1} max={8} step={0.05} output={frequency(bandwidth, 4)}>Closed-loop BW <var>f</var><sub>CL</sub></Range>
         {/if}
       </div>
-      <p class="mode-note">{constraint === 'open-loop' ? 'Tune β → fCL changes; A₀ and fOL stay fixed.' : 'Tune A₀ or β → required fOL / GBW change; fCL stays fixed.'}</p>
+      <p class="mode-note"><span>{constraint === 'open-loop' ? 'Tune β → fCL changes; A₀ and fOL stay fixed.' : 'Tune A₀ or β → required fOL / GBW change; fCL stays fixed.'}</span><span class="relationship">β = 0 disconnects feedback: L = 0 and T = A.</span></p>
     </div>
   </div>
 
-  <div class="legend-row" aria-label="Plot legend">
-    <span class="legend-item"><i class="stroke blue-line"></i><span class="legend-name">Open loop</span> <var>A</var></span>
-    <span class="legend-item"><i class="stroke loop-line"></i><span class="legend-name">Loop gain</span> <var>L = βA</var></span>
-    <span class="legend-item"><i class="stroke amber-line"></i><span class="legend-name">Closed loop</span> <var>T</var></span>
-    <span class="marker-key" title="Bandwidths are −3.0103 dB relative to each curve’s own DC gain. Hollow rings distinguish A = 1 from L = 1; the gray guide is ideal gain 1/β.">● −3 dB &nbsp; ○ Unity gain</span>
-    <div class="case-switch"><Segmented label="Visible comparison case" size="sm" options={[{ value: 1, label: 'Case 1' }, { value: 2, label: 'Case 2' }]} bind:value={activeCase} /></div>
-  </div>
-
-  <div class="cases" class:show-second={activeCase === 2}>
-    <GainCase id="case-1" title="Case 1" bind:a0Db={leftDb} bind:betaLog={leftBeta} {bandwidth} {constraint} {low} {high} bind:probe />
-    <GainCase id="case-2" title="Case 2" bind:a0Db={rightDb} bind:betaLog={rightBeta} {bandwidth} {constraint} {low} {high} bind:probe />
+  <div class="response">
+    <GainCase id="amplifier" title="Amplifier response" bind:a0Db bind:betaDial {bandwidth} {constraint} {low} {high} bind:probe />
   </div>
 
 </main>
@@ -67,7 +56,7 @@
   :global(body:has(.amplifier-page) #main-content) { flex: 1 1 0; min-height: 0; display: flex; }
   :global(body:has(.amplifier-page) #main-content > astro-island) { display: flex; flex: 1; min-width: 0; min-height: 0; }
   :global(body:has(.amplifier-page) .site-footer .footer-inner) { padding-block: 9px; }
-  .amplifier-page { width: 100%; height: 100%; min-height: 0; padding: 10px 24px 8px; grid-template-rows: auto auto minmax(0, 1fr); gap: 8px; }
+  .amplifier-page { width: 100%; height: 100%; min-height: 0; padding: 10px 24px 8px; grid-template-rows: auto minmax(0, 1fr); gap: 8px; }
   .setup { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 32px; align-items: center; border-bottom: 1px solid var(--rule); padding-bottom: 8px; }
   .feedback { display: flex; align-items: center; gap: 20px; min-width: 0; }
   .feedback svg { width: 57%; max-width: 300px; height: 74px; }
@@ -94,17 +83,9 @@
   .bandwidth-control :global(input) { width: 100%; min-width: 0; }
   .bandwidth-control :global(output) { width: 11ch; font-size: 12px; text-align: right; }
   .bandwidth-control :global(label) { font-size: 10px; letter-spacing: .025em; }
-  .mode-note { margin: 0; color: var(--ink-3); font-size: 11px; line-height: 16px; height: 16px; }
-  .legend-row { display: flex; align-items: center; gap: 20px; font-size: 11px; color: var(--ink-2); min-width: 0; }
-  .legend-item { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
-  .legend-item var { font-size: 15px; }
-  .stroke { width: 21px; border-top: 2px solid; }
-  .blue-line { color: var(--s1); }
-  .amber-line { color: var(--s2); }
-  .loop-line { color: var(--brand); border-top-style: dashed; }
-  .marker-key { margin-left: auto; font-size: 10px; color: var(--ink-3); white-space: nowrap; }
-  .case-switch { display: none; }
-  .cases { display: grid; min-height: 0; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 32px; }
+  .mode-note { margin: 0; color: var(--ink-3); font-size: 11px; line-height: 16px; min-height: 16px; display: flex; gap: 18px; }
+  .relationship { color: var(--ink-2); }
+  .response { min-width: 0; min-height: 0; }
   @media (max-width: 900px) {
     .amplifier-page { padding: 8px 16px; gap: 7px; }
     .setup { gap: 12px; }
@@ -117,12 +98,7 @@
     .constraint-row :global(.sm button) { font-size: 11px; }
     .bandwidth-control :global(.range) { grid-template-columns: 129px minmax(30px, 1fr) 10ch; gap: 6px; }
     .bandwidth-control :global(output) { width: 10ch; }
-    .mode-note { font-size: 10px; }
-    .cases { grid-template-columns: minmax(0, 1fr); }
-    .cases:not(.show-second) :global(.case:nth-child(2)), .cases.show-second :global(.case:first-child) { display: none; }
-    .case-switch { display: block; margin-left: auto; }
-    .marker-key { display: none; }
-    .legend-row { gap: 12px; }
+    .mode-note { font-size: 10px; gap: 8px; }
   }
   @media (max-width: 600px) {
     .setup { grid-template-columns: minmax(0, 1fr); padding-bottom: 6px; }
@@ -131,11 +107,7 @@
     .constraint-row :global(.sm button) { font-size: 11px; }
     .constraint-row :global(.seg) { flex: 1; }
     .design-controls { gap: 5px; }
-    .legend-row { flex-wrap: wrap; gap: 3px 10px; font-size: 9px; }
-    .stroke { width: 13px; }
-    .legend-item { gap: 3px; }
-    .legend-item var { font-size: 12px; }
-    .case-switch :global(.sm button) { font-size: 11px; padding: 5px 8px; }
+    .mode-note { display: grid; gap: 0; line-height: 14px; min-height: 28px; }
     :global(body:has(.amplifier-page) .site-footer .footer-inner) { padding: 6px 16px; gap: 3px 12px; font-size: 10px; }
     :global(body:has(.amplifier-page) .site-footer .brand) { font-size: 11px; }
     :global(body:has(.amplifier-page) .site-footer nav) { width: auto; }

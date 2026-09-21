@@ -17,21 +17,28 @@ export type Constraint = 'open-loop' | 'closed-loop';
 
 /** Hold the chosen open-loop pole, or solve the pole required by a closed-loop BW target. */
 export function constrainedAmplifier(a0Db: number, beta: number, bandwidth: number, constraint: Constraint): Amplifier {
-  if (!Number.isFinite(beta) || beta <= 0 || beta > 1 || !Number.isFinite(bandwidth) || bandwidth <= 0) {
-    throw new RangeError('Use 0 < beta <= 1 and a positive bandwidth in Hz.');
+  if (!Number.isFinite(beta) || beta < 0 || beta > 1 || !Number.isFinite(bandwidth) || bandwidth <= 0) {
+    throw new RangeError('Use 0 <= beta <= 1 and a positive bandwidth in Hz.');
   }
   if (constraint !== 'open-loop' && constraint !== 'closed-loop') throw new RangeError('Unknown bandwidth constraint.');
   const a0 = 10 ** (a0Db / 20);
   const pole = constraint === 'open-loop' ? bandwidth : bandwidth / (1 + beta * a0);
-  return amplifier(a0Db, a0 * pole, -20 * Math.log10(beta));
+  return buildAmplifier(a0Db, a0 * pole, beta);
 }
 
 export function amplifier(a0Db: number, gbw: number, gainDb: number): Amplifier {
   if (![a0Db, gbw, gainDb].every(Number.isFinite) || a0Db < 0 || a0Db > 200 || gbw <= 0 || gainDb < 0 || gainDb > 200) {
     throw new RangeError('Use finite nonnegative gains up to 200 dB and a positive GBW in Hz.');
   }
-  const a0 = 10 ** (a0Db / 20), idealGain = 10 ** (gainDb / 20);
-  const beta = 1 / idealGain, pole = gbw / a0, loopDc = beta * a0;
+  return buildAmplifier(a0Db, gbw, 10 ** (-gainDb / 20));
+}
+
+function buildAmplifier(a0Db: number, gbw: number, beta: number): Amplifier {
+  if (!Number.isFinite(a0Db) || a0Db < 0 || a0Db > 200 || !Number.isFinite(gbw) || gbw <= 0) {
+    throw new RangeError('Use a finite gain from 0 to 200 dB and a positive GBW in Hz.');
+  }
+  const a0 = 10 ** (a0Db / 20), idealGain = beta === 0 ? Infinity : 1 / beta;
+  const pole = gbw / a0, loopDc = beta * a0;
   return {
     a0, gbw, beta, idealGain, pole, loopDc,
     closedDc: a0 / (1 + loopDc),
@@ -57,7 +64,7 @@ export function response(m: Amplifier, f: number): Response {
   // This uses the complex denominator, never |A| / (1 + beta*|A|).
   return {
     openDb: 20 * Math.log10(m.a0 / Math.hypot(1, r)),
-    loopDb: 20 * Math.log10(m.loopDc / Math.hypot(1, r)),
+    loopDb: m.loopDc === 0 ? -Infinity : 20 * Math.log10(m.loopDc / Math.hypot(1, r)),
     closedDb: 20 * Math.log10(m.a0 / Math.hypot(feedback, r)),
     openPhase: -Math.atan2(r, 1) * 180 / Math.PI,
     closedPhase: -Math.atan2(r, feedback) * 180 / Math.PI,

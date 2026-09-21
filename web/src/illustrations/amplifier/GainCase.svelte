@@ -2,10 +2,11 @@
   import Range from '../../components/ui/Range.svelte';
   import BodeChart from './BodeChart.svelte';
   import { constrainedAmplifier, frequency, response, type Constraint } from './model';
-  let { id, title, a0Db = $bindable(60), betaLog = $bindable(-1), bandwidth, constraint, low, high, probe = $bindable(0.5) }: {
-    id: string; title: string; a0Db: number; betaLog: number; bandwidth: number; constraint: Constraint; low: number; high: number; probe: number;
+  let { id, title, a0Db = $bindable(60), betaDial = $bindable(2.01), bandwidth, constraint, low, high, probe = $bindable(0.5) }: {
+    id: string; title: string; a0Db: number; betaDial: number; bandwidth: number; constraint: Constraint; low: number; high: number; probe: number;
   } = $props();
-  const beta = $derived(10 ** betaLog);
+  // The first detent is exact zero; the remaining track is logarithmic from 0.001 to 1.
+  const beta = $derived(betaDial === 0 ? 0 : 10 ** (betaDial - 3.01));
   const m = $derived(constrainedAmplifier(a0Db, beta, bandwidth, constraint));
   const probeFrequency = $derived(10 ** (low + probe * (high - low)));
   const at = $derived(response(m, probeFrequency));
@@ -15,19 +16,19 @@
   <div class="case-title"><h2>{title}</h2><span>GBW <b>{frequency(m.gbw, 4)}</b></span></div>
   <div class="controls">
     <Range id="{id}-a0" bind:value={a0Db} min={20} max={100} step={1} output="{a0Db} dB">Open-loop gain <var>A</var><sub>0</sub></Range>
-    <Range id="{id}-beta" bind:value={betaLog} min={-3} max={0} step={0.02} output={String(Number(beta.toPrecision(4)))}>Feedback <var>β</var></Range>
+    <Range id="{id}-beta" bind:value={betaDial} min={0} max={3.01} step={0.01} output={beta === 0 ? '0' : String(Number(beta.toPrecision(4)))}>Feedback factor <var>β</var></Range>
   </div>
   <dl class="metrics">
     <div><dt>Open-loop BW</dt><dd class="mono blue">{frequency(m.pole, 4)}</dd></div>
     <div><dt>Closed-loop BW</dt><dd class="mono amber">{frequency(m.closedBw, 4)}</dd></div>
     <div><dt title="Actual DC gain T₀ = A₀ / (1 + βA₀); the ideal is 1/β.">DC gain <span>T₀</span></dt><dd class="mono">{Number(m.closedDc.toPrecision(4))} <small>V/V</small></dd></div>
-    <div><dt title="Relative to ideal gain 1/β: error = 1 / (1 + βA₀).">DC gain error</dt><dd class="mono">{(m.relativeError * 100).toFixed(3)}<small>%</small></dd></div>
+    <div><dt title={beta === 0 ? 'No ideal feedback gain exists when β = 0.' : 'Relative to ideal gain 1/β: error = 1 / (1 + βA₀).'}>DC gain error</dt><dd class="mono">{beta === 0 ? 'n/a' : (m.relativeError * 100).toFixed(3)}{#if beta !== 0}<small>%</small>{/if}</dd></div>
   </dl>
   <BodeChart model={m} {id} {low} {high} bind:probe />
   <div class="probe-readout" aria-label="Response at {frequency(probeFrequency, 4)}">
     <span><small>Frequency</small><b>{frequency(probeFrequency, 4)}</b></span>
     <span class="blue"><small>Open-loop gain A</small><b>{at.openDb.toFixed(1)} dB</b></span>
-    <span class="green"><small>Loop gain L = βA</small><b>{at.loopDb.toFixed(1)} dB</b></span>
+    <span class="green"><small>Loop gain L = βA</small><b>{beta === 0 ? 'L = 0' : `${at.loopDb.toFixed(1)} dB`}</b></span>
     <span class="amber"><small>Closed-loop gain T</small><b>{at.closedDb.toFixed(1)} dB</b></span>
     <span class="amber"><small>Closed-loop phase ∠T</small><b>{at.closedPhase.toFixed(1)}°</b></span>
   </div>
