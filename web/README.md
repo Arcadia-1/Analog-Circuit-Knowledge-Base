@@ -96,7 +96,8 @@ names belong inside the lesson notes. Keep the two-column editorial layout on wi
 
 The shared header and footer, restrained borders, system sans font, Google Sans Code labels and green accent follow
 Analog Design Bench. Plot series use separate blue/amber colors. The theme follows the system until the reader makes
-an explicit choice; that choice is stored locally.
+an explicit choice; that choice is stored locally under a site-specific key. The former generic `theme` key is ignored so
+an old ADC Toolbox preference cannot force the renamed classroom site into dark mode.
 
 ## Numerical verification
 

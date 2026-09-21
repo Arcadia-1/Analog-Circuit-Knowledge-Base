@@ -27,8 +27,9 @@ const { pageTitle } = Astro.props;
 <script>
   const button = document.querySelector<HTMLButtonElement>('.theme-toggle');
   const media = window.matchMedia('(prefers-color-scheme: light)');
+  const storageKey = 'circuits-systems-theme';
   let preference: string | null = null;
-  try { preference = localStorage.getItem('theme'); } catch { /* System preference works without storage. */ }
+  try { preference = localStorage.getItem(storageKey); } catch { /* System preference works without storage. */ }
   function apply(light: boolean) {
     document.documentElement.classList.toggle('light', light);
     if (button) {
@@ -42,7 +43,7 @@ const { pageTitle } = Astro.props;
     button.addEventListener('click', () => {
       preference = document.documentElement.classList.contains('light') ? 'dark' : 'light';
       apply(preference === 'light');
-      try { localStorage.setItem('theme', preference); } catch { /* The toggle still works for this visit. */ }
+      try { localStorage.setItem(storageKey, preference); } catch { /* The toggle still works for this visit. */ }
     });
   }
   media.addEventListener('change', (event) => {

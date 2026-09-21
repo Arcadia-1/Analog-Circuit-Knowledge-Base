@@ -38,7 +38,11 @@ const siteName = 'Circuits & Systems Classroom';
     <ClientRouter />
     <script is:inline>
       let theme;
-      try { theme = localStorage.getItem('theme'); } catch {}
+      try {
+        theme = localStorage.getItem('circuits-systems-theme');
+        // The former generic key could leave the renamed site permanently dark.
+        localStorage.removeItem('theme');
+      } catch {}
       if (theme === 'light' || (theme !== 'dark' && matchMedia('(prefers-color-scheme: light)').matches)) {
         document.documentElement.classList.add('light');
       }
