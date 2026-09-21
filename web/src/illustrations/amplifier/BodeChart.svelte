@@ -25,7 +25,7 @@
 </script>
 
 <div class="bode">
-  <Plot label="{id}: open-loop, loop and closed-loop Bode magnitude and phase. Use the shared frequency probe below for numeric values."
+  <Plot label="{id}: open-loop, loop-gain and closed-loop Bode magnitude and phase. Move over the plot to inspect numeric values below it."
     onpointermove={(px, w) => { probe = Math.max(0, Math.min(1, (px - left) / Math.max(1, w - left - right))); }}>
     {#snippet children({ width: w, height: h })}
       {#if w > 0 && h > 80}

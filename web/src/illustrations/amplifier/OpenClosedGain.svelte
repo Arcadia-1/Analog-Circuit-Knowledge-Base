@@ -26,7 +26,11 @@
         <text x="198" y="36" text-anchor="middle" class="diagram-math blue">A(s)</text><text x="214" y="88" text-anchor="middle" class="diagram-math green">β</text>
         <text x="12" y="17" class="diagram-label">Vin</text><text x="358" y="17" class="diagram-label">Vout</text><circle cx="302" cy="30" r="3" fill="var(--ink-3)" />
       </svg>
-      <div class="equation"><var>T</var> = <span class="fraction"><span><var>A</var></span><span>1 + <var>βA</var></span></span><span class="equation-caption">single-pole · small signal</span></div>
+      <div class="equation-stack">
+        <div class="equation"><var>T</var> = <span class="fraction"><span><var>A</var></span><span>1 + <var>βA</var></span></span></div>
+        <div class="bandwidth-equation"><var>f</var><sub>CL</sub> = <var>f</var><sub>OL</sub>(1 + <var>βA</var><sub>0</sub>)</div>
+        <span class="equation-caption">single-pole · small signal</span>
+      </div>
     </div>
     <div class="design-controls">
       <div class="constraint-row"><span class="label">Hold</span><Segmented label="Bandwidth constraint" size="sm" options={[{ value: 'open-loop', label: 'Open loop · A₀ & fOL' }, { value: 'closed-loop', label: 'Closed-loop BW · fCL' }]} bind:value={constraint} /></div>
@@ -43,7 +47,7 @@
 
   <div class="legend-row" aria-label="Plot legend">
     <span class="legend-item"><i class="stroke blue-line"></i><span class="legend-name">Open loop</span> <var>A</var></span>
-    <span class="legend-item"><i class="stroke loop-line"></i><span class="legend-name">Loop</span> <var>L = βA</var></span>
+    <span class="legend-item"><i class="stroke loop-line"></i><span class="legend-name">Loop gain</span> <var>L = βA</var></span>
     <span class="legend-item"><i class="stroke amber-line"></i><span class="legend-name">Closed loop</span> <var>T</var></span>
     <span class="marker-key" title="Bandwidths are −3.0103 dB relative to each curve’s own DC gain. Hollow rings distinguish A = 1 from L = 1; the gray guide is ideal gain 1/β.">● −3 dB &nbsp; ○ Unity gain</span>
     <div class="case-switch"><Segmented label="Visible comparison case" size="sm" options={[{ value: 1, label: 'Case 1' }, { value: 2, label: 'Case 2' }]} bind:value={activeCase} /></div>
@@ -54,10 +58,6 @@
     <GainCase id="case-2" title="Case 2" bind:a0Db={rightDb} bind:betaLog={rightBeta} {bandwidth} {constraint} {low} {high} bind:probe />
   </div>
 
-  <div class="bottom-row">
-    <div class="probe-control"><Range id="amp-probe" bind:value={probe} min={0} max={1} step={0.001} output={frequency(10 ** (low + probe * (high - low)), 4)}>Probe frequency</Range></div>
-    <span class="identity"><var>f</var><sub>CL</sub> = <var>f</var><sub>OL</sub>(1 + <var>βA</var><sub>0</sub>)</span>
-  </div>
 </main>
 
 <style>
@@ -67,10 +67,10 @@
   :global(body:has(.amplifier-page) #main-content) { flex: 1 1 0; min-height: 0; display: flex; }
   :global(body:has(.amplifier-page) #main-content > astro-island) { display: flex; flex: 1; min-width: 0; min-height: 0; }
   :global(body:has(.amplifier-page) .site-footer .footer-inner) { padding-block: 9px; }
-  .amplifier-page { width: 100%; height: 100%; min-height: 0; padding: 10px 24px 8px; grid-template-rows: auto auto minmax(0, 1fr) auto; gap: 8px; }
+  .amplifier-page { width: 100%; height: 100%; min-height: 0; padding: 10px 24px 8px; grid-template-rows: auto auto minmax(0, 1fr); gap: 8px; }
   .setup { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 32px; align-items: center; border-bottom: 1px solid var(--rule); padding-bottom: 8px; }
   .feedback { display: flex; align-items: center; gap: 20px; min-width: 0; }
-  .feedback svg { width: 65%; max-width: 330px; height: 74px; }
+  .feedback svg { width: 57%; max-width: 300px; height: 74px; }
   .wire { stroke: var(--ink-3); fill: none; stroke-width: 1.2; }
   .block { fill: var(--plot); stroke: var(--ink-3); }
   .forward { stroke: var(--s1); }
@@ -79,11 +79,14 @@
   .diagram-math.blue { fill: var(--s1); }
   .diagram-math.green { fill: var(--brand); }
   .diagram-label, .sign { fill: var(--ink-2); font: 12px var(--mono); }
-  .equation { display: flex; align-items: center; flex-wrap: wrap; justify-content: center; gap: 5px; font: 21px var(--math); }
+  .equation-stack { display: grid; justify-items: center; gap: 1px; white-space: nowrap; }
+  .equation { display: flex; align-items: center; justify-content: center; gap: 5px; font: 21px var(--math); }
   .fraction { display: inline-grid; text-align: center; font-size: 18px; }
   .fraction > span:first-child { border-bottom: 1px solid var(--ink-3); }
   .fraction > span { padding: 0 5px; }
-  .equation-caption { font: 10px var(--sans); color: var(--ink-3); flex-basis: 100%; text-align: center; }
+  .bandwidth-equation { font: 16px var(--math); color: var(--ink-2); }
+  .bandwidth-equation sub { font-size: 9px; }
+  .equation-caption { font: 10px var(--sans); color: var(--ink-3); text-align: center; }
   .design-controls { display: grid; gap: 6px; min-width: 0; }
   .constraint-row { display: flex; align-items: center; gap: 12px; }
   .constraint-row > .label { font-size: 10px; }
@@ -102,14 +105,6 @@
   .marker-key { margin-left: auto; font-size: 10px; color: var(--ink-3); white-space: nowrap; }
   .case-switch { display: none; }
   .cases { display: grid; min-height: 0; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 32px; }
-  .bottom-row { display: flex; align-items: center; gap: 24px; border-top: 1px solid var(--rule); padding-top: 6px; }
-  .probe-control { flex: 1; min-width: 0; }
-  .probe-control :global(.range) { display: grid; grid-template-columns: 122px minmax(50px, 1fr) 12ch; gap: 10px; width: 100%; }
-  .probe-control :global(input) { width: 100%; min-width: 0; }
-  .probe-control :global(label) { font-size: 10px; letter-spacing: .04em; }
-  .probe-control :global(output) { width: 12ch; font-size: 12px; }
-  .identity { font: 17px var(--math); white-space: nowrap; }
-  .identity sub { font-size: 10px; }
   @media (max-width: 900px) {
     .amplifier-page { padding: 8px 16px; gap: 7px; }
     .setup { gap: 12px; }
@@ -117,6 +112,7 @@
     .feedback svg { width: 66%; height: 64px; }
     .equation { font-size: 18px; }
     .fraction { font-size: 16px; }
+    .bandwidth-equation { font-size: 14px; }
     .constraint-row { gap: 6px; }
     .constraint-row :global(.sm button) { font-size: 11px; }
     .bandwidth-control :global(.range) { grid-template-columns: 129px minmax(30px, 1fr) 10ch; gap: 6px; }
@@ -127,23 +123,19 @@
     .case-switch { display: block; margin-left: auto; }
     .marker-key { display: none; }
     .legend-row { gap: 12px; }
-    .identity { font-size: 15px; }
   }
   @media (max-width: 600px) {
     .setup { grid-template-columns: minmax(0, 1fr); padding-bottom: 6px; }
-    .feedback { display: none; }
+    .feedback { justify-content: center; }
+    .feedback svg { display: none; }
     .constraint-row :global(.sm button) { font-size: 11px; }
     .constraint-row :global(.seg) { flex: 1; }
     .design-controls { gap: 5px; }
-    .legend-row { gap: 10px; }
-    .legend-name { display: none; }
-    .stroke { width: 16px; }
-    .legend-item { gap: 4px; }
+    .legend-row { flex-wrap: wrap; gap: 3px 10px; font-size: 9px; }
+    .stroke { width: 13px; }
+    .legend-item { gap: 3px; }
+    .legend-item var { font-size: 12px; }
     .case-switch :global(.sm button) { font-size: 11px; padding: 5px 8px; }
-    .bottom-row { gap: 0; }
-    .identity { display: none; }
-    .probe-control :global(.range) { grid-template-columns: 108px minmax(40px, 1fr) 10ch; gap: 8px; }
-    .probe-control :global(output) { width: 10ch; }
     :global(body:has(.amplifier-page) .site-footer .footer-inner) { padding: 6px 16px; gap: 3px 12px; font-size: 10px; }
     :global(body:has(.amplifier-page) .site-footer .brand) { font-size: 11px; }
     :global(body:has(.amplifier-page) .site-footer nav) { width: auto; }

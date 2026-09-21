@@ -7,7 +7,8 @@
   } = $props();
   const beta = $derived(10 ** betaLog);
   const m = $derived(constrainedAmplifier(a0Db, beta, bandwidth, constraint));
-  const at = $derived(response(m, 10 ** (low + probe * (high - low))));
+  const probeFrequency = $derived(10 ** (low + probe * (high - low)));
+  const at = $derived(response(m, probeFrequency));
 </script>
 
 <section class="case" aria-label={title}>
@@ -23,11 +24,12 @@
     <div><dt title="Relative to ideal gain 1/β: error = 1 / (1 + βA₀).">DC gain error</dt><dd class="mono">{(m.relativeError * 100).toFixed(3)}<small>%</small></dd></div>
   </dl>
   <BodeChart model={m} {id} {low} {high} bind:probe />
-  <div class="probe-readout" aria-label="Response at the shared frequency probe">
-    <span class="blue">A <b>{at.openDb.toFixed(1)} dB</b></span>
-    <span class="green">L <b>{at.loopDb.toFixed(1)} dB</b></span>
-    <span class="amber">T <b>{at.closedDb.toFixed(1)} dB</b></span>
-    <span class="amber">∠T <b>{at.closedPhase.toFixed(1)}°</b></span>
+  <div class="probe-readout" aria-label="Response at {frequency(probeFrequency, 4)}">
+    <span><small>Frequency</small><b>{frequency(probeFrequency, 4)}</b></span>
+    <span class="blue"><small>Open-loop gain A</small><b>{at.openDb.toFixed(1)} dB</b></span>
+    <span class="green"><small>Loop gain L = βA</small><b>{at.loopDb.toFixed(1)} dB</b></span>
+    <span class="amber"><small>Closed-loop gain T</small><b>{at.closedDb.toFixed(1)} dB</b></span>
+    <span class="amber"><small>Closed-loop phase ∠T</small><b>{at.closedPhase.toFixed(1)}°</b></span>
   </div>
 </section>
 
@@ -49,8 +51,9 @@
   .blue { color: var(--s1); }
   .amber { color: var(--s2); }
   .green { color: var(--brand); }
-  .probe-readout { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); padding: 5px 0 0; border-top: 1px solid var(--rule); font-size: 11px; }
-  .probe-readout span { display: flex; gap: 5px; align-items: baseline; }
+  .probe-readout { display: grid; grid-template-columns: 1.05fr repeat(4, minmax(0, 1fr)); padding: 5px 0 0; border-top: 1px solid var(--rule); font-size: 11px; }
+  .probe-readout span { display: grid; gap: 1px; }
+  .probe-readout small { color: currentColor; opacity: .72; font: 9px var(--sans); white-space: nowrap; }
   b { font: 11px var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
   @media (max-width: 600px) {
     .case { gap: 5px; }
@@ -61,8 +64,8 @@
     dt { font-size: 9px; }
     dd { font-size: 11px; }
     small { font-size: 9px; }
-    .probe-readout { font-size: 10px; }
-    .probe-readout span { flex-direction: column; gap: 0; }
+    .probe-readout { font-size: 10px; gap: 2px; }
+    .probe-readout small { font-size: 8px; overflow: hidden; text-overflow: ellipsis; }
     .probe-readout b { font-size: 10px; }
   }
 </style>
