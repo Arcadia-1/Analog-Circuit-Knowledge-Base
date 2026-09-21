@@ -31,7 +31,7 @@ export type HarmonicLevels = Record<HarmonicOrder, number>;
 export const HARMONIC_PHASE: HarmonicLevels = { 2: 0.31, 3: -0.47, 5: 0.83, 7: -1.11 };
 /** exp_ti01's Farrow interpolator */
 export const TAPS = 9;
-const NOISE_LSB = 0.3;
+export const DEFAULT_THERMAL_NOISE_LSB = 0.3;
 const NOISE_SEED = 7;
 const JITTER_SEED = 71;
 
@@ -93,6 +93,10 @@ export function mismatch(m: number, gainRms: number, offsetRms: number, skewRms:
 
 export interface CaptureOptions {
   fs?: number;
+  /** Shared one-pole analog input bandwidth in hertz. Defaults to fs/2. */
+  analogBandwidth?: number;
+  /** Input-referred white thermal-noise RMS, in ideal converter LSB. */
+  thermalNoiseLsb?: number;
   /** RMS aperture jitter in seconds. */
   jitter?: number;
   /** Independent source harmonics in dBc. Values at or below −100 dBc are disabled. */
@@ -114,43 +118,45 @@ export function inputValue(t: number, fin: number, harmonics: Partial<HarmonicLe
 }
 
 /**
- * A channel bandwidth error is modelled as a shifted one-pole corner. The nominal corner is fs/2; returning the ratio
- * to the nominal response keeps the common roll-off out of the lesson and leaves only channel-to-channel mismatch.
+ * A channel bandwidth error shifts its physical one-pole analog input corner around the selected common bandwidth.
  */
-export function bandwidthResponse(relativeError: number, frequency: number, fs: number): { amplitude: number; phase: number } {
-  const nominal = fs / 2;
-  const actual = nominal * Math.max(0.05, 1 + relativeError);
-  const xn = frequency / nominal, xa = frequency / actual;
+export function bandwidthResponse(relativeError: number, frequency: number, analogBandwidth: number): { amplitude: number; phase: number } {
+  if (!Number.isFinite(analogBandwidth) || analogBandwidth <= 0) throw new Error(`invalid analog bandwidth ${analogBandwidth}`);
+  const actual = analogBandwidth * Math.max(0.05, 1 + relativeError);
+  const x = frequency / actual;
   return {
-    amplitude: Math.sqrt((1 + xn * xn) / (1 + xa * xa)),
-    phase: Math.atan(xn) - Math.atan(xa),
+    amplitude: 1 / Math.sqrt(1 + x * x),
+    phase: -Math.atan(x),
   };
 }
 
 /** The same memoryless converter sampled at ADC indices 0, stride, 2·stride, … . */
 function captureAtStride(fin: number, mm: Mismatch, bits: number, len: number, options: CaptureOptions, stride: number): Float64Array {
   const fs = options.fs ?? FS, jitter = options.jitter ?? 0, harmonics = options.harmonics ?? {};
+  const analogBandwidth = options.analogBandwidth ?? fs / 2;
+  const thermalNoiseLsb = options.thermalNoiseLsb ?? DEFAULT_THERMAL_NOISE_LSB;
+  if (!Number.isFinite(thermalNoiseLsb) || thermalNoiseLsb < 0) throw new Error(`invalid thermal noise ${thermalNoiseLsb} LSB`);
   const m = mm.gain.length, T = 1 / fs, lsb = 1 / 2 ** bits, top = 2 ** bits - 1;
   const z = gaussians(len, NOISE_SEED), clock = jitter ? gaussians(len, JITTER_SEED) : null;
   return Float64Array.from({ length: len }, (_, n) => {
     const sample = n * stride, c = sample % m, t = sample * T + mm.skew[c] + (clock?.[n] ?? 0) * jitter;
-    const fundamental = bandwidthResponse(mm.bandwidth?.[c] ?? 0, fin, fs);
+    const fundamental = mm.bandwidth === undefined ? { amplitude: 1, phase: 0 } : bandwidthResponse(mm.bandwidth[c], fin, analogBandwidth);
     let signal = AMP * fundamental.amplitude * Math.cos(2 * Math.PI * fin * t + fundamental.phase);
     for (const order of HARMONIC_ORDERS) {
       const dbc = harmonicLevel(harmonics, order);
       if (dbc <= -100) continue;
-      const bw = bandwidthResponse(mm.bandwidth?.[c] ?? 0, order * fin, fs);
+      const bw = mm.bandwidth === undefined ? { amplitude: 1, phase: 0 } : bandwidthResponse(mm.bandwidth[c], order * fin, analogBandwidth);
       signal += AMP * 10 ** (dbc / 20) * bw.amplitude * Math.cos(2 * Math.PI * order * fin * t + HARMONIC_PHASE[order] + bw.phase);
     }
-    const v = mm.gain[c] * signal + mm.offset[c] + z[n] * NOISE_LSB * lsb;
+    const v = mm.gain[c] * signal + mm.offset[c] + z[n] * thermalNoiseLsb * lsb;
     return Math.min(top, Math.max(0, Math.floor((v - -0.5) / lsb))) * lsb + -0.5;
   });
 }
 
 /**
  * exp_ti01's capture: sample n comes from sub-ADC n mod m, which samples its skew late and scales and shifts what it
- * sees. Then 0.3 LSB of thermal noise and the quantiser, which floors and clips on ±0.5 V as apply_quantization_noise
- * does.
+ * sees. Then the selected input-referred thermal noise (0.3 LSB RMS by default) and the quantiser, which floors and
+ * clips on ±0.5 V as apply_quantization_noise does.
  */
 export function capture(fin: number, mm: Mismatch, bits: number, len = N, options: CaptureOptions = {}): Float64Array {
   return captureAtStride(fin, mm, bits, len, options, 1);
@@ -379,11 +385,11 @@ export const predictedSfdr = (spurs: Spur[]): number => -Math.max(...spurs.map((
 /** The sub-ADCs' own Nyquist frequency: calibrate_foreground's delays hold only below it. */
 export const channelNyquist = (m: number): number => FS / (2 * m);
 
-/** The fundamental-frequency gain and phase that the physical channel mismatches present to predict_spurs. */
-export function physicalParams(mm: Mismatch, fin: number, fs: number): Params {
+/** The fundamental-frequency gain and phase that the physical channel front ends present to predict_spurs. */
+export function physicalParams(mm: Mismatch, fin: number, fs: number, analogBandwidth = fs / 2): Params {
   const m = mm.gain.length, gain = new Float64Array(m), skew = new Float64Array(m);
   for (let c = 0; c < m; c++) {
-    const bw = bandwidthResponse(mm.bandwidth?.[c] ?? 0, fin, fs);
+    const bw = mm.bandwidth === undefined ? { amplitude: 1, phase: 0 } : bandwidthResponse(mm.bandwidth[c], fin, analogBandwidth);
     gain[c] = mm.gain[c] * bw.amplitude;
     skew[c] = mm.skew[c] + bw.phase / (2 * Math.PI * fin);
   }
@@ -445,6 +451,7 @@ export function contributions(
   harmonics: Partial<HarmonicLevels>,
   jitter: number,
   outputFs = converterFs,
+  analogBandwidth = converterFs / 2,
 ): Contribution[] {
   const m = mm.gain.length;
   const factor = Math.round(converterFs / outputFs);
@@ -455,7 +462,7 @@ export function contributions(
   const skew = images(ones(m), mm.skew);
   const bwGain = new Float64Array(m), bwSkew = new Float64Array(m);
   for (let c = 0; c < m; c++) {
-    const bw = bandwidthResponse(mm.bandwidth?.[c] ?? 0, fin, converterFs);
+    const bw = bandwidthResponse(mm.bandwidth?.[c] ?? 0, fin, analogBandwidth);
     bwGain[c] = bw.amplitude;
     bwSkew[c] = bw.phase / (2 * Math.PI * fin);
   }
@@ -525,7 +532,7 @@ export function read(m: number, target: number, mm: Mismatch, bits: number, meth
   const coherent = true;
   const frequency = foldFrequency(fin, fsOut) / fsOut;
   const raw = outputSpectrum(rawRecord, bits, frequency, coherent);
-  const spurs = outputSpurs(physicalParams(mm, fin, fs), fs, decimation);
+  const spurs = outputSpurs(physicalParams(mm, fin, fs, options.analogBandwidth ?? fs / 2), fs, decimation);
   return {
     fin,
     bin,

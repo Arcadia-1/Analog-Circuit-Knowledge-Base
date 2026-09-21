@@ -5,12 +5,13 @@
   import { clamp } from '../../lib/scale';
   import { inputValue, type HarmonicLevels, type Mismatch } from './model';
 
-  let { samples, truth, fin, fs, harmonics, hover, onhover, label }: {
+  let { samples, truth, fin, fs, harmonics, decimation, hover, onhover, label }: {
     samples: Float64Array;
     truth: Mismatch;
     fin: number;
     fs: number;
     harmonics: Partial<HarmonicLevels>;
+    decimation: number;
     hover: number | null;
     onhover: (index: number | null) => void;
     label: string;
@@ -37,7 +38,7 @@
       const at = ((COUNT - 1) * i) / 400;
       wave += `${i ? 'L' : 'M'}${sx(at).toFixed(1)},${sy(ideal(at)).toFixed(1)}`;
     }
-    return { X1, Y0, Y1, sx, sy, wave };
+    return { X1, Y0, Y1, sx, sy, wave, bandWidth: clamp((X1 - X0) / COUNT * .42, 3, 8) };
   }
 </script>
 
@@ -48,6 +49,11 @@
 >
   {#snippet children({ width, height })}
     {@const g = geo(width, height)}
+    {#if decimation > 1}
+      {#each Array.from({ length: Math.ceil(COUNT / decimation) }, (_, k) => k * decimation) as i (i)}
+        <rect class="kept-band" x={g.sx(i) - g.bandWidth / 2} y={g.Y0} width={g.bandWidth} height={g.Y1 - g.Y0} />
+      {/each}
+    {/if}
     {#each [-.5, 0, .5] as v}
       <line class={v ? 'gr' : 'zero'} x1={X0} x2={g.X1} y1={g.sy(v)} y2={g.sy(v)} />
       <text class="tx" x={X0 - 6} y={g.sy(v)} text-anchor="end" dominant-baseline="central">{nf(v, 1)}</text>
@@ -84,12 +90,13 @@
     {#if hover !== null}
       {@const g = geo(width, height)}
       {@const c = hover % m}
-      <Tip x={g.sx(hover)} y={g.sy(samples[hover])} {width} text="sample {hover}, channel {c} · {nf(samples[hover], 4)} V · skew {nf(truth.skew[c] * 1e12, 2)} ps" />
+      <Tip x={g.sx(hover)} y={g.sy(samples[hover])} {width} text="sample {hover}, channel {c} · {nf(samples[hover], 4)} V · skew {nf(truth.skew[c] * 1e12, 2)} ps{decimation > 1 ? hover % decimation === 0 ? ` · kept by ÷${decimation}` : ` · dropped by ÷${decimation}` : ''}" />
     {/if}
   {/snippet}
 </Plot>
 
 <style>
+  .kept-band { fill: var(--ink-3); opacity: .1; }
   .ideal { fill: none; stroke: var(--ink-3); stroke-width: 1.2; }
   .sample-stem { stroke: var(--channel-color); opacity: .55; }
   .sample { fill: var(--channel-color); stroke: var(--plot); stroke-width: 1.2; }

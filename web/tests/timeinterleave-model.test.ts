@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { fft } from '../src/lib/fft';
 import { coherentFrequency, foldBin, foldFrequency } from '../src/lib/frequency';
 import {
+  AMP,
   analysisPoints,
   calibrate,
   capture,
@@ -18,6 +19,7 @@ import {
   mismatch,
   N,
   pattern,
+  physicalParams,
   predictedSfdr,
   predictSpurs,
   read,
@@ -439,9 +441,31 @@ describe('time-interleaved mismatch', () => {
     expect(Math.abs(r.raw.sfdr - predictedSfdr(r.spurs))).toBeLessThan(0.1);
   });
 
+  it('uses the selected input-referred thermal noise and reports ENOB from SNDR', () => {
+    const mm = mismatch(4, 0, 0, 0);
+    const quiet = read(4, 1e9, mm, 12, 'off', { fs: 10e9, thermalNoiseLsb: 0 });
+    const defaultNoise = read(4, 1e9, mm, 12, 'off', { fs: 10e9 });
+    const explicitDefault = read(4, 1e9, mm, 12, 'off', { fs: 10e9, thermalNoiseLsb: 0.3 });
+    const noisy = read(4, 1e9, mm, 12, 'off', { fs: 10e9, thermalNoiseLsb: 4 });
+    expect(defaultNoise.raw.sndr).toBe(explicitDefault.raw.sndr);
+    expect(noisy.raw.sndr).toBeLessThan(defaultNoise.raw.sndr);
+    expect(defaultNoise.raw.sndr).toBeLessThan(quiet.raw.sndr);
+    expect(noisy.raw.enob).toBeCloseTo((noisy.raw.sndr - 1.76) / 6.02, 12);
+  });
+
+  it('applies the selected Analog Bandwidth as a physical one-pole response', () => {
+    const fin = 1e9, analogBandwidth = 1e9;
+    const mm = mismatch(4, 0, 0, 0, 0);
+    const p = physicalParams(mm, fin, 10e9, analogBandwidth);
+    p.gain.forEach((gain) => expect(gain).toBeCloseTo(1 / Math.sqrt(2), 12));
+    p.skew.forEach((delay) => expect(delay).toBeCloseTo(-1 / (8 * fin), 18));
+    const r = read(4, fin, mm, 16, 'off', { fs: 10e9, analogBandwidth, thermalNoiseLsb: 0 });
+    expect(r.raw.dbfs[r.raw.signal]).toBeCloseTo(20 * Math.log10(AMP / (0.5 * Math.sqrt(2))), 1);
+  });
+
   it('places H2, H3, H5, and H7 independently in the decimated FFT', () => {
     const harmonics: HarmonicLevels = { 2: -44, 3: -50, 5: -56, 7: -62 };
-    const r = read(4, 73e6, mismatch(4, 0, 0, 0, 0), 16, 'off', { harmonics, decimation: 4 });
+    const r = read(4, 73e6, mismatch(4, 0, 0, 0), 16, 'off', { harmonics, decimation: 4 });
     expect(r.harmonics.map((tone) => tone.order)).toEqual(HARMONIC_ORDERS);
     for (const tone of r.harmonics) {
       const bin = Math.round((foldFrequency(tone.order * r.fin, r.fsOut) / r.fsOut) * r.fftPoints);
@@ -449,7 +473,7 @@ describe('time-interleaved mismatch', () => {
       expect(r.raw.dbfs[bin] - r.raw.dbfs[r.raw.signal]).toBeCloseTo(harmonics[tone.order], 0);
     }
 
-    const h5Only = read(4, 73e6, mismatch(4, 0, 0, 0, 0), 16, 'off', { harmonics: { 5: -46 } });
+    const h5Only = read(4, 73e6, mismatch(4, 0, 0, 0), 16, 'off', { harmonics: { 5: -46 } });
     expect(h5Only.harmonics.map((tone) => tone.order)).toEqual([5]);
   });
 

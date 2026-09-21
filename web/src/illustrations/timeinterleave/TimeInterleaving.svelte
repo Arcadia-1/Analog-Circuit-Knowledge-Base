@@ -13,7 +13,9 @@
   let gainPct = $state(0.3);
   let offsetMv = $state(1);
   let skewPs = $state(0.1);
+  let analogBandwidthGHz = $state(5);
   let bandwidthPct = $state(2);
+  let thermalNoiseLsb = $state(0.3);
   let jitterPs = $state(0.5);
   let h2Dbc = $state(-65);
   let h3Dbc = $state(-71);
@@ -35,10 +37,11 @@
   });
 
   const mm = $derived(mismatch(m, gainPct / 100, offsetMv / 1e3, skewPs / 1e12, bandwidthPct / 100));
-  const r = $derived(read(m, inputGHz * 1e9, mm, bits, 'off', { fs, jitter: jitterPs / 1e12, harmonics, decimation }));
+  const analogBandwidth = $derived(analogBandwidthGHz * 1e9);
+  const r = $derived(read(m, inputGHz * 1e9, mm, bits, 'off', { fs, analogBandwidth, thermalNoiseLsb, jitter: jitterPs / 1e12, harmonics, decimation }));
   const seen = $derived(foldFrequency(r.fin, fs / m));
   const zone = $derived(Math.min(m, Math.floor(r.fin / (fs / (2 * m))) + 1));
-  const sourceRows = $derived(contributions(mm, r.fin, fs, harmonics, jitterPs / 1e12, r.fsOut));
+  const sourceRows = $derived(contributions(mm, r.fin, fs, harmonics, jitterPs / 1e12, r.fsOut, analogBandwidth));
   const rateText = (hz: number) => freqText(hz).replace(/Hz$/, 'S/s');
 
   const randomStep = (min: number, max: number, step: number) => {
@@ -51,6 +54,7 @@
     offsetMv = 0;
     skewPs = 0;
     bandwidthPct = 0;
+    thermalNoiseLsb = 0;
     jitterPs = 0;
     h2Dbc = h3Dbc = h5Dbc = h7Dbc = -100;
     hoverBin = hoverSample = null;
@@ -61,6 +65,7 @@
     offsetMv = randomStep(0, 8, 0.1);
     skewPs = randomStep(0, 2, 0.01);
     bandwidthPct = randomStep(0, 10, 0.1);
+    thermalNoiseLsb = randomStep(0, 4, 0.05);
     jitterPs = randomStep(0, 5, 0.05);
     h2Dbc = randomStep(-100, -40, 1);
     h3Dbc = randomStep(-100, -40, 1);
@@ -99,15 +104,17 @@
       </div>
 
       <div class="control-group accent2">
-        <div class="group-head"><span class="label">Channel mismatch · rms</span></div>
+        <div class="group-head"><span class="label">Analog front end</span><span>mismatch · rms</span></div>
+        <EditableRange id="analog-bandwidth" min={0.1} max={20} step={0.1} digits={1} unit="GHz" bind:value={analogBandwidthGHz}>Analog Bandwidth</EditableRange>
         <EditableRange id="offset" min={0} max={8} step={0.1} digits={1} unit="mV" bind:value={offsetMv}>Offset</EditableRange>
         <EditableRange id="gain" min={0} max={3} step={0.05} digits={2} unit="%" bind:value={gainPct}>Gain</EditableRange>
         <EditableRange id="skew" min={0} max={2} step={0.01} digits={2} unit="ps" bind:value={skewPs}>Skew</EditableRange>
-        <EditableRange id="bandwidth" min={0} max={10} step={0.1} digits={1} unit="%" bind:value={bandwidthPct}>Bandwidth</EditableRange>
+        <EditableRange id="bandwidth" min={0} max={10} step={0.1} digits={1} unit="%" bind:value={bandwidthPct}>BW mismatch</EditableRange>
       </div>
 
       <div class="control-group source">
-        <div class="group-head"><span class="label">Clock &amp; source</span></div>
+        <div class="group-head"><span class="label">Noise, clock &amp; source</span></div>
+        <EditableRange id="thermal-noise" min={0} max={4} step={0.05} digits={2} unit="LSB rms" bind:value={thermalNoiseLsb}>Thermal noise</EditableRange>
         <EditableRange id="jitter" min={0} max={5} step={0.05} digits={2} unit="ps" bind:value={jitterPs}>Jitter</EditableRange>
         <EditableRange id="h2" min={-100} max={-40} step={1} digits={0} unit="dBc" bind:value={h2Dbc}>H2</EditableRange>
         <EditableRange id="h3" min={-100} max={-40} step={1} digits={0} unit="dBc" bind:value={h3Dbc}>H3</EditableRange>
@@ -119,15 +126,15 @@
     <section class="visuals" aria-label="Time and frequency views">
       <div class="chart time-chart">
         <div class="cap">
-          <span class="left"><span class="label">Time domain</span><span>{freqText(r.fin)} input · 48 converter samples before decimation</span></span>
+          <span class="left"><span class="label">Time domain</span><span>{freqText(r.fin)} input · 48 converter samples{decimation > 1 ? ` · grey bands kept by ÷${decimation}` : ' before decimation'}</span></span>
         </div>
-        <SampleTimingChart samples={r.rawData} truth={r.truth} fin={r.fin} {fs} {harmonics} hover={hoverSample} onhover={(i) => (hoverSample = i)} label="Time-domain input and interleaved channel samples" />
+        <SampleTimingChart samples={r.rawData} truth={r.truth} fin={r.fin} {fs} {harmonics} {decimation} hover={hoverSample} onhover={(i) => (hoverSample = i)} label="Time-domain input and interleaved channel samples" />
       </div>
 
       <div class="chart spectrum-chart">
         <div class="cap">
           <span class="left"><span class="label">Output spectrum</span><span>{r.fftPoints}-point FFT · {rateText(r.fsOut)} · {r.coherent ? 'rectangular' : 'Blackman–Harris'}</span></span>
-          <span title={r.metricsResolved ? (r.coherent ? 'Coherent FFT estimates' : 'SNDR: known-frequency sine fit. SFDR: strongest windowed residual lobe. Closely spaced tones may not resolve.') : 'Noncoherent record has fewer than 64 points, or the carrier is within five bins of DC / Nyquist'}>SFDR <b>{r.metricsResolved ? nf(r.raw.sfdr, 1) : '—'} dB</b> · SNDR <b>{r.metricsResolved ? nf(r.raw.sndr, 1) : '—'} dB</b></span>
+          <span title={r.metricsResolved ? (r.coherent ? 'Coherent FFT estimates' : 'SNDR: known-frequency sine fit. SFDR: strongest windowed residual lobe. Closely spaced tones may not resolve.') : 'Noncoherent record has fewer than 64 points, or the carrier is within five bins of DC / Nyquist'}>SFDR <b>{r.metricsResolved ? nf(r.raw.sfdr, 1) : '—'} dB</b> · SNDR <b>{r.metricsResolved ? nf(r.raw.sndr, 1) : '—'} dB</b> · ENOB <b>{r.metricsResolved ? nf(r.raw.enob, 2) : '—'} bits</b></span>
         </div>
         <SpurSpectrum spectrum={r.raw} spurs={r.spurs} harmonics={r.harmonics} {bits} fs={r.fsOut} points={r.fftPoints} hover={hoverBin} onhover={(b) => (hoverBin = b)} label="Spectrum of the interleaved and decimated output" />
       </div>
