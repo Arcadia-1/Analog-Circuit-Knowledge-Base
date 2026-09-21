@@ -36,11 +36,6 @@
       {#if w > 0 && h > 80}
       <defs><clipPath id="{id}-gain"><rect x={left} y="18" width={Math.max(1, w - left - right)} height={bottom(h) - 18} /></clipPath></defs>
       <text class="tx2" x="1" y="11">dB</text>
-      <g class="chart-legend" transform="translate({Math.max(left + 8, w - right - (w < 560 ? 62 : 128))} 40)">
-        <line class="c1" x1="0" x2="18" y1="0" y2="0" stroke-width="2.5" /><text class="lg" x="25" y="4">{w < 560 ? 'A(s)' : 'Open-loop A'}</text>
-        <line class="loop" x1="0" x2="18" y1="21" y2="21" stroke-width="2.2" stroke-dasharray="5 4" /><text class="lg" x="25" y="25">{w < 560 ? 'L(s)' : 'Loop gain L'}</text>
-        <line class="c2" x1="0" x2="18" y1="42" y2="42" stroke-width="2.8" /><text class="lg" x="25" y="46">{w < 560 ? 'T(s)' : 'Closed-loop T'}</text>
-      </g>
       {#if hasPhase(h)}<text class="tx2" x="1" y={compact(h) ? phaseTop(h) + 10 : phaseTop(h) - 10}>Phase</text>{/if}
       {#each gainTicks as db}
         <line class={db === 0 ? 'zero' : 'gr'} x1={left} x2={w - right} y1={gy(db, h)} y2={gy(db, h)} />
@@ -87,6 +82,12 @@
         {#if point.value >= -40 && point.value <= 100}<circle class="{point.cls} ring" cx={x(probeLog, w)} cy={gy(point.value, h)} r="3.5" />{/if}
       {/each}
       {#if hasPhase(h)}<circle class="f2 ring" cx={x(probeLog, w)} cy={py(probeResponse.closedPhase, h)} r="3.5" />{/if}
+      <g class="chart-legend" transform="translate({Math.max(left + 10, w - right - (w < 560 ? 102 : 160))} 48)">
+        <rect class="legend-bg" x="0" y="-16" width={w < 560 ? 92 : 150} height="70" rx="4" />
+        <line class="c1" x1="10" x2="28" y1="0" y2="0" stroke-width="2.5" /><text class="lg" x="35" y="4">{w < 560 ? 'A(s)' : 'Open-loop A'}</text>
+        <line class="loop" x1="10" x2="28" y1="21" y2="21" stroke-width="2.2" stroke-dasharray="5 4" /><text class="lg" x="35" y="25">{w < 560 ? 'L(s)' : 'Loop gain L'}</text>
+        <line class="c2" x1="10" x2="28" y1="42" y2="42" stroke-width="2.8" /><text class="lg" x="35" y="46">{w < 560 ? 'T(s)' : 'Closed-loop T'}</text>
+      </g>
       {/if}
     {/snippet}
   </Plot>
@@ -100,4 +101,5 @@
   .unity { fill: var(--plot); stroke-width: 2; }
   .tick { font-size: 10px; }
   .lg { fill: var(--ink-2); font: 13px var(--sans); }
+  .legend-bg { fill: var(--plot); }
 </style>
