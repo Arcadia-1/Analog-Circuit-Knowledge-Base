@@ -2,6 +2,7 @@
 import SiteHeader from '../components/SiteHeader.astro';
 import SiteFooter from '../components/SiteFooter.astro';
 import { isLessonPath, isPublicLessonPath } from '../data/publication';
+import { ClientRouter } from 'astro:transitions';
 import '../styles/global.css';
 
 interface Props {
@@ -34,6 +35,7 @@ const siteName = 'Circuits & Systems Classroom';
     <meta property="og:url" content={canonical} />
     <meta name="theme-color" content="#f6f8fa" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#0a0d13" media="(prefers-color-scheme: dark)" />
+    <ClientRouter />
     <script is:inline>
       let theme;
       try { theme = localStorage.getItem('theme'); } catch {}
@@ -42,7 +44,7 @@ const siteName = 'Circuits & Systems Classroom';
       }
     </script>
   </head>
-  <body>
+  <body transition:animate="none">
     <a class="skip-link" href="#main-content">Skip to content</a>
     <SiteHeader pageTitle={isLessonPath(Astro.url.pathname) ? title : undefined} />
     <div id="main-content" tabindex="-1">

@@ -21,8 +21,19 @@ const { visits = true } = Astro.props;
   a:hover { color: var(--ink); }
   .brand { flex: none; font-size: 14px; font-weight: 600; color: var(--ink); }
   nav { margin-left: auto; display: flex; align-items: center; gap: 22px; }
-  .footer-inner :global(.visitors) { text-decoration: none; font: 11px/1.6 var(--mono); white-space: nowrap; }
-  .footer-inner :global(.visitors strong) { color: var(--ink); font-weight: 500; font-variant-numeric: tabular-nums; }
+  .footer-inner :global(.visitors) {
+    color: var(--ink-2);
+    font-family: var(--mono);
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+    text-decoration: underline;
+    text-underline-offset: 4px;
+    transition-property: color, background-color, border-color, outline-color, text-decoration-color, fill, stroke;
+    transition-duration: 150ms;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    white-space: nowrap;
+  }
+  .footer-inner :global(.visitors:hover) { color: var(--ink); }
   @media (max-width: 900px) { .footer-inner { flex-wrap: wrap; gap: 10px 18px; } nav { margin-left: 0; } .footer-inner :global(.visitors) { margin-left: auto; } }
   @media (max-width: 600px) { .footer-inner { padding-inline: 20px; } nav { width: 100%; order: -1; } }
 </style>

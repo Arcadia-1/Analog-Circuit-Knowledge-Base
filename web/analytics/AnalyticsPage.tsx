@@ -89,8 +89,9 @@ export default function AnalyticsPage() {
   );
 
   useEffect(() => {
+    const analyticsTitle = "Site Analytics — AMS Class";
     const previousTitle = document.title;
-    document.title = "Site Analytics — AMS Class";
+    document.title = analyticsTitle;
     let robots = document.querySelector<HTMLMetaElement>('meta[name="robots"]');
     const previousRobots = robots?.content;
     if (!robots) {
@@ -100,7 +101,10 @@ export default function AnalyticsPage() {
     }
     robots.content = "noindex, follow";
     return () => {
-      document.title = previousTitle;
+      // Astro's client router swaps the destination <head> before unmounting
+      // this island. Preserve that new page title instead of restoring the
+      // analytics document title over it.
+      if (document.title === analyticsTitle) document.title = previousTitle;
       if (previousRobots == null) robots?.remove();
       else if (robots) robots.content = previousRobots;
     };

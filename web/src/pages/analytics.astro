@@ -1,6 +1,7 @@
 ---
 import '@fontsource-variable/google-sans-code';
 import AnalyticsPage from '../../analytics/AnalyticsPage';
+import { ClientRouter } from 'astro:transitions';
 ---
 <!doctype html>
 <html lang="en">
@@ -11,6 +12,7 @@ import AnalyticsPage from '../../analytics/AnalyticsPage';
     <meta name="robots" content="noindex, follow" />
     <link rel="icon" href="/adc-toolbox-logo.svg?v=20260918" type="image/svg+xml" />
     <link rel="shortcut icon" href="/adc-toolbox-logo.svg?v=20260918" />
+    <ClientRouter />
     <script is:inline>
       // The analytics module reads the theme from html.light; apply the saved one before first paint.
       if (localStorage.theme === 'light' || (!localStorage.theme && matchMedia('(prefers-color-scheme: light)').matches)) {
@@ -18,7 +20,7 @@ import AnalyticsPage from '../../analytics/AnalyticsPage';
       }
     </script>
   </head>
-  <body>
+  <body transition:animate="none">
     <AnalyticsPage client:only="react" />
   </body>
 </html>

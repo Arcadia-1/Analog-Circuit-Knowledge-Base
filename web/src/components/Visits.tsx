@@ -22,18 +22,17 @@ export default function Visits({ path, counter = false }: { path: string; counte
           setPublicStats(totals);
         }
       })
-      .catch(() => { /* Keep the counter visible when the API is unavailable. */ });
+      .catch(() => { /* Leave the counter hidden when totals are unavailable. */ });
     return () => controller.abort();
   }, [path, counter]);
 
   if (!counter) return null;
   const totals = stats ?? publicStats;
+  if (!totals || (totals.pv === 0 && totals.uv === 0)) return null;
+
   return (
-    <a className="visitors" href="/analytics/" title={totals ? 'View site analytics' : 'Visit totals currently unavailable · View site analytics'}>
-      <span aria-live="polite" aria-atomic="true">
-        <strong>{totals ? format.format(totals.uv) : '—'}</strong> visitors ·{' '}
-        <strong>{totals ? format.format(totals.pv) : '—'}</strong> views
-      </span>
+    <a className="visitors" href="/analytics/" title="Open visitor analytics">
+      {format.format(totals.uv)} visitors · {format.format(totals.pv)} views
     </a>
   );
 }
