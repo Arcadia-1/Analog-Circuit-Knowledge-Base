@@ -27,18 +27,26 @@
       </div>
       {@render modeNote?.()}
     </div>
-    <dl class="metrics">
-      <div><dt>Open-loop BW</dt><dd class="mono blue">{frequency(m.pole, 4)}</dd></div>
-      <div><dt>Closed-loop BW</dt><dd class="mono amber">{frequency(m.closedBw, 4)}</dd></div>
-      <div><dt title="Actual DC gain T₀ = A₀ / (1 + βA₀); the ideal is 1/β.">DC gain <span>T₀</span></dt><dd class="mono">{Number(m.closedDc.toPrecision(4))} <small>V/V</small></dd></div>
-      <div><dt title={beta === 0 ? 'No ideal feedback gain exists when β = 0.' : 'Relative to ideal gain 1/β: error = 1 / (1 + βA₀).'}>DC gain error</dt><dd class="mono">{beta === 0 ? 'n/a' : (m.relativeError * 100).toFixed(3)}{#if beta !== 0}<small>%</small>{/if}</dd></div>
-    </dl>
-    <div class="probe-readout" aria-label="Response at {frequency(probeFrequency, 4)}">
-      <span><small>Frequency</small><b>{frequency(probeFrequency, 4)}</b></span>
-      <span class="blue"><small>Open-loop gain A</small><b>{at.openDb.toFixed(1)} dB</b></span>
-      <span class="green"><small>Loop gain L = βA</small><b>{beta === 0 ? 'L = 0' : `${at.loopDb.toFixed(1)} dB`}</b></span>
-      <span class="amber"><small>Closed-loop gain T</small><b>{at.closedDb.toFixed(1)} dB</b></span>
-      <span class="amber"><small>Closed-loop phase ∠T</small><b>{at.closedPhase.toFixed(1)}°</b></span>
+    <div class="readout-columns">
+      <section class="readout-group" aria-label="Overall model values">
+        <h3>Model</h3>
+        <dl class="readout-list">
+          <div><dt>Open-loop BW</dt><dd class="blue">{frequency(m.pole, 4)}</dd></div>
+          <div><dt>Closed-loop BW</dt><dd class="amber">{frequency(m.closedBw, 4)}</dd></div>
+          <div><dt title="Actual DC gain T₀ = A₀ / (1 + βA₀); the ideal is 1/β.">DC gain <span>T₀</span></dt><dd>{Number(m.closedDc.toPrecision(4))} <small>V/V</small></dd></div>
+          <div><dt title={beta === 0 ? 'No ideal feedback gain exists when β = 0.' : 'Relative to ideal gain 1/β: error = 1 / (1 + βA₀).'}>DC gain error</dt><dd>{beta === 0 ? 'n/a' : (m.relativeError * 100).toFixed(3)}{#if beta !== 0}<small>%</small>{/if}</dd></div>
+        </dl>
+      </section>
+      <section class="readout-group" aria-label="Response at the plot cursor">
+        <h3>At cursor</h3>
+        <dl class="readout-list">
+          <div><dt>Frequency</dt><dd>{frequency(probeFrequency, 4)}</dd></div>
+          <div class="blue"><dt>Open-loop gain A</dt><dd>{at.openDb.toFixed(1)} dB</dd></div>
+          <div class="green"><dt>Loop gain L = βA</dt><dd>{beta === 0 ? '0' : `${at.loopDb.toFixed(1)} dB`}</dd></div>
+          <div class="amber"><dt>Closed-loop gain T</dt><dd>{at.closedDb.toFixed(1)} dB</dd></div>
+          <div class="amber"><dt>Closed-loop phase ∠T</dt><dd>{at.closedPhase.toFixed(1)}°</dd></div>
+        </dl>
+      </section>
     </div>
   </aside>
   <div class="chart-panel">
@@ -61,17 +69,18 @@
   .controls :global(input) { grid-column: 1 / -1; width: 100%; min-width: 0; }
   .controls :global(output) { width: 8ch; text-align: right; font-size: 12px; }
   .controls :global(label) { letter-spacing: .025em; font-size: 10px; }
-  .metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 0; gap: 10px 16px; padding: 1px 2px; }
-  dt { font-size: 10px; color: var(--ink-2); white-space: nowrap; }
-  dd { margin: 1px 0 0; font-size: 14px; white-space: nowrap; }
-  small { font-size: 10px; color: var(--ink-3); }
+  .readout-columns { min-width: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; padding: 2px; }
+  .readout-group { min-width: 0; }
+  h3 { margin: 0 0 7px; color: var(--ink-3); font-size: 10px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
+  .readout-list { display: grid; gap: 6px; margin: 0; }
+  .readout-list > div { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: baseline; gap: 7px; }
+  dt { min-width: 0; overflow: hidden; color: var(--ink-2); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+  .readout-list .blue dt, .readout-list .amber dt, .readout-list .green dt { color: currentColor; opacity: .76; }
+  dd { margin: 0; font: 12px var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  small { font-size: 9px; color: var(--ink-3); }
   .blue { color: var(--s1); }
   .amber { color: var(--s2); }
   .green { color: var(--brand); }
-  .probe-readout { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 16px; padding: 10px 2px 0; border-top: 1px solid var(--rule); font-size: 11px; }
-  .probe-readout span:first-child { grid-column: 1 / -1; }
-  .probe-readout span { display: grid; gap: 1px; }
-  .probe-readout small { color: currentColor; opacity: .72; font: 9px var(--sans); white-space: nowrap; }
   b { font: 11px var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
   @media (min-width: 821px) and (max-height: 740px) {
     .control-panel { gap: 5px; }
@@ -80,13 +89,11 @@
     .controls :global(.range) { grid-template-columns: 126px minmax(40px, 1fr) 7ch; gap: 8px; }
     .controls :global(input) { grid-column: auto; }
     .controls :global(output) { width: 7ch; }
-    .metrics { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; padding: 0; }
-    dt { overflow: hidden; text-overflow: ellipsis; font-size: 9px; }
-    dd { font-size: 11px; }
-    .probe-readout { grid-template-columns: 1.05fr repeat(4, minmax(0, 1fr)); gap: 2px; padding: 4px 0 0; }
-    .probe-readout span:first-child { grid-column: auto; }
-    .probe-readout small { overflow: hidden; text-overflow: ellipsis; font-size: 8px; }
-    .probe-readout b { font-size: 10px; }
+    .readout-columns { gap: 12px; padding: 0; }
+    h3 { margin-bottom: 4px; font-size: 9px; }
+    .readout-list { gap: 3px; }
+    dt { font-size: 9px; }
+    dd { font-size: 10px; }
   }
   @media (max-width: 820px) {
     .case { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); gap: 6px; }
@@ -96,20 +103,18 @@
     .controls :global(.range) { grid-template-columns: 126px minmax(40px, 1fr) 7ch; gap: 8px; }
     .controls :global(input) { grid-column: auto; }
     .controls :global(output) { width: 7ch; }
-    .metrics { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; padding: 0; }
+    .readout-columns { gap: 12px; padding: 0; }
+    h3 { margin-bottom: 4px; font-size: 9px; }
+    .readout-list { gap: 3px; }
     dt { font-size: 9px; }
-    dd { font-size: 11px; }
-    small { font-size: 9px; }
-    .probe-readout { grid-template-columns: 1.05fr repeat(4, minmax(0, 1fr)); padding: 4px 0 0; font-size: 10px; gap: 2px; }
-    .probe-readout span:first-child { grid-column: auto; }
-    .probe-readout small { font-size: 8px; overflow: hidden; text-overflow: ellipsis; }
-    .probe-readout b { font-size: 10px; }
+    dd { font-size: 10px; }
+    small { font-size: 8px; }
   }
   @media (max-width: 520px) {
     .controls :global(.range) { grid-template-columns: 118px minmax(32px, 1fr) 6.5ch; gap: 6px; }
     .controls :global(output) { width: 6.5ch; }
-    .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 10px; }
-    .probe-readout { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 8px; }
-    .probe-readout span:first-child { grid-column: 1 / -1; }
+    .readout-columns { gap: 10px; }
+    .readout-list > div { display: block; }
+    dd { margin-top: 1px; }
   }
 </style>
