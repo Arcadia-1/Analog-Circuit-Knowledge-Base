@@ -2,6 +2,10 @@ const OLD_HOST = 'adctoolbox.tokenzhang.com';
 const OLD_ORIGIN = `https://${OLD_HOST}`;
 const NEW_HOST = 'circuits-and-systems.tokenzhang.com';
 const NEW_ORIGIN = 'https://circuits-and-systems.tokenzhang.com';
+const RETIRED_PATHS = new Set([
+  '/amplifiers/two-pole-step-response',
+  '/amplifiers/two-pole-step-response/',
+]);
 
 function isTutorialPath(pathname) {
   return pathname === '/'
@@ -20,6 +24,17 @@ function isManualPath(pathname) {
 
 export async function onRequest(context) {
   const url = new URL(context.request.url);
+
+  if (RETIRED_PATHS.has(url.pathname)) {
+    return new Response('<!doctype html><html lang="en"><meta charset="utf-8"><meta name="robots" content="noindex"><title>Lesson retired</title><body><h1>Lesson retired</h1><p>This lesson has been removed from Circuits &amp; Systems Classroom.</p><p><a href="/">Return to the classroom</a></p></body></html>', {
+      status: 410,
+      headers: {
+        'content-type': 'text/html; charset=utf-8',
+        'cache-control': 'no-store',
+        'x-robots-tag': 'noindex',
+      },
+    });
+  }
 
   if (url.hostname === OLD_HOST && isTutorialPath(url.pathname)) {
     const destination = new URL(url.pathname + url.search, NEW_ORIGIN);
