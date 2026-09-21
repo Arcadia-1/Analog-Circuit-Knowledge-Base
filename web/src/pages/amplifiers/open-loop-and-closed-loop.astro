@@ -1,0 +1,8 @@
+---
+import Base from '../../layouts/Base.astro';
+import OpenClosedGain from '../../illustrations/amplifier/OpenClosedGain.svelte';
+import '../../styles/illustration.css';
+---
+<Base title="Open-loop & closed-loop gain" description="Compare two single-pole amplifiers at the same GBW. Adjust open-loop gain and feedback to explore closed-loop accuracy, bandwidth and Bode magnitude and phase.">
+  <OpenClosedGain client:load />
+</Base>

@@ -1,6 +1,6 @@
 ---
 /** Small schematic previews for the home page. */
-interface Props { kind: 'pll' | 'sar' | 'inl' | 'err' | 'win' | 'fold' | 'ntf' | 'ti' | 'bits' | 'polar' | 'bode' | 'floor' | 'fom' | 'harm' | 'record' | 'repeat' | 'short' | 'train' | 'panel' }
+interface Props { kind: 'pll' | 'sar' | 'inl' | 'err' | 'win' | 'fold' | 'ntf' | 'ti' | 'bits' | 'polar' | 'bode' | 'floor' | 'fom' | 'harm' | 'record' | 'repeat' | 'short' | 'train' | 'panel' | 'amplifier' }
 const { kind } = Astro.props;
 const xs = Array.from({ length: 13 }, (_, i) => 6 + i * 14);
 const saw = [-14, -8, -2, 6, 14];
@@ -63,9 +63,26 @@ const residue = wave((u) => u * u - 0.5, 88, 18);
 const fom = (at: number) => `4,${at} 188,${at + 52}`;
 const jag = (base: number, seed: number) => Array.from({ length: 47 }, (_, i) => `${4 + i * 4},${base - ((i * seed) % 5) * 1.1}`).join(' ');
 const asymptote = `4,${flat} ${corner},${flat} 188,${(flat + (perDb * 20 * (188 - corner)) / decade).toFixed(1)}`;
+// A0 = 1000, fp = 100 Hz, beta = 0.1: exact single-pole A and T magnitudes.
+const amplifierCurve = (closed: boolean) => Array.from({ length: 81 }, (_, i) => {
+  const f = 10 ** (i / 80 * 6);
+  const db = 20 * Math.log10(1000 / Math.hypot(closed ? 101 : 1, f / 100));
+  return `${4 + i * 2.25},${84 - db * .9}`;
+}).join(' ');
 ---
 <svg class="thumb" viewBox="0 0 188 100" aria-hidden="true">
-  {kind === 'panel' ? (
+  {kind === 'amplifier' ? (
+    <>
+      <line class="base" x1="0" x2="188" y1="84" y2="84" />
+      <line class="base" x1="64" x2="64" y1="24" y2="96" />
+      <line class="base" x1="124" x2="124" y1="24" y2="96" />
+      <polyline class="s1 link" points={amplifierCurve(false)} />
+      <polyline class="s2 link" points={amplifierCurve(true)} />
+      <circle class="s1" cx="64" cy={84 - (60 - 10 * Math.log10(2)) * .9} r="3" />
+      <circle class="s2" cx={4 + Math.log10(10100) * 30} cy={84 - (20 * Math.log10(1000 / 101) - 10 * Math.log10(2)) * .9} r="3" />
+      <text x="184" y="18" text-anchor="end" fill="var(--ink-3)" font-size="13" font-family="var(--math)">A / (1 + βA)</text>
+    </>
+  ) : kind === 'panel' ? (
     <>
       {Array.from({ length: 12 }, (_, i) => {
         const col = i % 4, row = Math.floor(i / 4), x = 2 + col * 47, y = 3 + row * 32;

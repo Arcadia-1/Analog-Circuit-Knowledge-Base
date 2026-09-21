@@ -10,7 +10,8 @@ function isTutorialPath(pathname) {
     || pathname === '/sitemap-index.xml'
     || pathname === '/sitemap-0.xml'
     || pathname.startsWith('/adc/')
-    || pathname.startsWith('/pll/');
+    || pathname.startsWith('/pll/')
+    || pathname.startsWith('/amplifiers/');
 }
 
 function isManualPath(pathname) {

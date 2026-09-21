@@ -31,7 +31,7 @@ Run these in `web/` with Node 22.12 or newer and pnpm 11.
 | `src/styles/` | Design tokens and chart classes in `global.css`, the shared illustration page layout in `illustration.css` |
 | `src/data/illustrations.ts` | Topics and entries on the home page |
 | `tests/` | Vitest checks of each TypeScript model against numbers from its Python reference |
-| `python/` | Executable Python references for all ten lessons: nine ADC models using ADCToolbox and one PLL model using NumPy |
+| `python/` | Executable Python references: ADC models using ADCToolbox, plus PLL and amplifier models using NumPy |
 | `public/` | Favicon and Cloudflare Pages response headers |
 | `analytics/` | Copied analytics module: tracking, dashboard, routes and Durable Object |
 | `functions/` | Host-aware redirects from the former tutorial URLs to the new domain |
@@ -39,6 +39,11 @@ Run these in `web/` with Node 22.12 or newer and pnpm 11.
 
 ## Illustrations
 
+- **Open-loop & closed-loop gain** at `/amplifiers/open-loop-and-closed-loop/`. Compare two single-pole amplifiers with
+  shared GBW and feedback. Adjust each open-loop DC gain, inspect synchronized magnitude/phase plots, and distinguish
+  gain error, −3 dB bandwidth and the two unity crossings. Complex-response values are checked against independent
+  NumPy division; tests also verify the exact `T₀ × fCL = GBW` identity and weak-feedback limits. The source figure in
+  `../code/plot_bandwidth_comparison.py` uses the same complex transfer function.
 - **Integer-N vs fractional-N PLL** at `/pll/integer-vs-fractional/`. A reference-rate time-domain simulation of two loops that
   share one reference, loop filter and VCO. The fractional-N divider is an accumulator, a MASH 1-1-1, or a MASH 1-1-1 with a
   DTC that has adjustable INL.
@@ -52,7 +57,9 @@ Run these in `web/` with Node 22.12 or newer and pnpm 11.
 1. Write the model in `src/illustrations/<topic>/model.ts`, a Python reference in `python/` and a test in `tests/`.
 2. Build the page component next to the model from the shared `ui` and `chart` components.
 3. Add a route in `src/pages/<topic>/` that renders the component with `client:load` and imports `illustration.css`.
-4. List it in `src/data/illustrations.ts` and draw its thumbnail in `src/components/Thumb.astro`.
+4. List it in `src/data/illustrations.ts` and draw its thumbnail in `src/components/Thumb.astro`. Add reviewed lessons to
+   `src/data/publication.ts` so they appear in the catalog and sitemap; register any new route prefix in `isLessonPath`
+   and `functions/_middleware.js`.
 5. Run `pnpm check` and `pnpm build`.
 
 ## Analytics
@@ -78,7 +85,7 @@ the ADCToolbox manual; its home page and tutorial paths redirect to the matching
 ## Editorial and visual direction
 
 Use **Circuits & Systems Classroom** as the site brand. The public catalog is intentionally small: four reviewed ADC
-lessons, two PLL lessons and the selected Bode-plot tool. Other experiments remain available by direct URL with `noindex`
+lessons, one PLL lesson, one amplifier lesson and the selected Bode-plot tool. Other experiments remain available by direct URL with `noindex`
 until they reach the same standard. The ADCToolbox manual remains the reference for the Python API and longer examples.
 
 Each entry has its own schematic preview so readers can recognize the experiment at a glance; model provenance and example

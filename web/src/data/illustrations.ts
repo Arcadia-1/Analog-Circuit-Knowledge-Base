@@ -4,7 +4,7 @@ export interface Illustration {
   href: string;
   title: string;
   summary: string;
-  thumb: 'pll' | 'sar' | 'inl' | 'err' | 'win' | 'fold' | 'ntf' | 'ti' | 'bits' | 'polar' | 'bode' | 'floor' | 'fom' | 'harm' | 'record' | 'repeat' | 'short' | 'train' | 'panel';
+  thumb: 'pll' | 'sar' | 'inl' | 'err' | 'win' | 'fold' | 'ntf' | 'ti' | 'bits' | 'polar' | 'bode' | 'floor' | 'fom' | 'harm' | 'record' | 'repeat' | 'short' | 'train' | 'panel' | 'amplifier';
   /** Whose site this is, for a page that is not on this one; it opens in a tab of its own. */
   external?: string;
   /** Public catalog label; assigned only after a lesson passes the editorial gate. */
@@ -130,7 +130,7 @@ export const topics: Topic[] = [
   },
 ];
 
-/** Existing clocking lessons and a selected external analysis tool. */
+/** Clocking, amplifier lessons and a selected external analysis tool. */
 export const related: Topic = {
   name: 'More to explore',
   items: [
@@ -139,6 +139,14 @@ export const related: Topic = {
       title: 'Integer-N vs fractional-N',
       summary: 'See why integer-N lands on a channel grid and fractional-N does not.',
       thumb: 'pll',
+      category: 'PLL',
+    },
+    {
+      href: '/amplifiers/open-loop-and-closed-loop/',
+      title: 'Open-loop & closed-loop gain',
+      summary: 'Trade gain for bandwidth and see what higher open-loop gain really buys.',
+      thumb: 'amplifier',
+      category: 'Circuits & Systems',
     },
     {
       href: 'https://many-question.github.io/bode-sketch/',
@@ -146,6 +154,7 @@ export const related: Topic = {
       summary: 'Explore poles, zeros and responses; verify marginal stability independently.',
       thumb: 'bode',
       external: 'many-question.github.io',
+      category: 'Circuits & Systems',
     },
   ],
 };
@@ -160,6 +169,6 @@ export const featuredLessons: Illustration[] = [
     .filter((item) => isPublicLessonPath(item.href) || isPublicExternalHref(item.href))
     .map((item) => ({
       ...item,
-      category: item.external ? 'Circuits & Systems' as const : 'PLL' as const,
+      category: item.category ?? 'Circuits & Systems' as const,
     })),
 ];

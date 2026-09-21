@@ -11,6 +11,7 @@ export const publicLessonPaths = [
   '/adc/analog-panel/',
   '/adc/time-interleaved-adcs/',
   '/pll/integer-vs-fractional/',
+  '/amplifiers/open-loop-and-closed-loop/',
 ] as const;
 
 export const publicExternalHrefs = [
@@ -29,5 +30,5 @@ export function isPublicExternalHref(href: string): boolean {
 }
 
 export function isLessonPath(pathname: string): boolean {
-  return pathname.startsWith('/adc/') || pathname.startsWith('/pll/');
+  return pathname.startsWith('/adc/') || pathname.startsWith('/pll/') || pathname.startsWith('/amplifiers/');
 }
