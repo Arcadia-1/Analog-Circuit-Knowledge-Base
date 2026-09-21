@@ -143,8 +143,8 @@ export const related: Topic = {
     },
     {
       href: '/amplifiers/open-loop-and-closed-loop/',
-      title: 'Open-loop & closed-loop gain',
-      summary: 'Trade gain for bandwidth and see what higher open-loop gain really buys.',
+      title: 'Open-loop to closed-loop',
+      summary: 'Use feedback to trade gain for bandwidth in a single-pole amplifier.',
       thumb: 'amplifier',
       category: 'Circuits & Systems',
     },

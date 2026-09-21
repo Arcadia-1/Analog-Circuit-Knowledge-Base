@@ -36,10 +36,10 @@
       {#if w > 0 && h > 80}
       <defs><clipPath id="{id}-gain"><rect x={left} y="18" width={Math.max(1, w - left - right)} height={bottom(h) - 18} /></clipPath></defs>
       <text class="tx2" x="1" y="11">dB</text>
-      <g class="chart-legend" transform="translate({Math.max(left + 8, w - right - 290)} 9)">
-        <line class="c1" x1="0" x2="14" y1="0" y2="0" stroke-width="2" /><text class="lg" x="18" y="3">Open-loop A</text>
-        <line class="loop" x1="94" x2="108" y1="0" y2="0" stroke-width="1.7" stroke-dasharray="4 3" /><text class="lg" x="112" y="3">Loop gain L</text>
-        <line class="c2" x1="196" x2="210" y1="0" y2="0" stroke-width="2.5" /><text class="lg" x="214" y="3">Closed-loop T</text>
+      <g class="chart-legend" transform="translate({Math.max(left + 8, w - right - (w < 560 ? 165 : 290))} 9)">
+        <line class="c1" x1="0" x2="14" y1="0" y2="0" stroke-width="2" /><text class="lg" x="18" y="3">{w < 560 ? 'A(s)' : 'Open-loop A'}</text>
+        <line class="loop" x1={w < 560 ? 58 : 94} x2={w < 560 ? 72 : 108} y1="0" y2="0" stroke-width="1.7" stroke-dasharray="4 3" /><text class="lg" x={w < 560 ? 76 : 112} y="3">{w < 560 ? 'L(s)' : 'Loop gain L'}</text>
+        <line class="c2" x1={w < 560 ? 116 : 196} x2={w < 560 ? 130 : 210} y1="0" y2="0" stroke-width="2.5" /><text class="lg" x={w < 560 ? 134 : 214} y="3">{w < 560 ? 'T(s)' : 'Closed-loop T'}</text>
       </g>
       {#if hasPhase(h)}<text class="tx2" x="1" y={compact(h) ? phaseTop(h) + 10 : phaseTop(h) - 10}>Phase</text>{/if}
       {#each gainTicks as db}
