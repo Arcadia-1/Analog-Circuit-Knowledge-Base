@@ -70,12 +70,13 @@
   .diagram-math.green { fill: var(--brand); }
   .diagram-label, .sign { fill: var(--ink-2); font: 12px var(--mono); }
   .equation-stack { display: grid; justify-items: center; gap: 1px; white-space: nowrap; }
-  .equation { display: flex; align-items: center; justify-content: center; gap: 5px; font: 21px var(--math); }
-  .fraction { display: inline-grid; text-align: center; font-size: 18px; }
+  .equation, .bandwidth-equation { font: 21px/1.2 var(--math); }
+  .equation { display: flex; align-items: center; justify-content: center; gap: 5px; }
+  .fraction { display: inline-grid; text-align: center; font-size: inherit; }
   .fraction > span:first-child { border-bottom: 1px solid var(--ink-3); }
   .fraction > span { padding: 0 5px; }
-  .bandwidth-equation { font: 16px var(--math); color: var(--ink-2); }
-  .bandwidth-equation sub { font-size: 9px; }
+  .bandwidth-equation { color: var(--ink-2); }
+  .bandwidth-equation sub { font-size: .62em; }
   .equation-caption { font: 10px var(--sans); color: var(--ink-3); text-align: center; }
   .constraint-row { min-width: 0; display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 8px 10px; }
   .constraint-row > .label { font-size: 10px; color: var(--ink-2); text-transform: uppercase; letter-spacing: .055em; white-space: nowrap; }
@@ -94,9 +95,7 @@
     .amplifier-page { padding: 8px 16px; }
     .feedback { gap: 5px; }
     .feedback svg { height: 66px; }
-    .equation { font-size: 18px; }
-    .fraction { font-size: 16px; }
-    .bandwidth-equation { font-size: 14px; }
+    .equation, .bandwidth-equation { font-size: 18px; }
     .constraint-row :global(.sm button) { font-size: 11px; }
   }
   @media (max-width: 820px) {
