@@ -16,7 +16,7 @@
   let analogBandwidthGHz = $state(5);
   let bandwidthPct = $state(2);
   let thermalNoiseLsb = $state(0.3);
-  let jitterPs = $state(0.5);
+  let jitterFs = $state(500);
   let h2Dbc = $state(-65);
   let h3Dbc = $state(-71);
   let h5Dbc = $state(-80);
@@ -38,11 +38,11 @@
 
   const mm = $derived(mismatch(m, gainPct / 100, offsetMv / 1e3, skewPs / 1e12, bandwidthPct / 100));
   const analogBandwidth = $derived(analogBandwidthGHz * 1e9);
-  const r = $derived(read(m, inputGHz * 1e9, mm, bits, 'off', { fs, analogBandwidth, thermalNoiseLsb, jitter: jitterPs / 1e12, harmonics, decimation }));
+  const r = $derived(read(m, inputGHz * 1e9, mm, bits, 'off', { fs, analogBandwidth, thermalNoiseLsb, jitter: jitterFs / 1e15, harmonics, decimation }));
   const seen = $derived(foldFrequency(r.fin, fs / m));
   const sourceRows = $derived(contributions(mm, r.fin, fs, harmonics, r.fsOut, analogBandwidth));
   const thermalSnr = $derived(thermalOnlySnr(bits, thermalNoiseLsb, r.fin, analogBandwidth));
-  const jitterSnr = $derived(jitterOnlySnr(r.fin, jitterPs / 1e12));
+  const jitterSnr = $derived(jitterOnlySnr(r.fin, jitterFs / 1e15));
   const rateText = (hz: number) => freqText(hz).replace(/Hz$/, 'S/s');
   const snrText = (value: number) => Number.isFinite(value) ? `${nf(value, 1)} dB` : '∞';
 
@@ -57,7 +57,7 @@
     skewPs = 0;
     bandwidthPct = 0;
     thermalNoiseLsb = 0;
-    jitterPs = 0;
+    jitterFs = 0;
     h2Dbc = h3Dbc = h5Dbc = h7Dbc = -100;
     hoverBin = hoverSample = null;
   }
@@ -68,7 +68,7 @@
     skewPs = randomStep(0, 2, 0.01);
     bandwidthPct = randomStep(0, 10, 0.1);
     thermalNoiseLsb = randomStep(0, 4, 0.05);
-    jitterPs = randomStep(0, 5, 0.05);
+    jitterFs = randomStep(10, 1000, 10);
     h2Dbc = randomStep(-100, -40, 1);
     h3Dbc = randomStep(-100, -40, 1);
     h5Dbc = randomStep(-100, -40, 1);
@@ -115,7 +115,7 @@
       <div class="control-group source">
         <div class="group-head"><span class="label">Noise, clock &amp; source</span></div>
         <EditableRange id="thermal-noise" min={0} max={4} step={0.05} digits={2} unit="LSB rms" bind:value={thermalNoiseLsb}>Thermal noise</EditableRange>
-        <EditableRange id="jitter" min={0} max={5} step={0.05} digits={2} unit="ps" bind:value={jitterPs}>Jitter</EditableRange>
+        <EditableRange id="jitter" min={0} max={1000} step={10} digits={0} unit="fs" bind:value={jitterFs}>Jitter</EditableRange>
         <div class="noise-readout" aria-label="Expected signal-to-noise ratios from each noise source alone">
           <span title="Thermal noise only: 20 log10[(A·|H(fin)|/√2)/(σthermal·LSB)]">Thermal-only SNR <b>{snrText(thermalSnr)}</b></span>
           <span title="Aperture jitter only: −20 log10(2π·fin·σt)">Jitter-only SNR <b>{snrText(jitterSnr)}</b></span>
