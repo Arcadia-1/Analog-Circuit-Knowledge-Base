@@ -42,13 +42,21 @@
       <text class="tx" x={g.sx(tick.bin)} y={height - 5} text-anchor={i === 0 ? 'start' : i === g.ticks.length - 1 ? 'end' : 'middle'}>{freqText(tick.frequency)}</text>
     {/each}
     {#each rows as row, i (row.id)}
-      <line class="lane" x1={g.x0} x2={g.x1} y1={g.sy(i)} y2={g.sy(i)} />
+      {#if !row.broadband}<line class="lane" x1={g.x0} x2={g.x1} y1={g.sy(i)} y2={g.sy(i)} />{/if}
       <text class="source" x="6" y={g.sy(i) - (g.compact ? 5 : 0)} dominant-baseline="central">{row.label}</text>
-      <text class="note" x={g.compact ? 6 : 93} y={g.sy(i) + (g.compact ? 9 : 0)} dominant-baseline="central">{row.note}</text>
+      {#if row.formula}
+        <text class="note" x={g.compact ? 6 : 93} y={g.sy(i) + (g.compact ? 9 : 0)} dominant-baseline="central">
+          {#if row.formula === 'offset'}
+            <tspan>k·f</tspan><tspan class="sub" baseline-shift="sub">s</tspan><tspan>/M</tspan>
+          {:else if row.formula === 'image'}
+            <tspan>k·f</tspan><tspan class="sub" baseline-shift="sub">s</tspan><tspan>/M ± f</tspan><tspan class="sub" baseline-shift="sub">in</tspan>
+          {:else}
+            <tspan>h·f</tspan><tspan class="sub" baseline-shift="sub">in</tspan>
+          {/if}
+        </text>
+      {/if}
       <text class="level" x={width - 10} y={g.sy(i)} text-anchor="end" dominant-baseline="central">{level(row)}</text>
-      {#if row.broadband && Number.isFinite(row.level)}
-        <rect class="floor {row.id}" x={g.x0} y={g.sy(i) - 5} width={g.x1 - g.x0} height="10" />
-      {:else}
+      {#if !row.broadband}
         {#each grouped(row, g.binOf, g.sx) as group, k (`${row.id}-${k}`)}
           {#each group.bins as bin (bin)}
             <line class="stem {row.id}" x1={g.sx(bin)} x2={g.sx(bin)} y1={g.sy(i) - 8} y2={g.sy(i) + 8} />
@@ -65,6 +73,7 @@
   .lane { stroke: var(--rule); stroke-width: 1.5; }
   .source { fill: var(--ink); font: 500 13px var(--sans); }
   .note { fill: var(--ink-3); font: 400 13px var(--sans); }
+  .sub { font-size: 9px; }
   .level { fill: var(--ink-2); font: 12px var(--mono); font-variant-numeric: tabular-nums; }
   .stem { stroke-width: 1.5; }
   .tone { stroke: var(--plot); stroke-width: 1.2; }
@@ -73,7 +82,5 @@
   .skew { fill: var(--brand); stroke: var(--brand); }
   .bandwidth { fill: var(--ink-2); stroke: var(--ink-2); }
   .harmonics { fill: var(--bad); stroke: var(--bad); }
-  .jitter { fill: var(--s1-soft); stroke: var(--s1); }
-  .floor { opacity: .8; }
   .tone-label { fill: var(--bad); font: 600 10px var(--mono); }
 </style>

@@ -383,7 +383,7 @@ export function physicalParams(mm: Mismatch, fin: number, fs: number): Params {
 export interface Contribution {
   id: 'offset' | 'gain' | 'skew' | 'bandwidth' | 'harmonics' | 'jitter';
   label: string;
-  note: string;
+  formula?: 'offset' | 'image' | 'harmonic';
   /** Strongest result in dBc. Negative infinity means that source is off. */
   level: number;
   frequencies: number[];
@@ -454,15 +454,15 @@ export function contributions(
   const jitterLevel = jitter > 0 ? 20 * Math.log10(2 * Math.PI * fin * jitter) : -Infinity;
   const folded = (spurs: Spur[]) => spurs.map((s) => foldFrequency(s.freq, outputFs));
   return [
-    { id: 'offset', label: 'Offset', note: 'k·fₛ/M', level: strongest(offset), frequencies: folded(offset) },
-    { id: 'gain', label: 'Gain', note: 'k·fₛ/M ± fᵢₙ', level: strongest(gain), frequencies: folded(gain) },
-    { id: 'skew', label: 'Timing skew', note: 'k·fₛ/M ± fᵢₙ', level: strongest(skew), frequencies: folded(skew) },
-    { id: 'bandwidth', label: 'Bandwidth', note: 'k·fₛ/M ± fᵢₙ', level: strongest(bandwidth), frequencies: folded(bandwidth) },
+    { id: 'offset', label: 'Offset', formula: 'offset', level: strongest(offset), frequencies: folded(offset) },
+    { id: 'gain', label: 'Gain', formula: 'image', level: strongest(gain), frequencies: folded(gain) },
+    { id: 'skew', label: 'Timing skew', formula: 'image', level: strongest(skew), frequencies: folded(skew) },
+    { id: 'bandwidth', label: 'Bandwidth', formula: 'image', level: strongest(bandwidth), frequencies: folded(bandwidth) },
     {
-      id: 'harmonics', label: 'Harmonics', note: 'h·fᵢₙ', level: tones.length ? Math.max(...tones.map((tone) => tone.dbc)) : -Infinity,
+      id: 'harmonics', label: 'Harmonics', formula: 'harmonic', level: tones.length ? Math.max(...tones.map((tone) => tone.dbc)) : -Infinity,
       frequencies: tones.map((tone) => tone.freq), toneLabels: tones.map((tone) => `H${tone.order}`),
     },
-    { id: 'jitter', label: 'Jitter', note: 'broadband', level: jitterLevel, frequencies: [], broadband: true },
+    { id: 'jitter', label: 'Jitter', level: jitterLevel, frequencies: [], broadband: true },
   ];
 }
 
