@@ -1,6 +1,6 @@
-# Analog Circuit Knowledge Base
+# Circuits & Systems Classroom
 
-A knowledge repository for analog circuit design fundamentals, focusing on amplifier theory, signal processing techniques, noise reduction, and ADC architectures.
+An interactive classroom and knowledge base for analog and mixed-signal circuits and systems, spanning amplifiers, data converters, PLLs, noise, feedback, and signal analysis.
 
 ## Interactive illustrations
 
