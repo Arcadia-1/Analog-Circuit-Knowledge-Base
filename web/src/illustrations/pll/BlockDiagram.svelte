@@ -44,7 +44,7 @@
   {/if}
   {#if frac}
     <rect class="box b2" x="356" y="40" width="48" height="24" rx="4.5" />
-    <text class="t" x="380" y="52">{kind === 'acc' ? 'ACC' : 'ΣΔ'}</text>
+    <text class="t modulator" x="380" y="52">{kind === 'acc' ? 'ACC ΣΔ' : 'MASH ΣΔ'}</text>
     <text class="m small" x="334" y="42">y</text>
     <text class="m" x="446" y="52">α</text>
   {/if}
@@ -64,6 +64,7 @@
   .wire { stroke: var(--ink-3); stroke-width: 1.25; fill: none; }
   .dot { fill: var(--ink-3); }
   .t { fill: var(--ink); font: 500 12.5px var(--sans); text-anchor: middle; dominant-baseline: central; }
+  .modulator { font-size: 9.5px; }
   .v { font-family: var(--math); font-style: italic; font-weight: 400; font-size: 14.5px; }
   .m { fill: var(--ink-2); font: italic 15px var(--math); dominant-baseline: central; }
   .small { font-size: 13px; }

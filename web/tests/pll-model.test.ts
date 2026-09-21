@@ -5,11 +5,41 @@ import { analyze, bwMaxFor, closedLoopMag, dividerSequence, loopFor, simulate } 
 describe('integer-N vs fractional-N PLL model', () => {
   const target = 5.005e9, fRef = 40e6, bw = 1e6;
 
+  type Complex = [number, number];
+  const add = (a: Complex, b: Complex): Complex => [a[0] + b[0], a[1] + b[1]];
+  const scale = (a: Complex, k: number): Complex => [a[0] * k, a[1] * k];
+
+  /** Drive the actual sequential state update with a complex sinusoid; this does not reuse the transfer formula. */
+  function stateMagnitude(f: number, gp: number, beta: number, ref: number): number {
+    const n = Math.round(5e9 / ref), kp = gp / n, ki = gp * gp / (4 * n), w = 2 * Math.PI * f / ref;
+    let integral: Complex = [0, 0], p1: Complex = [0, 0], p2: Complex = [0, 0], x: Complex = [0, 0];
+    let drive: Complex = [1, 0];
+    const turn: Complex = [Math.cos(w), Math.sin(w)];
+    for (let k = 0; k < 12000; k++) {
+      const error = add(x, drive);
+      integral = add(integral, scale(error, ki));
+      p1 = add(p1, scale(add(add(scale(error, kp), integral), scale(p1, -1)), beta));
+      p2 = add(p2, scale(add(p1, scale(p2, -1)), beta));
+      x = add(x, scale(p2, -n));
+      drive = [drive[0] * turn[0] - drive[1] * turn[1], drive[0] * turn[1] + drive[1] * turn[0]];
+    }
+    return Math.hypot(x[0], x[1]);
+  }
+
   it('sets the closed-loop −3 dB bandwidth exactly over the whole range', () => {
     for (const f of [25e6, 40e6, 100e6]) {
       for (const b of [100e3, 1e6, bwMaxFor(f)]) {
         const { gp, beta } = loopFor(f, b);
         expect(closedLoopMag(b, gp, beta, f)).toBeCloseTo(Math.SQRT1_2, 6);
+      }
+    }
+  });
+
+  it('matches an independent sinusoidal solution of the sequential loop states and remains stable', () => {
+    for (const ref of [25e6, 40e6, 100e6]) {
+      const { gp, beta } = loopFor(ref, bw);
+      for (const f of [100e3, 1e6, 0.2 * ref]) {
+        expect(stateMagnitude(f, gp, beta, ref)).toBeCloseTo(closedLoopMag(f, gp, beta, ref), 9);
       }
     }
   });

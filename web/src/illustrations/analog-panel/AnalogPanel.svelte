@@ -3,6 +3,7 @@
   import Range from '../../components/ui/Range.svelte';
   import Segmented from '../../components/ui/Segmented.svelte';
   import { freqText, nf } from '../../lib/format';
+  import { coherentFrequency } from '../../lib/frequency';
   import BinChart from '../errors/BinChart.svelte';
   import PdfChart from '../errors/PdfChart.svelte';
   import PolarChart from './PolarChart.svelte';
@@ -47,8 +48,11 @@
   let hoverErrorPlane = $state<number | null>(null);
 
   const points = $derived(2 ** fftExponent);
-  const finBin = $derived(Math.max(1, Math.min(points / 2 - 1, Math.round((inputMHz * 1e6 * points) / FS))));
-  const fin = $derived((finBin / points) * FS);
+  // Keep the coherent tone on an odd bin coprime with the power-of-two record. Otherwise a selectable tone such as
+  // fs/4 makes H3 coincide with H1 and a five-harmonic decomposition cannot identify them separately.
+  const tone = $derived(coherentFrequency(FS, inputMHz * 1e6, points));
+  const finBin = $derived(tone.bin);
+  const fin = $derived(tone.fin);
   const d = $derived(analyze(imp, bits, { fs: FS, points, finBin }, seed));
   const span = $derived(Math.max(0.5, 1.15 * Math.max(...[...d.value.rms, ...d.phase.rms].filter(Number.isFinite))));
   const harmonicPeak = $derived(Math.max(...Array.from(d.decomposition.magnitudesDb.slice(1))));
@@ -57,7 +61,7 @@
   const quantizerText = (value: number) => value ? `${value} bits` : 'off';
   const harmonicText = (value: number) => value <= HD_OFF ? 'off' : `${nf(value, 0)} dBc`;
   const eventText = (value: number) => `${value} ${value === 1 ? 'event' : 'events'}`;
-  const setInputBin = (value: number) => (inputMHz = (Math.round(value) / points) * FS / 1e6);
+  const setInputBin = (value: number) => (inputMHz = (value / points) * FS / 1e6);
 
   const snapshot = (): PanelSnapshot => ({ imp: { ...imp }, bits, fftExponent, inputMHz, seed });
   const same = (a: PanelSnapshot, b: PanelSnapshot) => JSON.stringify(a) === JSON.stringify(b);
@@ -120,7 +124,7 @@
   <section class="workspace">
     <aside class="controls" aria-label="Composite analog impairments">
       <div class="control-head">
-        <div><span class="eyebrow">COMPOSITE ERRORS</span><strong>All effects add together</strong></div>
+        <div><span class="eyebrow">COMPOSITE ERRORS</span><strong>All effects combine in one record</strong></div>
         <div class="actions">
           <button type="button" onclick={randomize} title="Draw a new noise, jitter, drift, and glitch realization without changing any control">Random</button>
           <button type="button" onclick={() => replaceImpairments(MIN_IMPAIRMENTS)}>Min</button>
@@ -189,7 +193,7 @@
         </div>
       </div>
 
-      <span class="conditions"><b>{nf(FS / 1e6, 0)}</b> MS/s · <b>{freqText(fin)}</b> · {points.toLocaleString('en-US')} samples</span>
+      <span class="conditions"><b>{nf(FS / 1e6, 0)}</b> MS/s · <b>{freqText(fin)}</b> · coherent bin {finBin} · {points.toLocaleString('en-US')} samples</span>
     </aside>
 
     <section class="panel-grid" aria-label="Twelve analog output analyses">

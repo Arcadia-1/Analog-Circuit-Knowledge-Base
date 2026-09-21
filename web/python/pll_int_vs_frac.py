@@ -9,7 +9,8 @@ Reference-rate time-domain PLL: reference 25 / 40 / 100 MHz (default 40), type-I
 poles at 6x BW, closed-loop -3 dB bandwidth 1 MHz, linear phase detector, VCO around 5 GHz.
 Noise: white reference/PFD timing noise from a normalised floor of -228 dBc/Hz (634 fs rms per edge);
 VCO -120 dBc/Hz at 1 MHz (white FM). RMS jitter = std of the output edge-time error, f_ref/32768 .. f_ref/2.
-Divider: integer N | first-order accumulator | MASH 1-1-1 (24 bit), either with an ideal DTC (+ bow INL).
+Divider: integer N | first-order accumulator sigma-delta | third-order MASH 1-1-1 sigma-delta (24 bit),
+either with an ideal DTC (+ bow INL).
 """
 import math
 import numpy as np

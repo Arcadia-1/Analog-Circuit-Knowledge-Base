@@ -86,7 +86,7 @@
     <section class="visuals" aria-label="Time and frequency views">
       <div class="chart time-chart">
         <div class="cap">
-          <span class="left"><span class="label">Time domain</span><span>{freqText(r.fin)} input · four channel turns shown</span></span>
+          <span class="left"><span class="label">Time domain</span><span>{freqText(r.fin)} input · 48 converter samples before decimation</span></span>
         </div>
         <SampleTimingChart samples={r.rawData} truth={r.truth} fin={r.fin} {fs} {harmonics} hover={hoverSample} onhover={(i) => (hoverSample = i)} label="Time-domain input and interleaved channel samples" />
       </div>

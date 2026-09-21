@@ -4,7 +4,7 @@
  *
  * Loop: linear phase detector, type-II PI filter (ζ = 1) with two extra poles at 6 × BW, closed-loop −3 dB = BW.
  * Noise: white reference + phase-detector timing noise from a −228 dBc/Hz normalised floor, VCO −120 dBc/Hz at 1 MHz.
- * Divider: fixed N | first-order accumulator | MASH 1-1-1, either with an ideal-gain DTC with bow INL.
+ * Divider: fixed N | first-order accumulator ΣΔ | third-order MASH 1-1-1 ΣΔ, either with an ideal-gain DTC with bow INL.
  */
 import { fft } from '../../lib/fft';
 import { gaussians } from '../../lib/rng';
@@ -84,7 +84,7 @@ interface DividerStep {
 }
 
 /**
- * Canonical digital fractional divider cores. The accumulator is the first-order case: its carry is 0 or 1 and
+ * Canonical digital fractional-divider ΣΔ cores. The accumulator is the first-order case: its carry is 0 or 1 and
  * y-alpha = (1-z^-1)e. MASH 1-1-1 cascades three accumulators and cancels the first two errors digitally, leaving
  * y-alpha = (1-z^-1)^3 e. Neither core is dithered; a constant rational input can therefore make periodic tones.
  */

@@ -8,6 +8,7 @@ import {
   MIN_IMPAIRMENTS,
   type Impairments,
 } from '../src/illustrations/analog-panel/model';
+import { coherentFrequency, foldBin } from '../src/lib/frequency';
 
 const allFinite = (values: ArrayLike<number>) => Array.from(values).every(Number.isFinite);
 const withError = (patch: Partial<Impairments>): Impairments => ({ ...CLEAN_IMPAIRMENTS, ...patch });
@@ -110,6 +111,18 @@ describe('ADCToolbox analog output panel', () => {
     expect(d.y).toHaveLength(1024);
     expect(d.output.signal).toBe(123);
     expect(d.fit.frequency).toBeCloseTo(123 / 1024, 12);
+  });
+
+  it('keeps the five-harmonic dashboard identifiable by using an odd coprime tone bin', () => {
+    for (const points of [64, 256, 4096, 16384]) {
+      // fs/4 would put H3 on top of H1. The public control snaps it to the nearest ADCToolbox coherent bin instead.
+      const { bin } = coherentFrequency(800e6, 200e6, points);
+      expect(bin % 2).toBe(1);
+      expect(new Set([1, 2, 3, 4, 5].map((order) => foldBin(order * bin, points))).size).toBe(5);
+      const d = analyze(CLEAN_IMPAIRMENTS, 12, { fs: 800e6, points, finBin: bin });
+      expect(d.fit.rmse).toBeLessThan(1e-8);
+      expect(d.decomposition.residualRms).toBeLessThan(1e-8);
+    }
   });
 
   it('places exactly the requested number of glitches in each record', () => {
