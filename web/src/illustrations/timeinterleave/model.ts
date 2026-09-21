@@ -11,7 +11,7 @@
  * following its example exp_ti01, which builds the mismatched capture this way and compares the two delays.
  * python/adc_time_interleave.py calls ADCToolbox on the same samples; tests/timeinterleave-model.test.ts compares the two.
  *
- * Volts on a ±0.5 V range, seconds and hertz: 4096 samples at 1 GS/s.
+ * Volts on a ±0.5 V range, seconds and hertz: about 4096 samples at 1 GS/s, adjusted to complete channel turns.
  */
 import { fftAny } from '../../lib/fft';
 import { coherentFrequency, foldFrequency } from '../../lib/frequency';
@@ -36,6 +36,16 @@ const NOISE_SEED = 7;
 const JITTER_SEED = 71;
 
 export type Method = 'off' | 'fft' | 'farrow';
+
+/**
+ * Keep the record close to 4096 points, even, and an integer number of complete channel turns. Then the carrier and
+ * every k·fs/M mismatch image can be coherent in the same rectangular FFT, including for odd channel counts.
+ */
+export function analysisPoints(m: number): number {
+  if (!Number.isInteger(m) || m < MIN_CHANNELS || m > MAX_CHANNELS) throw new Error(`unsupported channel count ${m}`);
+  const period = m % 2 === 0 ? m : 2 * m;
+  return N - (N % period);
+}
 
 /** Per channel: relative gain, offset in volts, skew in seconds. */
 export interface Mismatch {
@@ -87,7 +97,7 @@ export interface CaptureOptions {
   jitter?: number;
   /** Independent source harmonics in dBc. Values at or below −100 dBc are disabled. */
   harmonics?: Partial<HarmonicLevels>;
-  /** Keep every Dth converter sample, without an anti-alias filter. The output spectrum still uses N samples. */
+  /** Keep every Dth converter sample, without an anti-alias filter. */
   decimation?: number;
 }
 
@@ -474,7 +484,7 @@ export interface Reading {
   measured: Params;
   spurs: Spur[];
   harmonics: HarmonicTone[];
-  /** Sample rate and fixed analysis-record length after direct decimation. */
+  /** Sample rate and channel-period-coherent analysis-record length after direct decimation. */
   fsOut: number;
   fftPoints: number;
   coherent: boolean;
@@ -493,21 +503,22 @@ export function read(m: number, target: number, mm: Mismatch, bits: number, meth
   const fs = options.fs ?? FS, decimation = options.decimation ?? 1;
   if (!Number.isInteger(decimation) || decimation < 1 || decimation > MAX_DECIMATION) throw new Error(`unsupported decimation factor ${decimation}`);
   const fsOut = fs / decimation;
-  const { fin, bin } = coherentFrequency(fs, target, N);
-  const x = capture(fin, mm, bits, N, options);
+  const points = analysisPoints(m);
+  const { fin, bin } = coherentFrequency(fs, target, points);
+  const x = capture(fin, mm, bits, points, options);
   const measured = extractMismatch(x, m, fs, fin);
   const calibrationMethod = method === 'off' ? null : method;
   const y = calibrationMethod ? calibrate(x, m, measured, fs, calibrationMethod) : null;
-  // Keep a full N-point analysis record at every output rate. Generating only the retained samples is exactly the
+  // Keep a full analysis record at every output rate. Generating only the retained samples is exactly the
   // memoryless ADC operation, and avoids constructing as many as 255 · N samples while the control is dragged.
-  const rawRecord = decimation === 1 ? x : captureAtStride(fin, mm, bits, N, options, decimation);
+  const rawRecord = decimation === 1 ? x : captureAtStride(fin, mm, bits, points, options, decimation);
   let outRecord = rawRecord;
   if (y && calibrationMethod) {
     if (decimation === 1) outRecord = y;
     else {
       // Calibration precedes downsampling. This slower branch is not used by the public lesson, which has no
       // calibration control, but keeps the model's programmatic combination physically ordered.
-      const long = capture(fin, mm, bits, N * decimation, options);
+      const long = capture(fin, mm, bits, points * decimation, options);
       outRecord = decimate(calibrate(long, m, measured, fs, calibrationMethod), decimation);
     }
   }
@@ -523,7 +534,7 @@ export function read(m: number, target: number, mm: Mismatch, bits: number, meth
     spurs,
     harmonics: harmonicTones(fin, options.harmonics ?? {}, fsOut),
     fsOut,
-    fftPoints: N,
+    fftPoints: points,
     coherent,
     metricsResolved: true,
     raw,

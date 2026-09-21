@@ -3,7 +3,7 @@
   import { foldFrequency } from '../../lib/frequency';
   import ContributionMap from './ContributionMap.svelte';
   import EditableRange from './EditableRange.svelte';
-  import { contributions, MAX_CHANNELS, MIN_CHANNELS, mismatch, N, read, type HarmonicLevels } from './model';
+  import { analysisPoints, contributions, MAX_CHANNELS, MIN_CHANNELS, mismatch, read, type HarmonicLevels } from './model';
   import SampleTimingChart from './SampleTimingChart.svelte';
   import SpurSpectrum from './SpurSpectrum.svelte';
 
@@ -25,8 +25,9 @@
   let hoverSample = $state<number | null>(null);
 
   const fs = $derived(sampleRateGHz * 1e9);
-  const inputMinGHz = $derived(Math.max(0.001, sampleRateGHz / N));
-  const inputMaxGHz = $derived(sampleRateGHz / 2 - sampleRateGHz / N);
+  const fftPoints = $derived(analysisPoints(m));
+  const inputMinGHz = $derived(Math.max(0.001, sampleRateGHz / fftPoints));
+  const inputMaxGHz = $derived(sampleRateGHz / 2 - sampleRateGHz / fftPoints);
   const harmonics: HarmonicLevels = $derived({ 2: h2Dbc, 3: h3Dbc, 5: h5Dbc, 7: h7Dbc });
 
   $effect(() => {

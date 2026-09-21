@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { fft } from '../src/lib/fft';
 import { coherentFrequency, foldBin, foldFrequency } from '../src/lib/frequency';
 import {
+  analysisPoints,
   calibrate,
   capture,
   channelNyquist,
@@ -411,6 +412,31 @@ describe('time-interleaved mismatch', () => {
     expect(rows.find((row) => row.id === 'harmonics')?.frequencies).toEqual([2e9, 3e9, 5e9, 3e9]);
     expect(rows.find((row) => row.id === 'harmonics')?.toneLabels).toEqual(['H2', 'H3', 'H5', 'H7']);
     expect(rows.find((row) => row.id === 'jitter')?.level).toBeCloseTo(20 * Math.log10(2 * Math.PI * fin * jitter), 9);
+  });
+
+  it('uses an even record with complete channel turns for every selectable channel count', () => {
+    for (let m = 1; m <= 16; m++) {
+      const points = analysisPoints(m);
+      expect(points % 2).toBe(0);
+      expect(points % m).toBe(0);
+      expect(points).toBeLessThanOrEqual(N);
+      expect(N - points).toBeLessThan(2 * m);
+    }
+  });
+
+  it('keeps every 15-channel bandwidth-mismatch image coherent in the displayed FFT', () => {
+    const m = 15, fs = 10e9, points = analysisPoints(m);
+    const mm = mismatch(m, 0, 0, 0, 0.013);
+    const r = read(m, 4.9976e9, mm, 12, 'off', { fs });
+    expect(points).toBe(4080);
+    expect(r.fftPoints).toBe(points);
+    expect(r.rawData).toHaveLength(points);
+    for (const spur of r.spurs) {
+      const exactBin = (spur.freq / r.fsOut) * points;
+      expect(exactBin).toBeCloseTo(Math.round(exactBin), 9);
+      expect(Math.abs(r.raw.dbfs[Math.round(exactBin)] - spur.dbfs)).toBeLessThan(0.1);
+    }
+    expect(Math.abs(r.raw.sfdr - predictedSfdr(r.spurs))).toBeLessThan(0.1);
   });
 
   it('places H2, H3, H5, and H7 independently in the decimated FFT', () => {
