@@ -4,7 +4,7 @@ export interface Illustration {
   href: string;
   title: string;
   summary: string;
-  thumb: 'pll' | 'sar' | 'inl' | 'err' | 'win' | 'fold' | 'ntf' | 'ti' | 'bits' | 'polar' | 'bode' | 'floor' | 'fom' | 'harm' | 'record' | 'repeat' | 'short' | 'train' | 'panel' | 'amplifier';
+  thumb: 'pll' | 'sar' | 'inl' | 'err' | 'win' | 'fold' | 'ntf' | 'ti' | 'bits' | 'polar' | 'bode' | 'floor' | 'fom' | 'harm' | 'record' | 'repeat' | 'short' | 'train' | 'panel' | 'amplifier' | 'two-pole-step';
   /** Whose site this is, for a page that is not on this one; it opens in a tab of its own. */
   external?: string;
   /** Public catalog label; assigned only after a lesson passes the editorial gate. */
@@ -146,6 +146,13 @@ export const related: Topic = {
       title: 'Open-loop & closed-loop gain',
       summary: 'Trade gain for bandwidth and see what higher open-loop gain really buys.',
       thumb: 'amplifier',
+      category: 'Circuits & Systems',
+    },
+    {
+      href: '/amplifiers/two-pole-step-response/',
+      title: 'Two-pole step response',
+      summary: 'Drag two real poles and watch rise time and settling time change.',
+      thumb: 'two-pole-step',
       category: 'Circuits & Systems',
     },
     {

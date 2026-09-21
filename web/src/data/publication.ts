@@ -12,6 +12,7 @@ export const publicLessonPaths = [
   '/adc/time-interleaved-adcs/',
   '/pll/integer-vs-fractional/',
   '/amplifiers/open-loop-and-closed-loop/',
+  '/amplifiers/two-pole-step-response/',
 ] as const;
 
 export const publicExternalHrefs = [
