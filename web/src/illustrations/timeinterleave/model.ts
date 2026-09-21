@@ -454,15 +454,15 @@ export function contributions(
   const jitterLevel = jitter > 0 ? 20 * Math.log10(2 * Math.PI * fin * jitter) : -Infinity;
   const folded = (spurs: Spur[]) => spurs.map((s) => foldFrequency(s.freq, outputFs));
   return [
-    { id: 'offset', label: 'Offset', note: 'fixed tones at k·fs/M', level: strongest(offset), frequencies: folded(offset) },
-    { id: 'gain', label: 'Gain', note: 'copies around k·fs/M', level: strongest(gain), frequencies: folded(gain) },
-    { id: 'skew', label: 'Timing skew', note: 'same copies, rising with fin', level: strongest(skew), frequencies: folded(skew) },
-    { id: 'bandwidth', label: 'Bandwidth', note: 'frequency-dependent gain and phase', level: strongest(bandwidth), frequencies: folded(bandwidth) },
+    { id: 'offset', label: 'Offset', note: 'k·fₛ/M', level: strongest(offset), frequencies: folded(offset) },
+    { id: 'gain', label: 'Gain', note: 'k·fₛ/M ± fᵢₙ', level: strongest(gain), frequencies: folded(gain) },
+    { id: 'skew', label: 'Timing skew', note: 'k·fₛ/M ± fᵢₙ', level: strongest(skew), frequencies: folded(skew) },
+    { id: 'bandwidth', label: 'Bandwidth', note: 'k·fₛ/M ± fᵢₙ', level: strongest(bandwidth), frequencies: folded(bandwidth) },
     {
-      id: 'harmonics', label: 'Harmonics', note: 'H2, H3, H5, H7 after folding', level: tones.length ? Math.max(...tones.map((tone) => tone.dbc)) : -Infinity,
+      id: 'harmonics', label: 'Harmonics', note: 'h·fᵢₙ', level: tones.length ? Math.max(...tones.map((tone) => tone.dbc)) : -Infinity,
       frequencies: tones.map((tone) => tone.freq), toneLabels: tones.map((tone) => `H${tone.order}`),
     },
-    { id: 'jitter', label: 'Jitter', note: 'broadband phase-noise floor', level: jitterLevel, frequencies: [], broadband: true },
+    { id: 'jitter', label: 'Jitter', note: 'broadband', level: jitterLevel, frequencies: [], broadband: true },
   ];
 }
 

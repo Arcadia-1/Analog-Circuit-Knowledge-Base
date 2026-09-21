@@ -133,7 +133,7 @@
 
       <div class="chart contribution-chart">
         <div class="cap">
-          <span class="left"><span class="label">Where each imperfection appears</span><span>same frequency axis as the FFT above</span></span>
+          <span class="left"><span class="label">Where each imperfection appears</span><span>M = channels · k = spur index · h = harmonic order · folded to output Nyquist</span></span>
         </div>
         <ContributionMap rows={sourceRows} fs={r.fsOut} points={r.fftPoints} label="Spectral signature of offset, gain, timing, bandwidth, harmonics, and jitter" />
       </div>

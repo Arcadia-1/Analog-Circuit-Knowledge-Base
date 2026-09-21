@@ -87,7 +87,7 @@
 </div>
 
 <style>
-  .editable-range { display: grid; grid-template-columns: 76px minmax(72px, 1fr) 104px; align-items: center; gap: 8px; min-height: 27px; }
+  .editable-range { display: grid; grid-template-columns: 92px minmax(72px, 1fr) 96px; align-items: center; gap: 8px; min-height: 27px; }
   label { color: var(--ink-2); font-size: 12.5px; white-space: nowrap; }
   .slider { width: 100%; min-width: 0; margin: 0; accent-color: var(--accent, var(--ink-2)); cursor: ew-resize; }
   .field { min-width: 0; height: 25px; display: flex; align-items: baseline; justify-content: flex-end; gap: 4px; border-bottom: 1px solid var(--rule); }
@@ -95,6 +95,6 @@
   .number { width: 6ch; min-width: 0; border: 0; outline: 0; padding: 0; margin: 0; background: transparent; color: var(--ink); text-align: right; font: 12.5px/1.4 var(--mono); font-variant-numeric: tabular-nums; }
   .prefix, .unit { color: var(--ink-2); font: 11.5px/1.4 var(--mono); white-space: nowrap; }
   @media (max-width: 520px) {
-    .editable-range { grid-template-columns: 70px minmax(64px, 1fr) 96px; }
+    .editable-range { grid-template-columns: 92px minmax(48px, 1fr) 88px; }
   }
 </style>
