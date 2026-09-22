@@ -7,6 +7,7 @@ import {
   capMismatch,
   capture,
   convert,
+  DEFAULT_FFT_POINTS,
   FS,
   lostInputs,
   margin,
@@ -24,6 +25,7 @@ import { gaussians } from '../src/lib/rng';
 /** The fixed "standard normals" of python/sar_binary_vs_redundant.py. */
 const zFixed = (m: number) => Float64Array.from({ length: m }, (_, j) => 1.5 * Math.sin(2.3 * j + 0.9));
 const weightsFor = (arch: 'binary' | 'redundant', n: number) => (arch === 'binary' ? binaryWeights(n) : redundantWeights(n));
+const defaultTestBin = coherentFrequency(FS, (TEST_BIN / N_FFT) * FS, DEFAULT_FFT_POINTS).bin;
 
 describe('SAR ADC model, ported from ADCToolbox', () => {
   it('builds a redundant array out of the nominal resolution alone', () => {
@@ -69,23 +71,23 @@ describe('SAR ADC model, ported from ADCToolbox', () => {
       const calibrated = weightsAfterCalibration(train, nominal, TRAIN_BIN, 0);
       expect(Array.from(calibrated)).toEqual(nominal);
 
-      const test = capture(12, nominal, null, TEST_BIN, TEST_PHASE);
+      const test = capture(12, nominal, null, defaultTestBin, TEST_PHASE, null, DEFAULT_FFT_POINTS);
       expect(analyzeSpectrum(reconstruct(test, calibrated), 12)).toEqual(analyzeSpectrum(reconstruct(test, nominal), 12));
     }
   });
 
   // [jitter in ps, ENOB] from the Python reference, which samples the same tone at t + dt with the same standard normals
   it.each([
-    [2, 11.4928],
-    [5, 10.6245],
+    [2, 11.5324],
+    [5, 10.6285],
   ])('loses %i ps of clock jitter worth of ENOB', (jitterPs, enob) => {
     const w = binaryWeights(12);
-    const clock = gaussians(2 * N_FFT, 7).map((v) => v * jitterPs * 1e-12 * FS);
-    const spectrum = analyzeSpectrum(reconstruct(capture(12, w, null, TEST_BIN, TEST_PHASE, clock.subarray(0, N_FFT)), w), 12);
+    const clock = gaussians(DEFAULT_FFT_POINTS, 7).map((v) => v * jitterPs * 1e-12 * FS);
+    const spectrum = analyzeSpectrum(reconstruct(capture(12, w, null, defaultTestBin, TEST_PHASE, clock, DEFAULT_FFT_POINTS), w), 12);
     expect(spectrum.enob).toBeCloseTo(enob, 3);
     // jitter alone holds the converter to SNR = -20 log10(2 pi f_in sigma_t); with quantisation the two powers add
-    const alone = -20 * Math.log10(2 * Math.PI * (TEST_BIN / N_FFT) * FS * jitterPs * 1e-12);
-    const quiet = 6.02 * analyzeSpectrum(reconstruct(capture(12, w, null, TEST_BIN, TEST_PHASE), w), 12).enob + 1.76;
+    const alone = -20 * Math.log10(2 * Math.PI * (defaultTestBin / DEFAULT_FFT_POINTS) * FS * jitterPs * 1e-12);
+    const quiet = 6.02 * analyzeSpectrum(reconstruct(capture(12, w, null, defaultTestBin, TEST_PHASE, null, DEFAULT_FFT_POINTS), w), 12).enob + 1.76;
     expect(6.02 * spectrum.enob + 1.76).toBeCloseTo(-10 * Math.log10(10 ** (-alone / 10) + 10 ** (-quiet / 10)), 0);
   });
 
@@ -121,17 +123,17 @@ describe('SAR ADC model, ported from ADCToolbox', () => {
 
   // [N, sigma, arch, ENOB before, SFDR before, ENOB after, SFDR after, DC code with nominal weights] from the Python reference
   const cases: [number, number, 'binary' | 'redundant', number, number, number, number, number][] = [
-    [12, 0, 'binary', 11.9289, 94.777, 11.9289, 94.777, 3045],
-    [12, 0, 'redundant', 11.9289, 94.777, 11.9289, 94.777, 3045],
-    [12, 0.1, 'binary', 8.9173, 61.796, 11.4426, 94.218, 3040],
-    [12, 0.1, 'redundant', 8.8702, 63.685, 11.9329, 97.409, 3042],
-    [16, 0.1, 'binary', 10.9269, 73.727, 14.8209, 115.921, 48701],
-    [16, 0.1, 'redundant', 10.8404, 74.965, 16.2412, 124.839, 48709],
+    [12, 0, 'binary', 11.9979, 97.48, 11.9979, 97.48, 3045],
+    [12, 0, 'redundant', 11.9979, 97.48, 11.9979, 97.48, 3045],
+    [12, 0.1, 'binary', 9.0484, 62.266, 11.5652, 96.526, 3040],
+    [12, 0.1, 'redundant', 8.9963, 65.614, 12.0372, 99.96, 3042],
+    [16, 0.1, 'binary', 11.0607, 74.31, 14.9508, 117.437, 48701],
+    [16, 0.1, 'redundant', 10.9789, 76.733, 16.3461, 127.255, 48709],
   ];
   it.each(cases)('matches ADCToolbox for N=%i, sigma=%f, %s', (n, sigma, arch, enobB, sfdrB, enobA, sfdrA, code) => {
     const nominal = weightsFor(arch, n);
     const actual = capMismatch(nominal, sigma, zFixed(nominal.length));
-    const test = capture(n, actual, null, TEST_BIN, TEST_PHASE);
+    const test = capture(n, actual, null, defaultTestBin, TEST_PHASE, null, DEFAULT_FFT_POINTS);
     const calibrated = weightsAfterCalibration(capture(n, actual, null, TRAIN_BIN, 0), nominal, TRAIN_BIN, sigma);
     const before = analyzeSpectrum(reconstruct(test, nominal), n);
     const after = analyzeSpectrum(reconstruct(test, calibrated), n);
@@ -150,33 +152,29 @@ describe('SAR ADC model, ported from ADCToolbox', () => {
       const nominal = weightsFor(arch, 12);
       const actual = capMismatch(nominal, 0.1, gaussians(nominal.length, 43000 + i));
       const train = capture(12, actual, null, TRAIN_BIN, 0);
-      const test = capture(12, actual, null, TEST_BIN, TEST_PHASE);
+      const test = capture(12, actual, null, defaultTestBin, TEST_PHASE, null, DEFAULT_FFT_POINTS);
       return analyzeSpectrum(reconstruct(test, calibrate(train, nominal, TRAIN_BIN)), 12);
     });
-    expect(after[0].enob).toBeCloseTo(10.4789, 3);
-    expect(after[0].sfdr).toBeCloseTo(86.375, 2);
-    expect(after[1].enob).toBeCloseTo(11.9214, 3);
-    expect(after[1].sfdr).toBeCloseTo(97.681, 2);
-    expect(after[1].enob - after[0].enob).toBeGreaterThan(1.4);
+    expect(after[0].enob).toBeCloseTo(10.3171, 3);
+    expect(after[0].sfdr).toBeCloseTo(79.316, 2);
+    expect(after[1].enob).toBeCloseTo(12.0305, 3);
+    expect(after[1].sfdr).toBeCloseTo(99.7, 2);
+    expect(after[1].enob - after[0].enob).toBeGreaterThan(1.7);
   });
 
-  it('keeps training and test record lengths independent and coherent', () => {
-    const n = 12, nominal = redundantWeights(n);
-    const actual = capMismatch(nominal, 0.1, gaussians(nominal.length, 43123));
-    const testPoints = 1024;
-    const testBin = coherentFrequency(FS, (TEST_BIN / N_FFT) * FS, testPoints).bin;
-    const test = capture(n, actual, null, testBin, TEST_PHASE, null, testPoints);
-    expect(test).toHaveLength(testPoints * nominal.length);
+  it('keeps the 4096-point calibration record independent of every selectable FFT length', () => {
+    expect(TRAIN_SAMPLES).toBe(4096);
+    const n = 12, nominal = binaryWeights(n);
+    const train = capture(n, nominal, null, TRAIN_BIN, 0, null, TRAIN_SAMPLES);
+    expect(train).toHaveLength(TRAIN_SAMPLES * nominal.length);
 
-    for (const trainingPoints of [64, 128, 512, 4096]) {
-      const trainingBin = coherentFrequency(FS, (TRAIN_BIN / N_FFT) * FS, trainingPoints).bin;
-      const train = capture(n, actual, null, trainingBin, 0, null, trainingPoints);
-      const weights = calibrate(train, nominal, trainingBin, trainingPoints, trainingPoints);
-      const spectrum = analyzeSpectrum(reconstruct(test, weights), n);
-      expect(train).toHaveLength(trainingPoints * nominal.length);
-      expect(Array.from(weights).every(Number.isFinite)).toBe(true);
+    for (const testPoints of [1024, 2048, 4096, 8192, 16384]) {
+      const testBin = coherentFrequency(FS, (TEST_BIN / N_FFT) * FS, testPoints).bin;
+      const test = capture(n, nominal, null, testBin, TEST_PHASE, null, testPoints);
+      const spectrum = analyzeSpectrum(reconstruct(test, nominal), n);
+      expect(test).toHaveLength(testPoints * nominal.length);
       expect(spectrum.signal).toBe(testBin);
-      expect(Number.isFinite(spectrum.enob)).toBe(true);
+      expect(spectrum.enob).toBeGreaterThan(11.98);
     }
   });
 

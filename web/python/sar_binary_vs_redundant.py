@@ -23,7 +23,7 @@ import numpy as np
 from adctoolbox import analyze_spectrum, calibrate_weight_sine, scale_calibration_output
 from adctoolbox.models import sar_apply_cap_mismatch, sar_convert, sar_reconstruct
 
-N_FFT, N_TRAIN, TRAIN_BIN, TEST_BIN, TEST_PHASE, AMP_DBFS, FS = 4096, 4096, 499, 613, 0.37, -0.5, 100e6
+N_TRAIN, N_FFT, TRAIN_BIN, TEST_BIN, TEST_PHASE, FS = 4096, 8192, 499, 1225, 0.37, 100e6
 ADCTOOLBOX_RADIX18_16BIT = [29127, 16182, 8990, 4995, 2775, 1542, 856, 476, 264, 147, 82, 45, 25, 14, 8, 4, 2, 1]
 
 
@@ -93,12 +93,13 @@ def gaussians(count, seed):
 
 
 def tone(bin_index, n, phase=0.0, jitter_ps=0.0, count=N_FFT):
-    """A coherent sine, sampled at t + dt when the clock jitters (ADCToolbox siggen.apply_jitter), offset by the half
-    unit of the terminating capacitor so the decision levels sit half an LSB below the code levels."""
+    """A coherent full-code-range sine, sampled at t + dt when the clock jitters (ADCToolbox
+    siggen.apply_jitter). It stays half an LSB inside each input rail, so its target codes span 0 through 2^N - 1."""
     k = np.arange(count)
     if jitter_ps:
-        k = k + gaussians(2 * N_FFT, 7)[:count] * jitter_ps * 1e-12 * FS
-    return 0.5 + 0.5 * 2 ** -n + 0.5 * 10 ** (AMP_DBFS / 20) * np.sin(2 * math.pi * bin_index * k / N_FFT + phase)
+        k = k + gaussians(count, 7) * jitter_ps * 1e-12 * FS
+    amplitude = 0.5 - 0.5 * 2 ** -n
+    return 0.5 + amplitude * np.sin(2 * math.pi * bin_index * k / count + phase)
 
 
 def spectrum(trace):
@@ -119,7 +120,7 @@ def case(raw, n, sigma, jitter_ps=0.0, mismatch_normals=None):
         calibrated = nominal.copy()
     else:
         with contextlib.redirect_stdout(io.StringIO()):
-            fit = calibrate_weight_sine(train, freq=TRAIN_BIN / N_FFT, nominal_weights=nominal)
+            fit = calibrate_weight_sine(train, freq=TRAIN_BIN / N_TRAIN, nominal_weights=nominal)
         calibrated = np.asarray(scale_calibration_output(fit, target_weights=nominal)["weight"])
     before = spectrum(sar_reconstruct(test, nominal))
     after = spectrum(test.astype(float) @ calibrated)

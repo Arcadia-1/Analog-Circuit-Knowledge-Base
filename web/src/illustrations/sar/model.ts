@@ -18,7 +18,8 @@ export const TEST_BIN = 613;
 export const TEST_PHASE = 0.37;
 /** Use a full independent record so the weight fit does not learn a 128-sample quantisation pattern. */
 export const TRAIN_SAMPLES = N_FFT;
-const AMP_DBFS = -0.5;
+/** Default spectrum record length; the page lets the reader select other powers of two. */
+export const DEFAULT_FFT_POINTS = 8192;
 /**
  * The array is terminated by one more unit capacitor, which brings the total to 2^N units so that one unit is exactly
  * one LSB. Half of that terminating capacitor is switched to the reference, which puts every decision level half an LSB
@@ -131,9 +132,10 @@ export function reconstruct(bits: Uint8Array, w: ArrayLike<number>): Float64Arra
 }
 
 /**
- * Bits of `points` conversions of a coherent −0.5 dBFS sine at `bin`. `noise` holds the comparator noise (LSB) row by
- * row and `timing` the sampling-instant error of each sample in sample periods, the way ADCToolbox's siggen applies
- * clock jitter.
+ * Bits of `points` conversions of a coherent full-code-range sine at `bin`. Its target code runs from 0 through
+ * 2^N − 1, so it uses the available converter range without asking for the nonexistent code 2^N. `noise` holds the
+ * comparator noise (LSB) row by row and `timing` the sampling-instant error of each sample in sample periods, the way
+ * ADCToolbox's siggen applies clock jitter.
  */
 export function capture(
   n: number,
@@ -144,10 +146,10 @@ export function capture(
   timing: Float64Array | null = null,
   points = N_FFT,
 ): Uint8Array {
-  const m = w.length, half = 2 ** (n - 1), amp = half * 10 ** (AMP_DBFS / 20);
+  const m = w.length, peak = 2 ** (n - 1) - HALF;
   const bits = new Uint8Array(points * m);
   for (let i = 0; i < points; i++) {
-    const x = half + amp * Math.sin((2 * Math.PI * bin * (i + (timing ? timing[i] : 0))) / points + phase);
+    const x = peak + peak * Math.sin((2 * Math.PI * bin * (i + (timing ? timing[i] : 0))) / points + phase);
     convert(x, w, noise?.subarray(i * m, (i + 1) * m) ?? null, bits.subarray(i * m, (i + 1) * m));
   }
   return bits;

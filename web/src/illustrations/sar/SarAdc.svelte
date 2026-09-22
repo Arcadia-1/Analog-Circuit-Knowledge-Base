@@ -18,6 +18,7 @@
     capMismatch,
     capture,
     convert,
+    DEFAULT_FFT_POINTS,
     FS,
     lostInputs,
     margin,
@@ -40,6 +41,7 @@
   let sigma = $state(0.1);
   let noiseLsb = $state(0);
   let bin = $state(TEST_BIN);
+  let fftExponent = $state(Math.log2(DEFAULT_FFT_POINTS));
   let jitterPs = $state(0);
   let chip = $state(43);
   let seed = $state(1);
@@ -49,7 +51,8 @@
   let hoverBin = $state<number | null>(null);
 
   const trainingTone = coherentFrequency(FS, (TRAIN_BIN / N_FFT) * FS, TRAIN_SAMPLES);
-  const testTone = $derived(coherentFrequency(FS, (bin / N_FFT) * FS, N_FFT));
+  const fftPoints = $derived(2 ** fftExponent);
+  const testTone = $derived(coherentFrequency(FS, (bin / N_FFT) * FS, fftPoints));
 
   const nominals = $derived([binaryWeights(n), redundantWeights(n)]);
   // the capacitors one chip actually has
@@ -57,16 +60,16 @@
   // input ranges with more than one LSB of analog DAC reconstruction error
   const gaps = $derived(actuals.map((w) => lostInputs(n, w)));
   // standard normals for the test and training captures, drawn once per resolution and scaled by the noise slider
-  const normals = $derived(nominals.map((w, i) => gaussians((N_FFT + TRAIN_SAMPLES) * w.length, 11 + i)));
+  const normals = $derived(nominals.map((w, i) => gaussians((fftPoints + TRAIN_SAMPLES) * w.length, 11 + i)));
   // one sampling clock for both converters; jitter is a sampling-instant error in sample periods
-  const clock = $derived(jitterPs ? gaussians(N_FFT + TRAIN_SAMPLES, 7).map((v) => v * jitterPs * 1e-12 * FS) : null);
+  const clock = $derived(jitterPs ? gaussians(fftPoints + TRAIN_SAMPLES, 7).map((v) => v * jitterPs * 1e-12 * FS) : null);
   // calibrate on one tone, show the spectra of another; independent of the stepped conversion
   const spectra = $derived(
     nominals.map((nominal, i) => {
-      const bank = N_FFT * nominal.length, testRows = N_FFT * nominal.length, trainRows = TRAIN_SAMPLES * nominal.length;
+      const bank = fftPoints * nominal.length, testRows = fftPoints * nominal.length, trainRows = TRAIN_SAMPLES * nominal.length;
       const scaled = noiseLsb ? normals[i].map((v) => v * noiseLsb) : null;
-      const test = capture(n, actuals[i], scaled?.subarray(0, testRows) ?? null, testTone.bin, TEST_PHASE, clock?.subarray(0, N_FFT) ?? null);
-      const train = capture(n, actuals[i], scaled?.subarray(bank, bank + trainRows) ?? null, trainingTone.bin, 0, clock?.subarray(N_FFT, N_FFT + TRAIN_SAMPLES) ?? null, TRAIN_SAMPLES);
+      const test = capture(n, actuals[i], scaled?.subarray(0, testRows) ?? null, testTone.bin, TEST_PHASE, clock?.subarray(0, fftPoints) ?? null, fftPoints);
+      const train = capture(n, actuals[i], scaled?.subarray(bank, bank + trainRows) ?? null, trainingTone.bin, 0, clock?.subarray(fftPoints, fftPoints + TRAIN_SAMPLES) ?? null, TRAIN_SAMPLES);
       const calibrated = weightsAfterCalibration(train, nominal, trainingTone.bin, sigma, TRAIN_SAMPLES, TRAIN_SAMPLES);
       return [analyzeSpectrum(reconstruct(test, nominal), n), analyzeSpectrum(reconstruct(test, calibrated), n)];
     }),
@@ -169,8 +172,8 @@
       <p><b>Reachability bars.</b> After each decision the remaining positive weights give an outer DAC range, expanded by ±1 LSB. Being outside proves that the analog reconstruction cannot finish within that tolerance. Being inside does not prove that every level is reachable. This unipolar search mainly tolerates a wrongly rejected weight; a wrongly accepted weight cannot subsequently be subtracted.</p>
       <p><b>Capacitor mismatch.</b> Weight <var>w<sub>j</sub></var> is built from <var>w<sub>j</sub></var>/<var>w</var><sub>min</sub> unit capacitors, each with relative mismatch σ, so its relative error is σ/√units. New chip draws another set of errors.</p>
       <p><b>Comparator noise.</b> Gaussian, drawn anew for every decision. The stepped conversion uses one draw; New noise replaces it.</p>
-      <p><b>Weight calibration.</b> A separate {TRAIN_SAMPLES}-sample sine record estimates each digital reconstruction weight. Those weights are then applied to the independent {N_FFT}-sample spectrum record shown below. At exactly zero capacitor mismatch the known nominal weights are retained: fitting them again would only learn finite-record quantisation error. A digital weight fit can correct the value of observed decisions; it cannot recreate an input interval that a non-redundant search skipped.</p>
-      <p><b>Spectrum.</b> {N_FFT} conversions of a −0.5 dBFS sine, rectangular window. ENOB = (SNDR − 1.76) / 6.02. The largest spur is labelled with its harmonic order when it is one.</p>
+      <p><b>Weight calibration.</b> A separate, fixed {TRAIN_SAMPLES}-sample sine record estimates each digital reconstruction weight. Those weights are then applied to the independent spectrum record selected above. At exactly zero capacitor mismatch the known nominal weights are retained: fitting them again would only learn finite-record quantisation error. A digital weight fit can correct the value of observed decisions; it cannot recreate an input interval that a non-redundant search skipped.</p>
+      <p><b>Spectrum.</b> {fftPoints} conversions of a full-code-range sine, rectangular window. Its target code spans 0 through 2<sup><var>N</var></sup> − 1, using the complete available range without clipping against a nonexistent code 2<sup><var>N</var></sup>. ENOB = (SNDR − 1.76) / 6.02. The largest spur is labelled with its harmonic order when it is one.</p>
       <p><b>Sampling.</b> <var>f</var><sub>s</sub> = 100 MS/s. The calibration and spectrum tones use coherent bins, so the FFT needs no window.</p>
       <p><b>Input frequency and clock jitter.</b> Mismatch and comparator noise act on a held sample and do not care about the input frequency; the sampling instant does. Gaussian jitter σ<sub>t</sub> turns the slope of the input into a voltage error, so it alone limits the converter to SNR = −20 log₁₀(2π<var>f</var><sub>in</sub>σ<sub>t</sub>) — 6 dB per doubling of the input frequency. Applied as ADCToolbox's <code>siggen.apply_jitter</code> does, by sampling the sine at <var>t</var> + Δ<var>t</var>.</p>
     </Notes>
@@ -198,6 +201,7 @@
         <Range id="mismatch" min={0} max={0.1} step={0.001} output="{nf(sigma * 100, 1)} %" bind:value={sigma}>Unit-cap mismatch</Range>
         <Range id="noise" min={0} max={1} step={0.05} output="{nf(noiseLsb, 2)} LSB" bind:value={noiseLsb}>Comparator noise</Range>
         <Range id="fin" min={51} max={2045} step={2} output="{nf(testTone.fin * 1e-6, 2)} MHz" bind:value={bin}>Input frequency</Range>
+        <Range id="fft-points" min={10} max={14} step={1} output="{fftPoints} pts" bind:value={fftExponent}>FFT points</Range>
         <Range id="jitter" min={0} max={5} step={0.1} output="{nf(jitterPs, 1)} ps" bind:value={jitterPs}>Clock jitter</Range>
         <button type="button" onclick={() => chip++} title="Draw another set of capacitor errors">New chip</button>
       </div>

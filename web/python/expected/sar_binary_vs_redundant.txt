@@ -5,20 +5,20 @@ N=12 redundant weights (15, radix 1.741): [1743, 1001, 575, 330, 190, 109, 63, 3
 N=14 redundant weights (17, radix 1.770): [7126, 4027, 2275, 1286, 726, 411, 232, 131, 74, 42, 24, 13, 8, 4, 2, 1, 1]
 N=16 redundant weights (19, radix 1.793): [28979, 16165, 9017, 5030, 2806, 1565, 873, 487, 272, 152, 85, 47, 26, 15, 8, 4, 2, 1, 1]
 
-Calibration uses 4096 samples; every result below is measured on an independent 4096-sample record.
+Calibration uses 4096 samples; every result below is measured on an independent 8192-sample record.
  N  sigma  arch       | before ENOB  SFDR | after ENOB  SFDR | max |w_cal - w_actual| LSB | DC code nominal / calibrated
-12    0%  binary    |    11.9289  94.777 |   11.9289  94.777 |       0.0000 | 3045.0000 / 3045.0000
-12    0%  redundant |    11.9289  94.777 |   11.9289  94.777 |       0.0000 | 3045.0000 / 3045.0000
-12   10%  binary    |     8.9173  61.796 |   11.4426  94.218 |       2.2925 | 3040.0000 / 3041.4417
-12   10%  redundant |     8.8702  63.685 |   11.9329  97.409 |       1.3975 | 3042.0000 / 3042.5956
-16   10%  binary    |    10.9269  73.727 |   14.8209 115.921 |       8.5335 | 48701.0000 / 48707.2972
-16   10%  redundant |    10.8404  74.965 |   16.2412 124.839 |       6.5679 | 48709.0000 / 48708.4358
+12    0%  binary    |    11.9979  97.480 |   11.9979  97.480 |       0.0000 | 3045.0000 / 3045.0000
+12    0%  redundant |    11.9979  97.480 |   11.9979  97.480 |       0.0000 | 3045.0000 / 3045.0000
+12   10%  binary    |     9.0484  62.266 |   11.5652  96.526 |       2.2062 | 3040.0000 / 3041.4996
+12   10%  redundant |     8.9963  65.614 |   12.0372  99.960 |       1.4524 | 3042.0000 / 3042.5194
+16   10%  binary    |    11.0607  74.310 |   14.9508 117.437 |       8.4606 | 48701.0000 / 48707.2754
+16   10%  redundant |    10.9789  76.733 |   16.3461 127.255 |       6.5228 | 48709.0000 / 48708.4252
 
 Page default, 12 bits, 10% mismatch, chip 43, no comparator noise or jitter
-  binary   : after ENOB 10.4789, SFDR 86.3750 dB
-  redundant: after ENOB 11.9214, SFDR 97.6806 dB
+  binary   : after ENOB 10.3171, SFDR 79.3162 dB
+  redundant: after ENOB 12.0305, SFDR 99.6995 dB
 
-clock jitter at f_in = 14.966 MHz, 12 bits, ideal capacitors
-  0.0 ps: ENOB 11.9289  SNDR  73.572 dB  (jitter alone allows inf dB)
-  2.0 ps: ENOB 11.4928  SNDR  70.947 dB  (jitter alone allows 74.51 dB)
-  5.0 ps: ENOB 10.6245  SNDR  65.719 dB  (jitter alone allows 66.55 dB)
+clock jitter at f_in = 14.954 MHz, 12 bits, ideal capacitors
+  0.0 ps: ENOB 11.9979  SNDR  73.987 dB  (jitter alone allows inf dB)
+  2.0 ps: ENOB 11.5324  SNDR  71.185 dB  (jitter alone allows 74.52 dB)
+  5.0 ps: ENOB 10.6285  SNDR  65.744 dB  (jitter alone allows 66.56 dB)
