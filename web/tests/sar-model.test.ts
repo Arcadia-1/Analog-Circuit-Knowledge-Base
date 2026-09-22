@@ -17,6 +17,7 @@ import {
   TEST_PHASE,
   TRAIN_BIN,
   TRAIN_SAMPLES,
+  weightsAfterCalibration,
 } from '../src/illustrations/sar/model';
 import { gaussians } from '../src/lib/rng';
 
@@ -59,6 +60,17 @@ describe('SAR ADC model, ported from ADCToolbox', () => {
           expect(reconstruct(bits, w)[0]).toBe(Math.round(x));
         }
       }
+    }
+  });
+
+  it('does not invent a weight correction when capacitor mismatch is zero', () => {
+    for (const nominal of [binaryWeights(12), redundantWeights(12)]) {
+      const train = capture(12, nominal, null, TRAIN_BIN, 0);
+      const calibrated = weightsAfterCalibration(train, nominal, TRAIN_BIN, 0);
+      expect(Array.from(calibrated)).toEqual(nominal);
+
+      const test = capture(12, nominal, null, TEST_BIN, TEST_PHASE);
+      expect(analyzeSpectrum(reconstruct(test, calibrated), 12)).toEqual(analyzeSpectrum(reconstruct(test, nominal), 12));
     }
   });
 
@@ -109,18 +121,18 @@ describe('SAR ADC model, ported from ADCToolbox', () => {
 
   // [N, sigma, arch, ENOB before, SFDR before, ENOB after, SFDR after, DC code with nominal weights] from the Python reference
   const cases: [number, number, 'binary' | 'redundant', number, number, number, number, number][] = [
-    [12, 0, 'binary', 11.9289, 94.777, 11.9056, 93.971, 3045],
-    [12, 0, 'redundant', 11.9289, 94.777, 11.8312, 93.18, 3045],
-    [12, 0.1, 'binary', 8.9173, 61.796, 11.3687, 92.297, 3040],
-    [12, 0.1, 'redundant', 8.8702, 63.685, 11.8799, 96.506, 3042],
-    [16, 0.1, 'binary', 10.9269, 73.727, 14.7491, 109.229, 48701],
-    [16, 0.1, 'redundant', 10.8404, 74.965, 16.139, 120.878, 48709],
+    [12, 0, 'binary', 11.9289, 94.777, 11.9289, 94.777, 3045],
+    [12, 0, 'redundant', 11.9289, 94.777, 11.9289, 94.777, 3045],
+    [12, 0.1, 'binary', 8.9173, 61.796, 11.4426, 94.218, 3040],
+    [12, 0.1, 'redundant', 8.8702, 63.685, 11.9329, 97.409, 3042],
+    [16, 0.1, 'binary', 10.9269, 73.727, 14.8209, 115.921, 48701],
+    [16, 0.1, 'redundant', 10.8404, 74.965, 16.2412, 124.839, 48709],
   ];
   it.each(cases)('matches ADCToolbox for N=%i, sigma=%f, %s', (n, sigma, arch, enobB, sfdrB, enobA, sfdrA, code) => {
     const nominal = weightsFor(arch, n);
     const actual = capMismatch(nominal, sigma, zFixed(nominal.length));
     const test = capture(n, actual, null, TEST_BIN, TEST_PHASE);
-    const calibrated = calibrate(capture(n, actual, null, TRAIN_BIN, 0), nominal, TRAIN_BIN);
+    const calibrated = weightsAfterCalibration(capture(n, actual, null, TRAIN_BIN, 0), nominal, TRAIN_BIN, sigma);
     const before = analyzeSpectrum(reconstruct(test, nominal), n);
     const after = analyzeSpectrum(reconstruct(test, calibrated), n);
     expect(before.enob).toBeCloseTo(enobB, 3);
@@ -133,7 +145,7 @@ describe('SAR ADC model, ported from ADCToolbox', () => {
   });
 
   it('tests a finite calibration record on an independent full record', () => {
-    expect(TRAIN_SAMPLES).toBe(128);
+    expect(TRAIN_SAMPLES).toBe(N_FFT);
     const after = (['binary', 'redundant'] as const).map((arch, i) => {
       const nominal = weightsFor(arch, 12);
       const actual = capMismatch(nominal, 0.1, gaussians(nominal.length, 43000 + i));
@@ -141,10 +153,10 @@ describe('SAR ADC model, ported from ADCToolbox', () => {
       const test = capture(12, actual, null, TEST_BIN, TEST_PHASE);
       return analyzeSpectrum(reconstruct(test, calibrate(train, nominal, TRAIN_BIN)), 12);
     });
-    expect(after[0].enob).toBeCloseTo(10.3802, 3);
-    expect(after[0].sfdr).toBeCloseTo(79.5418, 2);
-    expect(after[1].enob).toBeCloseTo(11.7973, 3);
-    expect(after[1].sfdr).toBeCloseTo(91.7245, 2);
+    expect(after[0].enob).toBeCloseTo(10.4789, 3);
+    expect(after[0].sfdr).toBeCloseTo(86.375, 2);
+    expect(after[1].enob).toBeCloseTo(11.9214, 3);
+    expect(after[1].sfdr).toBeCloseTo(97.681, 2);
     expect(after[1].enob - after[0].enob).toBeGreaterThan(1.4);
   });
 

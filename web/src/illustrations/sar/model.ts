@@ -16,11 +16,8 @@ export const FS = 100e6;
 export const TRAIN_BIN = 499;
 export const TEST_BIN = 613;
 export const TEST_PHASE = 0.37;
-/**
- * A calibration has to learn the array from a finite observation, then work on a different capture. Fitting all 4096
- * test-length samples observes every bit column hundreds of times and hides the finite-data part of the lesson.
- */
-export const TRAIN_SAMPLES = 128;
+/** Use a full independent record so the weight fit does not learn a 128-sample quantisation pattern. */
+export const TRAIN_SAMPLES = N_FFT;
 const AMP_DBFS = -0.5;
 /**
  * The array is terminated by one more unit capacitor, which brings the total to 2^N units so that one unit is exactly
@@ -166,4 +163,21 @@ export function calibrate(bits: Uint8Array, nominal: number[], bin: number, samp
   const w = calibrateWeightSine(used, nominal.length, bin / recordPoints).weight;
   const scale = sum(nominal) / sum(w);
   return w.map((v) => v * scale);
+}
+
+/**
+ * The page knows the mismatch selected by the reader. With exactly zero capacitor mismatch there is no weight error to
+ * estimate, so changing the nominal weights would only fit finite-record quantisation error and create distortion on an
+ * independent capture. Keep the known nominal weights in that case; otherwise run the same sine-weight calibration as
+ * ADCToolbox on a separate training record.
+ */
+export function weightsAfterCalibration(
+  bits: Uint8Array,
+  nominal: number[],
+  bin: number,
+  mismatchSigma: number,
+  samples = TRAIN_SAMPLES,
+  recordPoints = N_FFT,
+): Float64Array {
+  return mismatchSigma === 0 ? Float64Array.from(nominal) : calibrate(bits, nominal, bin, samples, recordPoints);
 }

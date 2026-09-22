@@ -7,8 +7,8 @@
 The page ports these ADCToolbox functions to TypeScript, and tests/sar-model.test.ts checks the port against the
 numbers printed here:
   models: sar_convert, sar_reconstruct, sar_apply_cap_mismatch
-  calibration: calibrate_weight_sine on a finite independent record at the known training frequency, then
-               scale_calibration_output(target_weights)
+  calibration: calibrate_weight_sine on a full independent record at the known training frequency, then
+               scale_calibration_output(target_weights); the known-zero mismatch case retains nominal weights
   spectrum: analyze_spectrum with a rectangular window, side_bin=0, max_harmonic=5
 
 Redundant weights come from the nominal resolution alone, see redundant_weights(). ADCToolbox's own 16-bit example
@@ -23,7 +23,7 @@ import numpy as np
 from adctoolbox import analyze_spectrum, calibrate_weight_sine, scale_calibration_output
 from adctoolbox.models import sar_apply_cap_mismatch, sar_convert, sar_reconstruct
 
-N_FFT, N_TRAIN, TRAIN_BIN, TEST_BIN, TEST_PHASE, AMP_DBFS, FS = 4096, 128, 499, 613, 0.37, -0.5, 100e6
+N_FFT, N_TRAIN, TRAIN_BIN, TEST_BIN, TEST_PHASE, AMP_DBFS, FS = 4096, 4096, 499, 613, 0.37, -0.5, 100e6
 ADCTOOLBOX_RADIX18_16BIT = [29127, 16182, 8990, 4995, 2775, 1542, 856, 476, 264, 147, 82, 45, 25, 14, 8, 4, 2, 1]
 
 
@@ -114,9 +114,13 @@ def case(raw, n, sigma, jitter_ps=0.0, mismatch_normals=None):
     actual = sar_apply_cap_mismatch(nominal, sigma=sigma, rng=FixedNormals(z)) if sigma else nominal
     train = sar_convert(tone(TRAIN_BIN, n, count=N_TRAIN), actual)
     test = sar_convert(tone(TEST_BIN, n, TEST_PHASE, jitter_ps), actual)
-    with contextlib.redirect_stdout(io.StringIO()):
-        fit = calibrate_weight_sine(train, freq=TRAIN_BIN / N_FFT, nominal_weights=nominal)
-    calibrated = np.asarray(scale_calibration_output(fit, target_weights=nominal)["weight"])
+    if sigma == 0:
+        # The simulator knows there is no weight error. A finite unconstrained fit would only learn quantisation error.
+        calibrated = nominal.copy()
+    else:
+        with contextlib.redirect_stdout(io.StringIO()):
+            fit = calibrate_weight_sine(train, freq=TRAIN_BIN / N_FFT, nominal_weights=nominal)
+        calibrated = np.asarray(scale_calibration_output(fit, target_weights=nominal)["weight"])
     before = spectrum(sar_reconstruct(test, nominal))
     after = spectrum(test.astype(float) @ calibrated)
     dc = sar_convert(np.array([0.7434 + 0.5 * 2.0 ** -n]), actual)[0].astype(float)

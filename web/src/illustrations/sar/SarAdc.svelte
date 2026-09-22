@@ -28,6 +28,7 @@
     TRAIN_BIN,
     TRAIN_SAMPLES,
     type Trial,
+    weightsAfterCalibration,
   } from './model';
   import ResidueChart from './ResidueChart.svelte';
 
@@ -56,9 +57,9 @@
   // input ranges with more than one LSB of analog DAC reconstruction error
   const gaps = $derived(actuals.map((w) => lostInputs(n, w)));
   // standard normals for the test and training captures, drawn once per resolution and scaled by the noise slider
-  const normals = $derived(nominals.map((w, i) => gaussians(2 * N_FFT * w.length, 11 + i)));
+  const normals = $derived(nominals.map((w, i) => gaussians((N_FFT + TRAIN_SAMPLES) * w.length, 11 + i)));
   // one sampling clock for both converters; jitter is a sampling-instant error in sample periods
-  const clock = $derived(jitterPs ? gaussians(2 * N_FFT, 7).map((v) => v * jitterPs * 1e-12 * FS) : null);
+  const clock = $derived(jitterPs ? gaussians(N_FFT + TRAIN_SAMPLES, 7).map((v) => v * jitterPs * 1e-12 * FS) : null);
   // calibrate on one tone, show the spectra of another; independent of the stepped conversion
   const spectra = $derived(
     nominals.map((nominal, i) => {
@@ -66,7 +67,7 @@
       const scaled = noiseLsb ? normals[i].map((v) => v * noiseLsb) : null;
       const test = capture(n, actuals[i], scaled?.subarray(0, testRows) ?? null, testTone.bin, TEST_PHASE, clock?.subarray(0, N_FFT) ?? null);
       const train = capture(n, actuals[i], scaled?.subarray(bank, bank + trainRows) ?? null, trainingTone.bin, 0, clock?.subarray(N_FFT, N_FFT + TRAIN_SAMPLES) ?? null, TRAIN_SAMPLES);
-      const calibrated = calibrate(train, nominal, trainingTone.bin, TRAIN_SAMPLES, TRAIN_SAMPLES);
+      const calibrated = weightsAfterCalibration(train, nominal, trainingTone.bin, sigma, TRAIN_SAMPLES, TRAIN_SAMPLES);
       return [analyzeSpectrum(reconstruct(test, nominal), n), analyzeSpectrum(reconstruct(test, calibrated), n)];
     }),
   );
@@ -168,7 +169,7 @@
       <p><b>Reachability bars.</b> After each decision the remaining positive weights give an outer DAC range, expanded by ±1 LSB. Being outside proves that the analog reconstruction cannot finish within that tolerance. Being inside does not prove that every level is reachable. This unipolar search mainly tolerates a wrongly rejected weight; a wrongly accepted weight cannot subsequently be subtracted.</p>
       <p><b>Capacitor mismatch.</b> Weight <var>w<sub>j</sub></var> is built from <var>w<sub>j</sub></var>/<var>w</var><sub>min</sub> unit capacitors, each with relative mismatch σ, so its relative error is σ/√units. New chip draws another set of errors.</p>
       <p><b>Comparator noise.</b> Gaussian, drawn anew for every decision. The stepped conversion uses one draw; New noise replaces it.</p>
-      <p><b>Weight calibration.</b> A separate {TRAIN_SAMPLES}-sample sine record estimates each digital reconstruction weight. Those weights are then applied to the {N_FFT}-sample spectrum record shown below. A digital weight fit can correct the value of observed decisions; it cannot recreate an input interval that a non-redundant search skipped.</p>
+      <p><b>Weight calibration.</b> A separate {TRAIN_SAMPLES}-sample sine record estimates each digital reconstruction weight. Those weights are then applied to the independent {N_FFT}-sample spectrum record shown below. At exactly zero capacitor mismatch the known nominal weights are retained: fitting them again would only learn finite-record quantisation error. A digital weight fit can correct the value of observed decisions; it cannot recreate an input interval that a non-redundant search skipped.</p>
       <p><b>Spectrum.</b> {N_FFT} conversions of a −0.5 dBFS sine, rectangular window. ENOB = (SNDR − 1.76) / 6.02. The largest spur is labelled with its harmonic order when it is one.</p>
       <p><b>Sampling.</b> <var>f</var><sub>s</sub> = 100 MS/s. The calibration and spectrum tones use coherent bins, so the FFT needs no window.</p>
       <p><b>Input frequency and clock jitter.</b> Mismatch and comparator noise act on a held sample and do not care about the input frequency; the sampling instant does. Gaussian jitter σ<sub>t</sub> turns the slope of the input into a voltage error, so it alone limits the converter to SNR = −20 log₁₀(2π<var>f</var><sub>in</sub>σ<sub>t</sub>) — 6 dB per doubling of the input frequency. Applied as ADCToolbox's <code>siggen.apply_jitter</code> does, by sampling the sine at <var>t</var> + Δ<var>t</var>.</p>
