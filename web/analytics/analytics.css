@@ -40,6 +40,21 @@ html.light .analytics-shell {
   background: var(--analytics-bg);
 }
 
+@media (prefers-color-scheme: light) {
+  html:not(.dark) .analytics-shell {
+    --analytics-ink: #131c28;
+    --analytics-ink-soft: #3d4756;
+    --analytics-muted: #68738a;
+    --analytics-accent: #1d4fd7;
+    --analytics-accent-soft: #eef3fd;
+    --analytics-bg: #ffffff;
+    --analytics-bg-band: #f5f7fa;
+    --analytics-line: #e3e8ef;
+    --analytics-line-strong: #cbd3dd;
+    background: var(--analytics-bg);
+  }
+}
+
 .analytics-shell h1,
 .analytics-shell h2 {
   line-height: 1.25;
@@ -264,6 +279,10 @@ html.light .analytics-range-input {
   background: var(--analytics-bg);
 }
 
+@media (prefers-color-scheme: light) {
+  html:not(.dark) .analytics-range-input { background: var(--analytics-bg); }
+}
+
 .analytics-range-input:hover {
   border-color: var(--analytics-line-strong);
 }
@@ -379,6 +398,11 @@ html.light .analytics-map-ocean {
 
 html.light .analytics-map-land path {
   fill: #dde7f1;
+}
+
+@media (prefers-color-scheme: light) {
+  html:not(.dark) .analytics-map-ocean { fill: #b7c9de; }
+  html:not(.dark) .analytics-map-land path { fill: #dde7f1; }
 }
 
 #analytics-heat-gradient stop {

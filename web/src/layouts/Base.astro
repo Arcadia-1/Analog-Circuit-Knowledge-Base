@@ -43,6 +43,7 @@ const siteName = 'Circuits & Systems Classroom';
         // The former generic key could leave the renamed site permanently dark.
         localStorage.removeItem('theme');
       } catch {}
+      document.documentElement.classList.toggle('dark', theme === 'dark');
       if (theme === 'light' || (theme !== 'dark' && matchMedia('(prefers-color-scheme: light)').matches)) {
         document.documentElement.classList.add('light');
       }

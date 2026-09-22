@@ -32,13 +32,14 @@ const { pageTitle } = Astro.props;
   try { preference = localStorage.getItem(storageKey); } catch { /* System preference works without storage. */ }
   function apply(light: boolean) {
     document.documentElement.classList.toggle('light', light);
+    document.documentElement.classList.toggle('dark', !light && preference === 'dark');
     if (button) {
       button.setAttribute('aria-label', `Switch to ${light ? 'dark' : 'light'} mode`);
       button.title = `Switch to ${light ? 'dark' : 'light'} mode`;
     }
   }
   if (button) {
-    apply(document.documentElement.classList.contains('light'));
+    apply(preference === 'light' || (preference !== 'dark' && media.matches));
     button.hidden = false;
     button.addEventListener('click', () => {
       preference = document.documentElement.classList.contains('light') ? 'dark' : 'light';

@@ -162,6 +162,7 @@ export default function AnalyticsPage() {
   function toggleTheme() {
     const next = theme === "dark" ? "light" : "dark";
     document.documentElement.classList.toggle("light", next === "light");
+    document.documentElement.classList.toggle("dark", next === "dark");
     localStorage.setItem("circuits-systems-theme", next);
     setTheme(next);
   }

@@ -17,6 +17,7 @@ import { ClientRouter } from 'astro:transitions';
       // The analytics module reads the theme from html.light; apply the saved one before first paint.
       const theme = localStorage.getItem('circuits-systems-theme');
       localStorage.removeItem('theme');
+      document.documentElement.classList.toggle('dark', theme === 'dark');
       if (theme === 'light' || (theme !== 'dark' && matchMedia('(prefers-color-scheme: light)').matches)) {
         document.documentElement.classList.add('light');
       }
