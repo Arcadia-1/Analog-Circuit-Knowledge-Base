@@ -1,5 +1,3 @@
-import type { Illustration } from './illustrations';
-
 /** Courses published on other sites, listed under External Links below the lessons on the home page. */
 export interface Column {
   href: string;
@@ -9,18 +7,19 @@ export interface Column {
   chapters: number;
   /** Part titles in course order. */
   parts: string[];
-  thumb: Illustration['thumb'];
+  /** Cover image from the course's own page, kept in public/external/. */
+  image: { src: string; width: number; height: number };
 }
 
 export const columns: Column[] = [
   {
     href: 'https://icdesign.com/zhuanlans/51',
     site: 'icdesign.com',
-    title: '混合信号集成电路设计工程师之旅——让我们从SAR ADC开始',
+    title: 'The Mixed-Signal IC Designer’s Journey: Starting with the SAR ADC (in Chinese)',
     summary:
-      'SAR ADC，模拟与数字的桥梁：从 ADC 基本原理、设计指标与频谱仿真，到 4 比特理想模型；电容阵列与切换、异步 SAR 逻辑、动态比较器与 Bootstrap 开关的理论与实践；再到冗余、顶/底板采样、PVT 与亚稳态等实际设计问题。',
+      'The SAR ADC as the bridge between analog and digital: ADC fundamentals, specifications and spectrum simulation; a 4-bit ideal model; the theory and practice of the capacitor array and its switching, asynchronous SAR logic, the dynamic comparator and the bootstrapped switch; then real design issues such as redundancy, top- and bottom-plate sampling, PVT and metastability.',
     chapters: 34,
-    parts: ['初识 ADC', '4 比特模型', '模块电路设计', '指标拆解与升级方案', '模拟信号链'],
-    thumb: 'sar',
+    parts: ['ADC basics', '4-bit model', 'Circuit blocks', 'Specs and upgrades', 'The analog signal chain'],
+    image: { src: '/external/icdesign-sar-adc.jpg', width: 360, height: 303 },
   },
 ];

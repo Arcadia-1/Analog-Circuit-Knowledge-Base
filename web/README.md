@@ -30,7 +30,7 @@ Run these in `web/` with Node 22.12 or newer and pnpm 11.
 | `src/lib/` | Number formatting, seeded random numbers, FFT, scales |
 | `src/styles/` | Design tokens and chart classes in `global.css`, the shared illustration page layout in `illustration.css` |
 | `src/data/illustrations.ts` | Topics and entries on the home page |
-| `src/data/columns.ts` | Courses on other sites, listed under External Links below the lessons |
+| `src/data/columns.ts` | Courses on other sites, listed under External Links below the lessons; their cover images live in `public/external/` |
 | `tests/` | Vitest checks of each TypeScript model against numbers from its Python reference |
 | `python/` | Executable Python references: ADC models using ADCToolbox, plus PLL, amplifier and SerDes models using NumPy |
 | `public/` | Favicon and Cloudflare Pages response headers |
