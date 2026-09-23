@@ -10,7 +10,7 @@ const { column } = Astro.props;
   <div class="description">
     <span class="source">{column.site} · {column.chapters} lessons · in {column.language}</span>
     <div class="heading">
-      <h3>{column.title} <span class="original" lang="zh-CN">（{column.originalTitle}）</span></h3>
+      <h3>{column.title}</h3>
       <span class="arrow" aria-hidden="true">↗</span>
     </div>
     <p>{column.summary}</p>
@@ -29,7 +29,6 @@ const { column } = Astro.props;
   .source { display: block; margin-bottom: 4px; color: var(--brand); font: 500 12px/1.25 var(--mono); letter-spacing: 0.015em; }
   .heading { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
   h3 { margin: 0; font-size: 17px; line-height: 1.35; font-weight: 500; letter-spacing: -0.01em; }
-  .original { display: block; margin-top: 2px; color: var(--ink-2); font-size: 14px; font-weight: 400; letter-spacing: 0; }
   p { margin: 5px 0 0; max-width: 72ch; color: var(--ink-2); font-size: 13px; line-height: 1.6; text-wrap: pretty; }
   .parts { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 0; padding: 0; list-style: none; counter-reset: part; }
   .parts li { counter-increment: part; padding: 2px 9px; border-radius: 999px; background: var(--chip); color: var(--ink-2); font-size: 12px; white-space: nowrap; }

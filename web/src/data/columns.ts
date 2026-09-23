@@ -3,8 +3,6 @@ export interface Column {
   href: string;
   site: string;
   title: string;
-  /** The course's own title in its language, shown after the English one. */
-  originalTitle: string;
   language: string;
   summary: string;
   chapters: number;
@@ -18,8 +16,7 @@ export const columns: Column[] = [
   {
     href: 'https://icdesign.com/zhuanlans/51',
     site: 'icdesign.com',
-    title: 'The Mixed-Signal IC Designer’s Journey: Starting with the SAR ADC',
-    originalTitle: '混合信号集成电路设计工程师之旅——让我们从SAR ADC开始',
+    title: 'The Mixed-Signal IC Designer’s Journey: Starting with the SAR ADC (中文)',
     language: 'Chinese',
     summary:
       'The SAR ADC as the bridge between analog and digital: ADC fundamentals, specifications and spectrum simulation; a 4-bit ideal model; the theory and practice of the capacitor array and its switching, asynchronous SAR logic, the dynamic comparator and the bootstrapped switch; then real design issues such as redundancy, top- and bottom-plate sampling, PVT and metastability.',
