@@ -4,7 +4,7 @@ export interface Illustration {
   href: string;
   title: string;
   summary: string;
-  thumb: 'pll' | 'sar' | 'inl' | 'err' | 'win' | 'fold' | 'ntf' | 'ti' | 'bits' | 'polar' | 'bode' | 'floor' | 'fom' | 'harm' | 'record' | 'repeat' | 'short' | 'train' | 'panel' | 'amplifier';
+  thumb: 'pll' | 'sar' | 'inl' | 'err' | 'win' | 'fold' | 'ntf' | 'ti' | 'bits' | 'polar' | 'bode' | 'floor' | 'fom' | 'harm' | 'record' | 'repeat' | 'short' | 'train' | 'panel' | 'amplifier' | 'serdes';
   /** Whose site this is, for a page that is not on this one; it opens in a tab of its own. */
   external?: string;
   /** Public catalog label; assigned only after a lesson passes the editorial gate. */
@@ -146,6 +146,13 @@ export const related: Topic = {
       title: 'Open-loop to closed-loop',
       summary: 'Use feedback to trade gain for bandwidth in a single-pole amplifier.',
       thumb: 'amplifier',
+      category: 'Circuits & Systems',
+    },
+    {
+      href: '/serdes/112g-pam4-link/',
+      title: '112G PAM4 SerDes link',
+      summary: 'Follow PAM4 symbols through a 3-D chip-to-chip link and equalize the eye.',
+      thumb: 'serdes',
       category: 'Circuits & Systems',
     },
     {

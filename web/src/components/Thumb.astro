@@ -1,6 +1,6 @@
 ---
 /** Small schematic previews for the home page. */
-interface Props { kind: 'pll' | 'sar' | 'inl' | 'err' | 'win' | 'fold' | 'ntf' | 'ti' | 'bits' | 'polar' | 'bode' | 'floor' | 'fom' | 'harm' | 'record' | 'repeat' | 'short' | 'train' | 'panel' | 'amplifier' }
+interface Props { kind: 'pll' | 'sar' | 'inl' | 'err' | 'win' | 'fold' | 'ntf' | 'ti' | 'bits' | 'polar' | 'bode' | 'floor' | 'fom' | 'harm' | 'record' | 'repeat' | 'short' | 'train' | 'panel' | 'amplifier' | 'serdes' }
 const { kind } = Astro.props;
 const xs = Array.from({ length: 13 }, (_, i) => 6 + i * 14);
 const saw = [-14, -8, -2, 6, 14];
@@ -69,9 +69,28 @@ const amplifierCurve = (closed: boolean) => Array.from({ length: 81 }, (_, i) =>
   const db = 20 * Math.log10(1000 / Math.hypot(closed ? 101 : 1, f / 100));
   return `${4 + i * 2.25},${84 - db * .9}`;
 }).join(' ');
+// PAM4 symbols as launched, and the same symbols smeared by a lossy channel
+const pam = [3, 1, 0, 2, 3, 0, 1, 3, 2, 0, 1, 2, 3];
+const pamSteps = pam.flatMap((s, i) => [`${4 + i * 14},${30 - (s - 1.5) * 8}`, `${4 + (i + 1) * 14},${30 - (s - 1.5) * 8}`]).join(' ');
+const pamSmeared = (() => {
+  let v = 0;
+  const pts: string[] = [];
+  for (let x = 4; x <= 186; x += 2) {
+    v += (pam[Math.min(pam.length - 1, Math.floor((x - 4) / 14))] - 1.5 - v) * 0.16;
+    pts.push(`${x},${(78 - v * 7).toFixed(1)}`);
+  }
+  return pts.join(' ');
+})();
 ---
 <svg class="thumb" viewBox="0 0 188 100" aria-hidden="true">
-  {kind === 'amplifier' ? (
+  {kind === 'serdes' ? (
+    <>
+      <line class="base" x1="0" x2="188" y1="30" y2="30" />
+      <polyline class="s1 link" points={pamSteps} />
+      <line class="base" x1="0" x2="188" y1="78" y2="78" />
+      <polyline class="s2 link" points={pamSmeared} />
+    </>
+  ) : kind === 'amplifier' ? (
     <>
       <line class="base" x1="0" x2="188" y1="84" y2="84" />
       <line class="base" x1="64" x2="64" y1="24" y2="96" />
