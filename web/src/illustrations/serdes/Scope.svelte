@@ -1,4 +1,5 @@
 <script lang="ts">
+  import type { Snippet } from 'svelte';
   import Segmented from '../../components/ui/Segmented.svelte';
   import { nf } from '../../lib/format';
   import { drawEye } from './eyes';
@@ -7,8 +8,8 @@
   import ResponseChart from './ResponseChart.svelte';
   import type { EyeStream } from './streams';
 
-  let { a, live, dsp, adapting, decisions, errors, light, eyes }: {
-    a: LinkAnalysis; live: Metrics; dsp: boolean; adapting: boolean; decisions: number; errors: number; light: boolean; eyes: EyeStream;
+  let { a, live, dsp, adapting, decisions, errors, light, eyes, controls }: {
+    a: LinkAnalysis; live: Metrics; dsp: boolean; adapting: boolean; decisions: number; errors: number; light: boolean; eyes: EyeStream; controls?: Snippet;
   } = $props();
 
   let tab = $state<'eyes' | 'channel'>('eyes');
@@ -51,7 +52,8 @@
   }
 </script>
 
-<aside class="scope" aria-label="Receiver measurements">
+<aside class="scope" aria-label="Receiver settings and measurements">
+  {@render controls?.()}
   <div class="numbers">
     <div class="metric"><span class="label">DSP SNR</span><span class="mono big">{nf(snrDb, 1)}</span><span class="unit">dB</span></div>
     <div class="metric"><span class="label">Pre-FEC BER</span>
@@ -90,6 +92,13 @@
       <dt>DFE tap b₁</dt><dd class="mono">{dsp ? nf(live.b1, 3) : 'off'}</dd>
       <dt>Slow-motion decisions</dt><dd class="mono">{decisions.toLocaleString('en-US')} · {errors} errors</dd>
     </dl>
+    <div class="about">
+      <span class="label">Model</span>
+      <p><b>Channel.</b> The loss at 28 GHz is split 35 % skin effect, exp(−a√(jf)), and 65 % dielectric, exp(−b(jf)<sup>0.9</sup>), both causal, plus one echo (ρ₁ρ₂ = 0.02, 9 UI) for the package transitions. The TX driver has two poles at 50 GHz, the RX front end one at 45 GHz.</p>
+      <p><b>Receiver.</b> The CTLE uses the IEEE 802.3ck COM reference form; Auto searches g<sub>DC</sub> 0 … −20 dB and g<sub>DC2</sub> ∈ {'{'}0, −3, −6{'}'} dB with the sampling phase for the best SNR. A VGA sets the rms to 0.3 FS. The 12-tap FFE and 1-tap DFE are the MMSE solution, which the running taps approach after every change.</p>
+      <p><b>Noise and BER.</b> RX noise is white at the pad, crosstalk band-pass, both shaped by the CTLE; the ADC adds 0.010 FS rms, the TX has 28 dB SNDR, random jitter is 0.2 ps rms. BER is the Gaussian approximation (3/4)·Q(√(SNR/5)); KP4 FEC corrects up to about 2.4×10⁻⁴.</p>
+      <p><b>Scale.</b> The animation runs about 7×10⁹ times slower than the link and is not to scale: a 30 cm trace holds about 110 symbols, 44 are drawn. <code>python/serdes_112g_link.py</code> is the NumPy reference the tests compare against.</p>
+    </div>
   {/if}
 </aside>
 
@@ -126,6 +135,10 @@
   .kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 4px 0 0; font-size: 12.5px; }
   .kv dt { color: var(--ink-2); }
   .kv dd { margin: 0; text-align: right; font-size: 12px; font-variant-numeric: tabular-nums; }
+  .about { display: grid; gap: 6px; margin-top: 4px; padding-top: 10px; border-top: 1px solid var(--rule); font-size: 12px; line-height: 1.55; color: var(--ink-2); }
+  .about p { margin: 0; }
+  .about b { color: var(--ink); font-weight: 500; }
+  .about code { font: 11px var(--mono); color: var(--ink); background: var(--chip); padding: 0 4px; border-radius: 4px; }
   @media (prefers-reduced-motion: reduce) { .budget span { transition: none; } }
   @media (max-width: 900px) { .scope { overflow: visible; } }
 </style>

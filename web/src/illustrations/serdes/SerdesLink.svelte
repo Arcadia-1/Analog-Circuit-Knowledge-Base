@@ -1,6 +1,5 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import Notes from '../../components/ui/Notes.svelte';
   import Range from '../../components/ui/Range.svelte';
   import Segmented from '../../components/ui/Segmented.svelte';
   import { nf } from '../../lib/format';
@@ -155,22 +154,11 @@
 
 <main class="page serdes">
   <header class="top">
-    <div class="controls">
+    <div class="controls" role="group" aria-label="Channel conditions">
       <Range id="serdes-loss" bind:value={lossDb} min={8} max={44} step={1} output={`${lossDb} dB`}>Loss at 28 GHz</Range>
       <Range id="serdes-xt" bind:value={xtMv} min={0} max={4} step={0.1} output={`${xtMv.toFixed(1)} mV`}>Crosstalk</Range>
       <Range id="serdes-rxn" bind:value={rxnMv} min={0.2} max={2.5} step={0.1} output={`${rxnMv.toFixed(1)} mV`}>RX noise</Range>
-      <div class="pick"><span class="label">TX FFE</span><Segmented size="sm" label="Transmitter feed-forward equalizer" options={[{ value: false, label: 'Off' }, { value: true, label: '3-tap' }]} bind:value={txFfe} /></div>
-      <div class="pick"><span class="label">CTLE</span><Segmented size="sm" label="CTLE setting" options={[{ value: 'auto', label: 'Auto' }, { value: 'manual', label: 'Manual' }]} bind:value={ctle} /></div>
-      {#if ctle === 'manual'}<Range id="serdes-gdc" bind:value={gdc} min={-20} max={0} step={1} output={`${nf(gdc, 0)} dB`}>g<sub>DC</sub></Range>{/if}
-      <div class="pick"><span class="label">DSP</span><Segmented size="sm" label="Receiver DSP equalizer" options={[{ value: false, label: 'Off' }, { value: true, label: 'FFE + DFE' }]} bind:value={dsp} /></div>
     </div>
-    <Notes>
-      <p><b>What moves.</b> Symbols from a PRBS13Q source speed up through the transmitter's MUX tree, leave through an SST driver whose segments light with each PAM4 level, and travel along the board as the drawn line voltage. At the receiver each of 64 SAR ADC tiles flashes as it samples, the FFE and DFE taps stand as pillars, and decided symbols fan out through the DEMUX tree; red ones are errors. The animation runs about 7×10⁹ times slower than the real link and is not to scale: a 30 cm trace holds about 110 symbols, 44 are drawn.</p>
-      <p><b>Channel.</b> The bump-to-bump loss at 28 GHz is split 35 % skin effect, exp(−a√(jf)), and 65 % dielectric, exp(−b(jf)<sup>0.9</sup>); both forms are causal. One echo (ρ₁ρ₂ = 0.02, 9 UI) stands for the package transitions. The TX driver has two poles at 50 GHz and the RX front end one at 45 GHz.</p>
-      <p><b>Receiver.</b> The CTLE uses the IEEE 802.3ck COM reference form (zero at f<sub>b</sub>/2.5, poles at f<sub>b</sub>/2.5 and f<sub>b</sub>, shelf at f<sub>b</sub>/80). Auto searches g<sub>DC</sub> from 0 to −20 dB and g<sub>DC2</sub> in {'{'}0, −3, −6{'}'} dB together with the sampling phase for the best SNR. A VGA sets the rms to 0.3 of full scale; the 12-tap FFE and 1-tap DFE are the MMSE solution, which the running taps approach after every change.</p>
-      <p><b>Noise and BER.</b> RX noise is white at the pad over 0–28 GHz and crosstalk band-pass, both shaped by the CTLE; the ADC adds 0.010 FS rms (about 6 ENOB), the TX has 28 dB SNDR and random jitter is 0.2 ps rms. BER uses the Gaussian approximation (3/4)·Q(√(SNR/5)), which is pessimistic when bounded ISI dominates. KP4 FEC corrects a pre-FEC BER up to about 2.4×10⁻⁴.</p>
-      <p><b>Verification.</b> The model is a TypeScript port of <code>python/serdes_112g_link.py</code>; the tests compare it with the NumPy reference and check that the loss at 28 GHz is exact, the pulse response is causal with unit area, and no single-tap change improves on the MMSE solution.</p>
-    </Notes>
   </header>
 
   <section class="work">
@@ -209,15 +197,29 @@
         </article>
       {/if}
     </div>
-    <Scope bind:this={scope} {a} {live} {dsp} {adapting} {decisions} {errors} {light} {eyes} />
+    <Scope bind:this={scope} {a} {live} {dsp} {adapting} {decisions} {errors} {light} {eyes}>
+      {#snippet controls()}
+        <div class="eq" role="group" aria-label="Equalization">
+          <span class="label">TX FFE</span>
+          <Segmented size="sm" label="Transmitter feed-forward equalizer" options={[{ value: false, label: 'Off' }, { value: true, label: '3-tap' }]} bind:value={txFfe} />
+          <span class="label">CTLE</span>
+          <Segmented size="sm" label="CTLE setting" options={[{ value: 'auto', label: 'Auto' }, { value: 'manual', label: 'Manual' }]} bind:value={ctle} />
+          {#if ctle === 'manual'}
+            <div class="wide"><Range id="serdes-gdc" bind:value={gdc} min={-20} max={0} step={1} output={`${nf(gdc, 0)} dB`}><var>g</var><sub>DC</sub></Range></div>
+          {/if}
+          <span class="label">DSP</span>
+          <Segmented size="sm" label="Receiver DSP equalizer" options={[{ value: false, label: 'Off' }, { value: true, label: 'FFE + DFE' }]} bind:value={dsp} />
+        </div>
+      {/snippet}
+    </Scope>
   </section>
 </main>
 
 <style>
   .serdes { grid-template-rows: auto minmax(0, 1fr); }
-  .controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 22px; --range-width: 104px; --range-output-width: 6.5ch; --accent: var(--brand); --accent-soft: var(--brand-soft); }
-  .pick { display: flex; align-items: center; gap: 8px; }
-  .top :global(.notes) { margin-left: auto; }
+  .controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 28px; --range-width: 120px; --range-output-width: 6.5ch; --accent: var(--brand); }
+  .eq { display: grid; grid-template-columns: 52px minmax(0, 1fr); align-items: center; justify-items: start; gap: 7px 10px; padding-bottom: 12px; border-bottom: 1px solid var(--rule); --accent: var(--brand); --accent-soft: var(--brand-soft); }
+  .eq .wide { grid-column: 1 / -1; --range-width: 150px; --range-output-width: 6.5ch; }
   .work { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 18px; min-height: 0; border-top: 1px solid var(--rule); padding-top: 12px; }
   .stage { position: relative; min-height: 0; overflow: hidden; border-radius: 10px; box-shadow: inset 0 0 0 1px var(--rule); background: var(--plot); }
   .stage :global(.serdes-canvas) { position: absolute; inset: 0; display: block; touch-action: none; }
@@ -258,6 +260,5 @@
     .play { right: 10px; }
     .key { top: 52px; bottom: auto; right: 10px; }
     .controls { gap: 10px; width: 100%; }
-    .pick { width: 100%; justify-content: space-between; }
   }
 </style>
