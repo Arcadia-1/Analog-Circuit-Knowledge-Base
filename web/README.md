@@ -31,7 +31,7 @@ Run these in `web/` with Node 22.12 or newer and pnpm 11.
 | `src/styles/` | Design tokens and chart classes in `global.css`, the shared illustration page layout in `illustration.css` |
 | `src/data/illustrations.ts` | Topics and entries on the home page |
 | `tests/` | Vitest checks of each TypeScript model against numbers from its Python reference |
-| `python/` | Executable Python references: ADC models using ADCToolbox, plus PLL and amplifier models using NumPy |
+| `python/` | Executable Python references: ADC models using ADCToolbox, plus PLL, amplifier and SerDes models using NumPy |
 | `public/` | Favicon and Cloudflare Pages response headers |
 | `analytics/` | Copied analytics module: tracking, dashboard, routes and Durable Object |
 | `functions/` | Host-aware redirects from the former tutorial URLs to the new domain |
@@ -54,6 +54,13 @@ Run these in `web/` with Node 22.12 or newer and pnpm 11.
   calibration and spectrum analysis are ports of [ADCToolbox](https://github.com/Arcadia-1/ADCToolbox), checked against it to
   0.001 ENOB. The page steps through one conversion and compares the output spectra of both converters before and after
   calibration. It grows out of [ADC_Visualization](https://github.com/Arcadia-1/ADC_Visualization).
+- **112G PAM4 SerDes link** at `/serdes/112g-pam4-link/`. A Three.js scene of a chip-to-chip link: the transmitter die
+  (MUX tree, SST driver, LC-PLL), the board channel and the receiver die (CTLE, 64-way SAR TI-ADC, FFE/DFE DSP, DEMUX
+  tree), with the line voltage drawn in slow motion from the channel model. The model evaluates a causal channel
+  (skin effect, dielectric loss and one echo), the IEEE 802.3ck COM-form CTLE, VGA and noise terms in the frequency
+  domain, searches the CTLE and sampling phase for the best SNR and solves a 12-tap MMSE FFE with a one-tap DFE; the eye
+  diagrams, error budget and Gaussian-approximation BER follow from it. `python/serdes_112g_link.py` is the NumPy
+  reference. three.js loads only on this page, as a lazy chunk.
 
 ## Adding an illustration
 
@@ -88,7 +95,7 @@ the ADCToolbox manual; its home page and tutorial paths redirect to the matching
 ## Editorial and visual direction
 
 Use **Circuits & Systems Classroom** as the site brand. The public catalog is intentionally small: four reviewed ADC
-lessons, one PLL lesson, one amplifier lesson and the selected Bode-plot tool. Other experiments remain available by direct URL with `noindex`
+lessons, one PLL lesson, one amplifier lesson, one SerDes lesson and the selected Bode-plot tool. Other experiments remain available by direct URL with `noindex`
 until they reach the same standard. The ADCToolbox manual remains the reference for the Python API and longer examples.
 
 Each entry has its own schematic preview so readers can recognize the experiment at a glance; model provenance and example

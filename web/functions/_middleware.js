@@ -15,7 +15,8 @@ function isTutorialPath(pathname) {
     || pathname === '/sitemap-0.xml'
     || pathname.startsWith('/adc/')
     || pathname.startsWith('/pll/')
-    || pathname.startsWith('/amplifiers/');
+    || pathname.startsWith('/amplifiers/')
+    || pathname.startsWith('/serdes/');
 }
 
 function isManualPath(pathname) {
