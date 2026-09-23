@@ -1,6 +1,8 @@
 ---
 import Base from '../layouts/Base.astro';
 import Entry from '../components/Entry.astro';
+import ColumnEntry from '../components/ColumnEntry.astro';
+import { columns } from '../data/columns';
 import { featuredLessons } from '../data/illustrations';
 const SIGNAL_W = 240;
 const SIGNAL_H = 180;
@@ -48,6 +50,17 @@ const digitalPath = `M0 ${SIGNAL_H / 2} ` + Array.from({ length: 32 }, (_, i) =>
         </div>
       </section>
     </div>
+
+    <section class="paid" aria-labelledby="paid-title">
+      <div class="paid-inner">
+        <div class="section-head">
+          <h2 id="paid-title">Paid column</h2>
+          <span lang="zh-CN">付费专栏</span>
+          <p>A full course hosted on another site, separate from the free lessons above.</p>
+        </div>
+        {columns.map((column) => <ColumnEntry column={column} />)}
+      </div>
+    </section>
   </main>
 </Base>
 
@@ -91,6 +104,12 @@ const digitalPath = `M0 ${SIGNAL_H / 2} ` + Array.from({ length: 32 }, (_, i) =>
   .filters button:hover { color: var(--ink); border-color: var(--ink-3); }
   .filters button[aria-pressed='true'] { color: var(--ground); border-color: var(--brand); background: var(--brand); }
   .lesson-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 32px; }
+  .paid { border-top: 1px solid var(--rule-soft); background: color-mix(in srgb, var(--plot) 55%, transparent); }
+  .paid-inner { max-width: 1152px; margin: auto; padding: 28px 32px 40px; }
+  .section-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; padding: 0 12px 13px; border-bottom: 1px solid var(--rule); }
+  .section-head h2 { margin: 0; font-size: 22px; line-height: 1.2; font-weight: 550; letter-spacing: -0.025em; }
+  .section-head span { color: var(--ink-2); font-size: 15px; }
+  .section-head p { flex-basis: 100%; margin: 2px 0 0; color: var(--ink-3); font-size: 13px; }
   @media (max-width: 760px) { .signal { width: 150px; margin: 0 12px 0 0; padding-inline: 0; } .hero-inner { gap: 24px; } .lesson-grid { column-gap: 22px; } }
   @media (max-width: 600px) {
     .hero-inner { padding: 26px 20px; }
@@ -100,5 +119,7 @@ const digitalPath = `M0 ${SIGNAL_H / 2} ` + Array.from({ length: 32 }, (_, i) =>
     .filters::-webkit-scrollbar { display: none; }
     .filters button { flex: none; }
     .lesson-grid { grid-template-columns: minmax(0, 1fr); }
+    .paid-inner { padding: 24px 20px 32px; }
+    .section-head { padding-inline: 0; }
   }
 </style>
