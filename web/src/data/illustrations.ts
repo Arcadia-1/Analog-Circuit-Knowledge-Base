@@ -1,4 +1,4 @@
-export type LessonCategory = 'ADC' | 'PLL' | 'Circuits & Systems';
+export type LessonCategory = 'ADC' | 'PLL' | 'SerDes' | 'Circuits & Systems';
 
 export interface Illustration {
   href: string;
@@ -153,7 +153,7 @@ export const related: Topic = {
       title: '112G PAM4 SerDes link',
       summary: 'Follow PAM4 symbols through a 3-D chip-to-chip link and equalize the eye.',
       thumb: 'serdes',
-      category: 'Circuits & Systems',
+      category: 'SerDes',
     },
     {
       href: 'https://many-question.github.io/bode-sketch/',

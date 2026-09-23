@@ -153,31 +153,56 @@
 <svelte:window onkeydown={(e) => { if (e.key === 'Escape') picked = null; }} />
 
 <main class="page serdes">
-  <header class="top">
-    <div class="controls" role="group" aria-label="Channel conditions">
-      <Range id="serdes-loss" bind:value={lossDb} min={8} max={44} step={1} output={`${lossDb} dB`}>Loss at 28 GHz</Range>
-      <Range id="serdes-xt" bind:value={xtMv} min={0} max={4} step={0.1} output={`${xtMv.toFixed(1)} mV`}>Crosstalk</Range>
-      <Range id="serdes-rxn" bind:value={rxnMv} min={0.2} max={2.5} step={0.1} output={`${rxnMv.toFixed(1)} mV`}>RX noise</Range>
-    </div>
-  </header>
-
   <section class="work">
+    <aside class="side" aria-label="Link settings">
+      <section>
+        <h2 class="label">Channel</h2>
+        <Range id="serdes-loss" bind:value={lossDb} min={8} max={44} step={1} output={`${lossDb} dB`}>Loss at 28 GHz</Range>
+        <div class="ticks" aria-hidden="true"><span style:left="22.2%">VSR</span><span style:left="33.3%">MR</span><span style:left="55.6%">LR</span></div>
+        <Range id="serdes-xt" bind:value={xtMv} min={0} max={4} step={0.1} output={`${xtMv.toFixed(1)} mV`}>Crosstalk (ICN)</Range>
+      </section>
+      <section>
+        <h2 class="label">Transmitter</h2>
+        <div class="row"><span>3-tap FFE</span><Segmented size="sm" label="Transmitter feed-forward equalizer" options={[{ value: false, label: 'Off' }, { value: true, label: 'On' }]} bind:value={txFfe} /></div>
+        <p class="hint">c(−1) −0.10 · c(0) 0.75 · c(+1) −0.15</p>
+      </section>
+      <section>
+        <h2 class="label">Receiver</h2>
+        <div class="row"><span>CTLE</span><Segmented size="sm" label="CTLE setting" options={[{ value: 'auto', label: 'Auto' }, { value: 'manual', label: 'Manual' }]} bind:value={ctle} /></div>
+        {#if ctle === 'manual'}<Range id="serdes-gdc" bind:value={gdc} min={-20} max={0} step={1} output={`${nf(gdc, 0)} dB`}><var>g</var><sub>DC</sub></Range>{/if}
+        <div class="row"><span>DSP</span><Segmented size="sm" label="Receiver DSP equalizer" options={[{ value: false, label: 'Off' }, { value: true, label: 'FFE + DFE' }]} bind:value={dsp} /></div>
+        <p class="hint">{ctle === 'auto' ? `auto: g_DC ${nf(a.gdc, 0)} dB, g_DC2 ${nf(a.gdc2, 0)} dB` : 'manual g_DC, g_DC2 kept'} · 12-tap FFE + 1-tap DFE</p>
+        <Range id="serdes-rxn" bind:value={rxnMv} min={0.2} max={2.5} step={0.1} output={`${rxnMv.toFixed(1)} mV`}>RX input noise</Range>
+      </section>
+      <section>
+        <h2 class="label">Playback</h2>
+        <div class="row">
+          <button type="button" class="primary" aria-pressed={playing} onclick={() => (playing = !playing)}>{playing ? 'Pause' : 'Play'}</button>
+          <Segmented size="sm" mono label="Playback speed" options={[{ value: 0.25, label: '¼×' }, { value: 0.5, label: '½×' }, { value: 1, label: '1×' }, { value: 2, label: '2×' }, { value: 4, label: '4×' }]} bind:value={speed} />
+        </div>
+        <p class="hint">1 UI = 17.86 ps, shown as {nf(slowMs, slowMs < 100 ? 1 : 0)} ms</p>
+        <div class="row start">
+          <button type="button" aria-pressed={spin} onclick={() => { spin = !spin; scene?.setSpin(spin); }}>Auto-rotate</button>
+          <button type="button" aria-pressed={labels} onclick={() => { labels = !labels; scene?.setLabels(labels); }}>Labels</button>
+        </div>
+      </section>
+      <section>
+        <h2 class="label">Key</h2>
+        <ul class="key" aria-label="Symbol colours">
+          {#each SYMBOL_COLORS as c, i (c)}<li><i style:background={c}></i>{LEVEL_NAMES[i]}</li>{/each}
+          <li><i style:background={ERROR_COLOR}></i>error</li>
+        </ul>
+        <ul class="floor" aria-label="Floorplan colours">
+          {#each Object.values(CATEGORY) as c (c.name)}<li><i style:background="#{c.color.toString(16).padStart(6, '0')}"></i>{c.name}</li>{/each}
+        </ul>
+      </section>
+    </aside>
+
     <div class="stage" bind:this={host}>
       {#if noGl}<p class="nogl">This view needs WebGL, which is turned off or unavailable in this browser.</p>{/if}
-      <div class="bar views" role="group" aria-label="Camera views">
+      <div class="views" role="group" aria-label="Camera views">
         {#each VIEWS as v (v.value)}<button type="button" aria-pressed={view === v.value} onclick={() => go(v.value)}>{v.label}</button>{/each}
       </div>
-      <div class="bar play">
-        <button type="button" class="primary" aria-pressed={playing} onclick={() => (playing = !playing)}>{playing ? 'Pause' : 'Play'}</button>
-        <Segmented size="sm" mono label="Playback speed" options={[{ value: 0.25, label: '¼×' }, { value: 0.5, label: '½×' }, { value: 1, label: '1×' }, { value: 2, label: '2×' }, { value: 4, label: '4×' }]} bind:value={speed} />
-        <button type="button" aria-pressed={spin} onclick={() => { spin = !spin; scene?.setSpin(spin); }}>Rotate</button>
-        <button type="button" aria-pressed={labels} onclick={() => { labels = !labels; scene?.setLabels(labels); }}>Labels</button>
-        <span class="slow">1 UI = 17.86 ps, shown as {nf(slowMs, slowMs < 100 ? 1 : 0)} ms</span>
-      </div>
-      <ul class="bar key" aria-label="Symbol colours">
-        {#each SYMBOL_COLORS as c, i (c)}<li><i style:background={c}></i>{LEVEL_NAMES[i]}</li>{/each}
-        <li><i style:background={ERROR_COLOR}></i>error</li>
-      </ul>
       {#if hover && !picked}
         <div class="tip" style:left="{hover.x + 14}px" style:top="{hover.y + 16}px">{BLOCKS[hover.id].title}<small>Click for details</small></div>
       {/if}
@@ -197,30 +222,31 @@
         </article>
       {/if}
     </div>
-    <Scope bind:this={scope} {a} {live} {dsp} {adapting} {decisions} {errors} {light} {eyes}>
-      {#snippet controls()}
-        <div class="eq" role="group" aria-label="Equalization">
-          <span class="label">TX FFE</span>
-          <Segmented size="sm" label="Transmitter feed-forward equalizer" options={[{ value: false, label: 'Off' }, { value: true, label: '3-tap' }]} bind:value={txFfe} />
-          <span class="label">CTLE</span>
-          <Segmented size="sm" label="CTLE setting" options={[{ value: 'auto', label: 'Auto' }, { value: 'manual', label: 'Manual' }]} bind:value={ctle} />
-          {#if ctle === 'manual'}
-            <div class="wide"><Range id="serdes-gdc" bind:value={gdc} min={-20} max={0} step={1} output={`${nf(gdc, 0)} dB`}><var>g</var><sub>DC</sub></Range></div>
-          {/if}
-          <span class="label">DSP</span>
-          <Segmented size="sm" label="Receiver DSP equalizer" options={[{ value: false, label: 'Off' }, { value: true, label: 'FFE + DFE' }]} bind:value={dsp} />
-        </div>
-      {/snippet}
-    </Scope>
+
+    <Scope bind:this={scope} {a} {live} {dsp} {adapting} {decisions} {errors} {light} {eyes} />
   </section>
 </main>
 
 <style>
-  .serdes { grid-template-rows: auto minmax(0, 1fr); }
-  .controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 28px; --range-width: 120px; --range-output-width: 6.5ch; --accent: var(--brand); }
-  .eq { display: grid; grid-template-columns: 52px minmax(0, 1fr); align-items: center; justify-items: start; gap: 7px 10px; padding-bottom: 12px; border-bottom: 1px solid var(--rule); --accent: var(--brand); --accent-soft: var(--brand-soft); }
-  .eq .wide { grid-column: 1 / -1; --range-width: 150px; --range-output-width: 6.5ch; }
-  .work { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 18px; min-height: 0; border-top: 1px solid var(--rule); padding-top: 12px; }
+  .serdes { grid-template-rows: minmax(0, 1fr); }
+  .work { display: grid; grid-template-columns: 250px minmax(0, 1fr) 320px; gap: 18px; min-height: 0; }
+  .side { display: flex; flex-direction: column; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding-right: 4px; --accent: var(--brand); --accent-soft: var(--brand-soft); }
+  .side section { display: grid; gap: 8px; padding: 12px 0; border-top: 1px solid var(--rule); }
+  .side section:first-child { border-top: 0; padding-top: 2px; }
+  .side h2 { margin: 0; }
+  .side section :global(.range) { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: 'label out' 'input input'; align-items: center; gap: 5px 8px; }
+  .side section :global(.range label) { grid-area: label; }
+  .side section :global(.range input) { grid-area: input; width: 100%; }
+  .side section :global(.range output) { grid-area: out; width: auto; text-align: right; }
+  .ticks { position: relative; height: 11px; margin-top: -5px; font: 10px var(--mono); color: var(--ink-3); }
+  .ticks span { position: absolute; transform: translateX(-50%); }
+  .row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; font-size: 13px; color: var(--ink-2); }
+  .row.start { justify-content: flex-start; }
+  .hint { margin: -3px 0 0; font: 11px/1.4 var(--mono); color: var(--ink-3); }
+  .key, .floor { display: grid; gap: 5px 10px; margin: 0; padding: 0; list-style: none; font-size: 12px; color: var(--ink-2); }
+  .key { grid-template-columns: repeat(5, max-content); font-family: var(--mono); font-size: 11.5px; }
+  .floor { grid-template-columns: 1fr 1fr; }
+  .key i, .floor i { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
   .stage { position: relative; min-height: 0; overflow: hidden; border-radius: 10px; box-shadow: inset 0 0 0 1px var(--rule); background: var(--plot); }
   .stage :global(.serdes-canvas) { position: absolute; inset: 0; display: block; touch-action: none; }
   .stage :global(.serdes-labels) { position: absolute; inset: 0; pointer-events: none; }
@@ -230,20 +256,15 @@
   .stage :global(.serdes-lbl.big) { font-size: 13px; font-weight: 600; }
   .stage :global(.far .serdes-lbl) { opacity: 0; }
   .nogl { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; padding: 20px; color: var(--ink-2); text-align: center; }
-  .bar { position: absolute; z-index: 2; display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
-  .views { top: 10px; left: 10px; padding: 3px; border-radius: 8px; background: color-mix(in srgb, var(--plot) 86%, transparent); box-shadow: inset 0 0 0 1px var(--rule); }
-  .play { left: 10px; bottom: 10px; right: 200px; gap: 8px; }
-  .key { right: 12px; bottom: 14px; width: max-content; flex-wrap: nowrap; gap: 10px; margin: 0; padding: 0; list-style: none; font: 11.5px var(--mono); color: var(--ink-2); }
-  .key i { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
-  button { font: 500 12.5px/1 var(--sans); color: var(--ink-2); background: color-mix(in srgb, var(--plot) 86%, transparent); border: 0; border-radius: 6px; padding: 7px 10px; cursor: pointer; white-space: nowrap; box-shadow: inset 0 0 0 1px var(--rule); }
+  .views { position: absolute; z-index: 2; top: 10px; left: 10px; display: flex; flex-wrap: wrap; gap: 2px; padding: 3px; border-radius: 8px; background: color-mix(in srgb, var(--plot) 86%, transparent); box-shadow: inset 0 0 0 1px var(--rule); }
+  button { font: 500 12.5px/1 var(--sans); color: var(--ink-2); background: var(--plot); border: 0; border-radius: 6px; padding: 7px 10px; cursor: pointer; white-space: nowrap; box-shadow: inset 0 0 0 1px var(--rule); }
   button:hover { color: var(--ink); }
   .views button { box-shadow: none; background: transparent; }
   button[aria-pressed='true'] { color: var(--ink); background: var(--brand-soft); box-shadow: inset 0 0 0 1px var(--brand); }
   button.primary { color: var(--ground); background: var(--brand); box-shadow: none; min-width: 58px; }
-  .slow { font-size: 12px; color: var(--ink-3); }
   .tip { position: absolute; z-index: 3; pointer-events: none; padding: 6px 9px; border-radius: 6px; background: var(--plot); box-shadow: 0 0 0 1px var(--rule), 0 8px 24px rgba(0, 0, 0, 0.2); font-size: 12.5px; font-weight: 500; white-space: nowrap; }
   .tip small { display: block; font-size: 11px; font-weight: 400; color: var(--ink-3); }
-  .info { position: absolute; z-index: 3; left: 10px; bottom: 56px; width: min(360px, calc(100% - 20px)); display: grid; gap: 8px; padding: 14px 16px; border-radius: 10px; background: var(--plot); box-shadow: 0 0 0 1px var(--rule), 0 14px 36px rgba(10, 14, 20, 0.22); }
+  .info { position: absolute; z-index: 3; left: 10px; bottom: 10px; width: min(360px, calc(100% - 20px)); display: grid; gap: 8px; padding: 14px 16px; border-radius: 10px; background: var(--plot); box-shadow: 0 0 0 1px var(--rule), 0 14px 36px rgba(10, 14, 20, 0.22); }
   .info-head { display: flex; justify-content: space-between; align-items: start; gap: 10px; }
   .info h2 { margin: 3px 0 0; font-size: 17px; font-weight: 550; letter-spacing: -0.015em; }
   .cat { display: flex; align-items: center; gap: 6px; font-size: 11px; letter-spacing: 0.09em; text-transform: uppercase; color: var(--ink-2); }
@@ -253,12 +274,10 @@
   .info dt { color: var(--ink-3); }
   .info dd { margin: 0; font-size: 12px; }
   .info .primary { justify-self: start; }
-  @media (max-width: 1180px) { .work { grid-template-columns: minmax(0, 1fr) 300px; } .slow { display: none; } }
+  @media (max-width: 1180px) { .work { grid-template-columns: 220px minmax(0, 1fr) 290px; gap: 14px; } }
   @media (max-width: 900px) {
     .work { grid-template-columns: minmax(0, 1fr); }
-    .stage { height: 62vh; min-height: 380px; }
-    .play { right: 10px; }
-    .key { top: 52px; bottom: auto; right: 10px; }
-    .controls { gap: 10px; width: 100%; }
+    .stage { order: -1; height: 60vh; min-height: 360px; }
+    .side { overflow: visible; padding-right: 0; }
   }
 </style>

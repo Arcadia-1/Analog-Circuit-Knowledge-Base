@@ -2,14 +2,14 @@
 import Thumb from './Thumb.astro';
 import type { Column } from '../data/columns';
 
-/** A paid course hosted on another site: preview, title, orientation and its parts in order. Opens in a new tab. */
+/** A course hosted on another site: preview, title, orientation and its parts in order. Opens in a new tab. */
 interface Props { column: Column }
 const { column } = Astro.props;
 ---
 <a class="column" href={column.href} target="_blank" rel="noopener noreferrer" lang="zh-CN">
   <div class="preview"><Thumb kind={column.thumb} /></div>
   <div class="description">
-    <span class="source">付费专栏 · {column.site} · {column.chapters} 讲</span>
+    <span class="source">{column.site} · {column.chapters} 讲</span>
     <div class="heading">
       <h3>{column.title}</h3>
       <span class="arrow" aria-hidden="true">↗</span>

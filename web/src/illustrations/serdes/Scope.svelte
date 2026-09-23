@@ -1,5 +1,4 @@
 <script lang="ts">
-  import type { Snippet } from 'svelte';
   import Segmented from '../../components/ui/Segmented.svelte';
   import { nf } from '../../lib/format';
   import { drawEye } from './eyes';
@@ -8,8 +7,8 @@
   import ResponseChart from './ResponseChart.svelte';
   import type { EyeStream } from './streams';
 
-  let { a, live, dsp, adapting, decisions, errors, light, eyes, controls }: {
-    a: LinkAnalysis; live: Metrics; dsp: boolean; adapting: boolean; decisions: number; errors: number; light: boolean; eyes: EyeStream; controls?: Snippet;
+  let { a, live, dsp, adapting, decisions, errors, light, eyes }: {
+    a: LinkAnalysis; live: Metrics; dsp: boolean; adapting: boolean; decisions: number; errors: number; light: boolean; eyes: EyeStream;
   } = $props();
 
   let tab = $state<'eyes' | 'channel'>('eyes');
@@ -52,8 +51,7 @@
   }
 </script>
 
-<aside class="scope" aria-label="Receiver settings and measurements">
-  {@render controls?.()}
+<aside class="scope" aria-label="Receiver measurements">
   <div class="numbers">
     <div class="metric"><span class="label">DSP SNR</span><span class="mono big">{nf(snrDb, 1)}</span><span class="unit">dB</span></div>
     <div class="metric"><span class="label">Pre-FEC BER</span>

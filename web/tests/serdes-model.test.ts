@@ -130,12 +130,12 @@ describe('receiver streams', () => {
 });
 
 describe('112G SerDes lesson registration', () => {
-  it('publishes the lesson in the circuit category with its own thumbnail', async () => {
+  it('publishes the lesson in its own SerDes category with its own thumbnail', async () => {
     const { featuredLessons } = await import('../src/data/illustrations');
     const { isLessonPath, isPublicLessonPath } = await import('../src/data/publication');
     const path = '/serdes/112g-pam4-link/';
     expect(isLessonPath(path)).toBe(true);
     expect(isPublicLessonPath(path)).toBe(true);
-    expect(featuredLessons.find((x) => x.href === path)).toMatchObject({ category: 'Circuits & Systems', thumb: 'serdes' });
+    expect(featuredLessons.find((x) => x.href === path)).toMatchObject({ category: 'SerDes', thumb: 'serdes' });
   });
 });
