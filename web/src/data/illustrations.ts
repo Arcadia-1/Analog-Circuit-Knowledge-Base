@@ -158,7 +158,7 @@ export const related: Topic = {
     {
       href: '/serdes/clock-and-data-recovery/',
       title: 'Clock and data recovery',
-      summary: 'Watch a bang-bang CDR lock onto data, track offset and jitter, and find what it cannot follow.',
+      summary: 'A guided tour from the ground up: why a receiver must find its own clock, how a CDR steers by the data edges, and what it cannot follow.',
       thumb: 'cdr',
       category: 'SerDes',
     },
