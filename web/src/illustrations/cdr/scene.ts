@@ -106,7 +106,8 @@ export class CdrScene {
     this.sun.position.set(-40, 70, 45);
     this.sun.castShadow = true;
     this.sun.shadow.mapSize.set(2048, 2048);
-    Object.assign(this.sun.shadow.camera, { left: -45, right: 45, top: 45, bottom: -45, near: 10, far: 200 });
+    // wide enough for the tunnel at the origin and the belt at x = BX
+    Object.assign(this.sun.shadow.camera, { left: -75, right: 75, top: 75, bottom: -75, near: 10, far: 240 });
     this.sun.shadow.camera.updateProjectionMatrix();
     this.sun.shadow.bias = -0.0005;
     this.scene.add(this.sun, this.sun.target);

@@ -68,7 +68,7 @@
     {
       title: 'Jitter: edges that wobble',
       body: 'Real edges also shift back and forth in time: jitter. A slow wobble is just a clock error that keeps changing, and the loop follows it as before. This one repeats a billion times a second, far too fast for the knob, so the reader stays put and the wobble has to fit inside the bit. (The loop now runs at real-world settings.)',
-      look: 'The blocks stretch and shrink and the dots swing inside them. Past about half a bit of wobble they reach the edges and turn red.',
+      look: 'The blocks drift back and forth under the reader, so the dots swing inside them. Past about half a bit of wobble they reach the edges and turn red.',
       s: { ...CALM, ppm: 0, cdr: true, kp: 1, integral: true, kiLog2: -6, decim: 32, latency: 2, sjUipp: 0.4 },
       view: 'belt', speed: 8, prefill: 2000, action: 'jitter',
     },
