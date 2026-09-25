@@ -1,6 +1,6 @@
 ---
 /** Small schematic previews for the home page. */
-interface Props { kind: 'pll' | 'sar' | 'inl' | 'err' | 'win' | 'fold' | 'ntf' | 'ti' | 'bits' | 'polar' | 'bode' | 'floor' | 'fom' | 'harm' | 'record' | 'repeat' | 'short' | 'train' | 'panel' | 'amplifier' | 'serdes' }
+interface Props { kind: 'pll' | 'sar' | 'inl' | 'err' | 'win' | 'fold' | 'ntf' | 'ti' | 'bits' | 'polar' | 'bode' | 'floor' | 'fom' | 'harm' | 'record' | 'repeat' | 'short' | 'train' | 'panel' | 'amplifier' | 'serdes' | 'cdr' }
 const { kind } = Astro.props;
 const xs = Array.from({ length: 13 }, (_, i) => 6 + i * 14);
 const saw = [-14, -8, -2, 6, 14];
@@ -81,9 +81,20 @@ const pamSmeared = (() => {
   }
   return pts.join(' ');
 })();
+// NRZ data, and the recovered clock whose rising edges land in the middle of each bit
+const cdrBits = [0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1];
+const cdrData = cdrBits.flatMap((b, i) => [`${4 + i * 14},${b ? 18 : 40}`, `${4 + (i + 1) * 14},${b ? 18 : 40}`]).join(' ');
+const cdrClock = cdrBits.flatMap((_, i) => [`${4 + i * 14},${88}`, `${11 + i * 14},${88}`, `${11 + i * 14},${66}`, `${18 + i * 14},${66}`]).join(' ');
 ---
 <svg class="thumb" viewBox="0 0 188 100" aria-hidden="true">
-  {kind === 'serdes' ? (
+  {kind === 'cdr' ? (
+    <>
+      <polyline class="s1 link" points={cdrData} />
+      {cdrBits.map((_, i) => <line class="dash" x1={11 + i * 14} x2={11 + i * 14} y1="44" y2="64" />)}
+      <polyline class="s2 link" points={cdrClock} />
+      {cdrBits.map((_, i) => <circle class="s2" cx={11 + i * 14} cy="29" r="2.2" />)}
+    </>
+  ) : kind === 'serdes' ? (
     <>
       <line class="base" x1="0" x2="188" y1="30" y2="30" />
       <polyline class="s1 link" points={pamSteps} />

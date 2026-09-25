@@ -13,6 +13,7 @@ export const publicLessonPaths = [
   '/pll/integer-vs-fractional/',
   '/amplifiers/open-loop-and-closed-loop/',
   '/serdes/112g-pam4-link/',
+  '/serdes/clock-and-data-recovery/',
 ] as const;
 
 export const publicExternalHrefs = [
