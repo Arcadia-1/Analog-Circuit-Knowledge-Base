@@ -14,6 +14,7 @@ export const publicLessonPaths = [
   '/amplifiers/open-loop-and-closed-loop/',
   '/serdes/112g-pam4-link/',
   '/serdes/clock-and-data-recovery/',
+  '/serdes/pci-express/',
 ] as const;
 
 export const publicExternalHrefs = [

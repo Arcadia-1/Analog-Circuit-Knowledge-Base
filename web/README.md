@@ -71,6 +71,11 @@ Run these in `web/` with Node 22.12 or newer and pnpm 11.
   proportional and integral corrections to a 64-step phase interpolator after a set latency; the page shows phase
   tracking, eyes folded by the recovered and by a free-running clock, cycle slips and bit errors, and the jitter-tolerance
   curve found by bisection. `python/serdes_cdr.py` reproduces the simulation bit for bit, random jitter included.
+- **PCI Express** at `/serdes/pci-express/`. A guided eight-step tour of a PCIe link on a 3-D motherboard: lanes as a
+  pair each way, bytes dealt across x1–x16, the rate and line code of generations 1–7 (8b/10b, 128b/130b, PAM4 flits),
+  a TLP inside its envelopes, ACK/NAK replay after noise damages a packet, and credit-based flow control. The traffic is
+  one direction of the link simulated event by event (credits, sequence numbers, a replay buffer and timer), and
+  `python/serdes_pcie.py` reproduces the rates, the payload shares and the simulated runs.
 
 ## Adding an illustration
 
@@ -105,7 +110,7 @@ the ADCToolbox manual; its home page and tutorial paths redirect to the matching
 ## Editorial and visual direction
 
 Use **Circuits & Systems Classroom** as the site brand. The public catalog is intentionally small: four reviewed ADC
-lessons, one PLL lesson, one amplifier lesson, two SerDes lessons and the selected Bode-plot tool. Other experiments remain available by direct URL with `noindex`
+lessons, one PLL lesson, one amplifier lesson, three SerDes lessons and the selected Bode-plot tool. Other experiments remain available by direct URL with `noindex`
 until they reach the same standard. The ADCToolbox manual remains the reference for the Python API and longer examples.
 
 Each entry has its own schematic preview so readers can recognize the experiment at a glance; model provenance and example

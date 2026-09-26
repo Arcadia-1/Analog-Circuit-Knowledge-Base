@@ -1,0 +1,11 @@
+---
+import Base from '../../layouts/Base.astro';
+import PcieLesson from '../../illustrations/pcie/PcieLesson.svelte';
+import '../../styles/illustration.css';
+---
+<Base
+  title="PCI Express"
+  description="A guided 3-D tour of a PCIe link: lanes and generations, packets and their envelopes, ACK/NAK replay and credit-based flow control, simulated packet by packet."
+>
+  <PcieLesson client:load />
+</Base>
