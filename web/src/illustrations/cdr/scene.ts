@@ -78,6 +78,8 @@ export class CdrScene {
   private readonly lf = new THREE.Vector3(4, 1.6, R + 6);
   private readonly pi = new THREE.Vector3(12, 1.6, R + 6);
   private tween: { p0: THREE.Vector3; t0: THREE.Vector3; p1: THREE.Vector3; t1: THREE.Vector3; k: number; dur: number } | null = null;
+  /** The view the camera was sent to, kept fitted to the stage until the user moves the camera. */
+  private current: CdrView | null = 'belt';
   private spin: boolean;
   private frame = 0;
   private lastUpdate = -1;
@@ -190,6 +192,7 @@ export class CdrScene {
     Object.assign(this.controls, { enableDamping: true, dampingFactor: 0.08, minDistance: 8, maxDistance: 220, maxPolarAngle: Math.PI * 0.49, autoRotateSpeed: 0.45 });
     this.controls.addEventListener('start', () => {
       this.tween = null;
+      this.current = null;
       opts.onUserMove();
     });
     this.resizeObserver = new ResizeObserver(() => this.resize());
@@ -244,6 +247,7 @@ export class CdrScene {
     this.spin = on;
   }
   flyTo(view: CdrView, dur = 1.3): void {
+    this.current = view;
     const { pos, tgt } = this.pose(view);
     this.tween = { p0: this.camera.position.clone(), t0: this.controls.target.clone(), p1: pos, t1: tgt, k: 0, dur: this.reduced ? 0.001 : dur };
   }
@@ -252,7 +256,9 @@ export class CdrScene {
     const [p, t] = VIEWS[view], tgt = new THREE.Vector3(...t);
     if (view !== 'tunnel' && view !== 'belt') return { pos: new THREE.Vector3(...p), tgt };
     const w = this.host.clientWidth || 800, h = this.host.clientHeight || 600, tan = Math.tan(THREE.MathUtils.degToRad(this.camera.fov / 2));
-    const dist = view === 'belt' ? Math.max(8 / tan, (SPAN * L + 3) / (tan * (w / h))) : Math.max(14 / tan, 17 / (tan * (w / h))) * 0.95;
+    // a narrow stage shows fewer bits of the belt rather than shrinking them
+    const beltHalf = w < h ? 11 : SPAN * L + 3;
+    const dist = view === 'belt' ? Math.max(8 / tan, beltHalf / (tan * (w / h))) : Math.max(14 / tan, 17 / (tan * (w / h))) * 0.95;
     return { pos: tgt.clone().addScaledVector(new THREE.Vector3(...p).sub(tgt).normalize(), dist), tgt };
   }
 
@@ -339,6 +345,17 @@ export class CdrScene {
     this.labels.setSize(w, hgt);
     this.camera.aspect = w / hgt;
     this.camera.updateProjectionMatrix();
+    // the stage often settles after the scene is built: refit the view unless the user has taken the camera
+    if (this.current && this.controls) {
+      const { pos, tgt } = this.pose(this.current);
+      if (this.tween) {
+        this.tween.p1 = pos;
+        this.tween.t1 = tgt;
+      } else {
+        this.camera.position.copy(pos);
+        this.controls.target.copy(tgt);
+      }
+    }
   }
 
   /** A strip of (STRIPES × (seg + 1)) vertices wound around the tunnel. */
@@ -441,16 +458,14 @@ export class CdrScene {
       m.castShadow = m === this.blocks;
       this.scene.add(m);
     }
-    // the reading station: a gantry with the reader (green) and the edge checker (white) over the belt
+    // the reading station: an arm from behind the belt, so nothing stands between the camera and the heads
     const metal = new THREE.MeshStandardMaterial({ color: 0x6b7788, roughness: 0.4, metalness: 0.6 });
-    for (const z of [-3.6, 3.6]) {
-      const post = new THREE.Mesh(new THREE.BoxGeometry(0.5, 5.4, 0.5), metal);
-      post.position.set(BX, 2.7, z);
-      post.castShadow = true;
-      this.scene.add(post);
-    }
-    const bar = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.6, 7.8), metal);
-    bar.position.set(BX, 5.4, 0);
+    const post = new THREE.Mesh(new THREE.BoxGeometry(0.5, 5.7, 0.5), metal);
+    post.position.set(BX, 2.85, -3.8);
+    post.castShadow = true;
+    this.scene.add(post);
+    const bar = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.6, 5.9), metal);
+    bar.position.set(BX, 5.4, -1.1);
     bar.castShadow = true;
     this.scene.add(bar);
     const head = (group: THREE.Group, z: number, mat: THREE.MeshBasicMaterial) => {
@@ -616,11 +631,11 @@ export class CdrScene {
   }
   private buildLabels(): void {
     const z = R + 6;
-    this.label('bits arrive →', new THREE.Vector3(BX - SPAN * L - 1, 3.4, 0), 120);
-    this.label('tall = 1 · short = 0', new THREE.Vector3(BX + SPAN * L - 1, 3.4, 0), 120);
-    this.label('Reader', new THREE.Vector3(BX - 2.2, 5.6, -1.2), 120, 'reader');
-    this.cdrLabels.push(this.label('Edge checker', new THREE.Vector3(BX + 2.8, 4.6, 1.2), 120, 'checker'));
-    this.cdrLabels.push(this.label('Timing knob', new THREE.Vector3(BX + 2.6, 6.6, 0), 120));
+    this.label('bits arrive →', new THREE.Vector3(BX - 8.5, 3.4, 0), 160);
+    this.label('tall = 1 · short = 0', new THREE.Vector3(BX + 8.5, 3.4, 0), 160);
+    this.label('Reader', new THREE.Vector3(BX - 2.2, 5.6, -1.2), 160, 'reader');
+    this.cdrLabels.push(this.label('Edge checker', new THREE.Vector3(BX + 2.8, 4.6, 1.2), 160, 'checker'));
+    this.cdrLabels.push(this.label('Timing knob', new THREE.Vector3(BX + 2.6, 6.6, 0), 160));
     this.label('now', new THREE.Vector3(0, H + 1.3, 0));
     this.label('0', new THREE.Vector3(R + 1.8, H, 0), 1e9, 'tick');
     this.label('¼ UI', new THREE.Vector3(0, H, R + 1.8), 1e9, 'tick');
