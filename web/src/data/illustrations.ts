@@ -4,7 +4,7 @@ export interface Illustration {
   href: string;
   title: string;
   summary: string;
-  thumb: 'pll' | 'sar' | 'inl' | 'err' | 'win' | 'fold' | 'ntf' | 'ti' | 'bits' | 'polar' | 'bode' | 'floor' | 'fom' | 'harm' | 'record' | 'repeat' | 'short' | 'train' | 'panel' | 'amplifier' | 'serdes';
+  thumb: 'pll' | 'sar' | 'inl' | 'err' | 'win' | 'fold' | 'ntf' | 'ti' | 'bits' | 'polar' | 'bode' | 'floor' | 'fom' | 'harm' | 'record' | 'repeat' | 'short' | 'train' | 'panel' | 'amplifier' | 'serdes' | 'cdr';
   /** Whose site this is, for a page that is not on this one; it opens in a tab of its own. */
   external?: string;
   /** Public catalog label; assigned only after a lesson passes the editorial gate. */
@@ -153,6 +153,13 @@ export const related: Topic = {
       title: '112G PAM4 SerDes link',
       summary: 'Follow PAM4 symbols through a 3-D chip-to-chip link and equalize the eye.',
       thumb: 'serdes',
+      category: 'SerDes',
+    },
+    {
+      href: '/serdes/clock-and-data-recovery/',
+      title: 'Clock and data recovery',
+      summary: 'A guided tour from the ground up: why a receiver must find its own clock, how a CDR steers by the data edges, and what it cannot follow.',
+      thumb: 'cdr',
       category: 'SerDes',
     },
     {

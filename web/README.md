@@ -62,6 +62,15 @@ Run these in `web/` with Node 22.12 or newer and pnpm 11.
   domain, searches the CTLE and sampling phase for the best SNR and solves a 12-tap MMSE FFE with a one-tap DFE; the eye
   diagrams, error budget and Gaussian-approximation BER follow from it. `python/serdes_112g_link.py` is the NumPy
   reference. three.js loads only on this page, as a lazy chunk.
+- **Clock and data recovery** at `/serdes/clock-and-data-recovery/`. A bang-bang CDR for 56 GBd NRZ, opened by a
+  six-step guided tour for beginners on a slow-motion conveyor belt: bits ride past a reader and an edge checker, and each
+  early/late verdict turns a timing knob (no clock, a clock error, steering by the edges, the integral path, jitter,
+  the real link). The long view is a phase tunnel: height is time, the angle is the phase inside one UI, so a frequency
+  offset winds the data edges into a helix and the recovered edge and data samplers turn with them. The loop votes
+  early/late decisions over 1–32 UI and applies
+  proportional and integral corrections to a 64-step phase interpolator after a set latency; the page shows phase
+  tracking, eyes folded by the recovered and by a free-running clock, cycle slips and bit errors, and the jitter-tolerance
+  curve found by bisection. `python/serdes_cdr.py` reproduces the simulation bit for bit, random jitter included.
 
 ## Adding an illustration
 
@@ -96,7 +105,7 @@ the ADCToolbox manual; its home page and tutorial paths redirect to the matching
 ## Editorial and visual direction
 
 Use **Circuits & Systems Classroom** as the site brand. The public catalog is intentionally small: four reviewed ADC
-lessons, one PLL lesson, one amplifier lesson, one SerDes lesson and the selected Bode-plot tool. Other experiments remain available by direct URL with `noindex`
+lessons, one PLL lesson, one amplifier lesson, two SerDes lessons and the selected Bode-plot tool. Other experiments remain available by direct URL with `noindex`
 until they reach the same standard. The ADCToolbox manual remains the reference for the Python API and longer examples.
 
 Each entry has its own schematic preview so readers can recognize the experiment at a glance; model provenance and example
