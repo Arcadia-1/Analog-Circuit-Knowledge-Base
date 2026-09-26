@@ -4,7 +4,7 @@ export interface Illustration {
   href: string;
   title: string;
   summary: string;
-  thumb: 'pll' | 'sar' | 'inl' | 'err' | 'win' | 'fold' | 'ntf' | 'ti' | 'bits' | 'polar' | 'bode' | 'floor' | 'fom' | 'harm' | 'record' | 'repeat' | 'short' | 'train' | 'panel' | 'amplifier' | 'serdes' | 'cdr';
+  thumb: 'pll' | 'sar' | 'inl' | 'err' | 'win' | 'fold' | 'ntf' | 'ti' | 'bits' | 'polar' | 'bode' | 'floor' | 'fom' | 'harm' | 'record' | 'repeat' | 'short' | 'train' | 'panel' | 'amplifier' | 'serdes' | 'cdr' | 'pcie';
   /** Whose site this is, for a page that is not on this one; it opens in a tab of its own. */
   external?: string;
   /** Public catalog label; assigned only after a lesson passes the editorial gate. */
@@ -160,6 +160,13 @@ export const related: Topic = {
       title: 'Clock and data recovery',
       summary: 'A guided tour from the ground up: why a receiver must find its own clock, how a CDR steers by the data edges, and what it cannot follow.',
       thumb: 'cdr',
+      category: 'SerDes',
+    },
+    {
+      href: '/serdes/pci-express/',
+      title: 'PCI Express',
+      summary: 'A guided tour of a PCIe link in 3-D: lanes and generations, packets in their envelopes, resends after an error, and credits that keep the receiver from overflowing.',
+      thumb: 'pcie',
       category: 'SerDes',
     },
     {

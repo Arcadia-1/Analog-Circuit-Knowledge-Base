@@ -76,7 +76,6 @@ export class CdrScene {
   private readonly labelList: { wrap: HTMLDivElement; world: THREE.Vector3; lod: number; far: boolean }[] = [];
   private readonly pd = new THREE.Vector3(-4, 1.6, R + 6);
   private readonly lf = new THREE.Vector3(4, 1.6, R + 6);
-  private readonly pi = new THREE.Vector3(12, 1.6, R + 6);
   private tween: { p0: THREE.Vector3; t0: THREE.Vector3; p1: THREE.Vector3; t1: THREE.Vector3; k: number; dur: number } | null = null;
   /** The view the camera was sent to, kept fitted to the stage until the user moves the camera. */
   private current: CdrView | null = 'belt';
